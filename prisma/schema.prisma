@@ -1,11 +1,254 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+//////////////////////
+// ENUMS
+//////////////////////
+
+enum Role {
+  ADMIN
+  HR
+  EMPLOYEE
+  COACH
+}
+
+enum CompanyStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum AccountType {
+  BANK
+  CASH
+  WALLET
+  CREDIT_CARD
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum ConsultationStatus {
+  REQUESTED
+  APPROVED
+  COMPLETED
+  CANCELLED
+}
+
+enum UploadStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+//////////////////////
+// CORE TABLES
+//////////////////////
+
+model Company {
+  id                    String                @id @default(uuid())
+  name                  String
+  domain                String?               @unique
+  employeeLimit         Int
+  status                CompanyStatus         @default(ACTIVE)
+  users                 User[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  hrprofiles            HRProfile[]
+  employeeProfiles      EmployeeProfile[]
+  employeeUploadBatches EmployeeUploadBatch[]
+}
+
+model User {
+  id           String    @id @default(uuid())
+  companyId    String?
+  email        String    @unique
+  passwordHash String
+  role         Role
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+
+  company Company? @relation(fields: [companyId], references: [id])
+
+  adminProfile    AdminProfile?
+  hrProfile       HRProfile?
+  employeeProfile EmployeeProfile?
+  coachProfile    CoachProfile?
+
+  accounts      Account[]
+  transactions  Transaction[]
+  notifications Notification[]
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  monthlySummaries      MonthlySummary[]
+  employeeUploadBatches EmployeeUploadBatch[]
+
+  @@index([companyId])
+  @@index([role])
+}
+
+//////////////////////
+// PROFILES
+//////////////////////
+
+model AdminProfile {
+  userId   String @id
+  fullName String
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model HRProfile {
+  userId      String @id
+  companyId   String
+  fullName    String
+  designation String?
+
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+}
+
+model EmployeeProfile {
+  userId        String    @id
+  companyId     String
+  employeeCode  String?
+  fullName      String
+  phone         String?
+  dateOfJoining DateTime?
+
+  user          User           @relation(fields: [userId], references: [id])
+  company       Company        @relation(fields: [companyId], references: [id])
+  accounts      Account[]
+  consultations Consultation[]
+}
+
+model CoachProfile {
+  userId          String  @id
+  specialization  String?
+  experienceYears Int?
+  rating          Float?
+
+  user          User           @relation(fields: [userId], references: [id])
+  consultations Consultation[]
+}
+
+//////////////////////
+// FINANCIAL
+//////////////////////
+
+model Account {
+  id                String      @id @default(uuid())
+  userId            String
+  type              AccountType
+  provider          String?
+  maskedAccountNo   String?
+  createdAt         DateTime    @default(now())
+  employeeProfileUserId String?
+
+  user         User             @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+  employeeProfile EmployeeProfile? @relation(fields: [employeeProfileUserId], references: [userId])
+
+  @@index([userId])
+}
+
+model Transaction {
+  id              String          @id @default(uuid())
+  userId          String
+  accountId       String
+  amount          Decimal         @db.Decimal(12, 2)
+  type            TransactionType
+  category        String
+  description     String?
+  transactionDate DateTime
+  createdAt       DateTime        @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  account Account @relation(fields: [accountId], references: [id])
+
+  @@index([userId])
+  @@index([transactionDate])
+}
+
+model MonthlySummary {
+  id           String   @id @default(uuid())
+  userId       String
+  month        Int
+  year         Int
+  totalIncome  Decimal  @db.Decimal(12, 2)
+  totalExpense Decimal  @db.Decimal(12, 2)
+  savings      Decimal  @db.Decimal(12, 2)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month, year])
+}
+
+//////////////////////
+// WELLNESS
+//////////////////////
+
+model Consultation {
+  id             String             @id @default(uuid())
+  employeeUserId String
+  coachUserId    String
+  status         ConsultationStatus @default(REQUESTED)
+  scheduledAt    DateTime?
+
+  employee EmployeeProfile @relation(fields: [employeeUserId], references: [userId])
+  coach    CoachProfile    @relation(fields: [coachUserId], references: [userId])
+
+  createdAt DateTime @default(now())
+}
+
+//////////////////////
+// HR UPLOAD TRACKING
+//////////////////////
+
+model EmployeeUploadBatch {
+  id             String       @id @default(uuid())
+  fileName       String
+  totalRecords   Int          @default(0)
+  successRecords Int          @default(0)
+  failedRecords  Int          @default(0)
+  status         UploadStatus @default(PENDING)
+  // 🔑 Relations
+  companyId      String
+  company        Company      @relation(fields: [companyId], references: [id])
+  hrUserId       String
+  hrUser         User         @relation(fields: [hrUserId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([companyId])
+  @@index([hrUserId])
+}
+
+//////////////////////
+// NOTIFICATIONS
+//////////////////////
+
+model Notification {
+  id      String  @id @default(uuid())
+  userId  String
+  title   String
+  message String
+  isRead  Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
 }
