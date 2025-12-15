@@ -2,6 +2,8 @@ import { Worker, Job } from 'bullmq';
 import * as XLSX from 'xlsx';
 import * as bcrypt from 'bcrypt';
 import { PrismaClient, Role, UploadStatus } from '@prisma/client';
+import { generateRandomPassword } from '../utils/password.util';
+import { sendCredentialsEmail } from '../mail/mail.service';
 
 const prisma = new PrismaClient();
 
@@ -83,11 +85,6 @@ const worker = new Worker<EmployeeUploadJob>(
         throw new Error('Excel file is empty or has no valid data');
       }
 
-      // Default password (later you should mail reset link)
-      console.log(`[JOB-${job.id}] 🔐 Generating default password hash...`);
-      const passwordHash = await bcrypt.hash('password123', 10);
-      console.log(`[JOB-${job.id}] ✓ Password hash generated`);
-
       console.log(
         `[JOB-${job.id}] 👥 Processing ${rows.length} employee records...`,
       );
@@ -122,6 +119,10 @@ const worker = new Worker<EmployeeUploadJob>(
             continue;
           }
 
+          // Generate random password
+          const plainPassword = generateRandomPassword();
+          const passwordHash = await bcrypt.hash(plainPassword, 10);
+
           // Create employee
           await prisma.user.create({
             data: {
@@ -139,6 +140,17 @@ const worker = new Worker<EmployeeUploadJob>(
               },
             },
           });
+
+          // Send credentials email
+          try {
+            await sendCredentialsEmail(row.email, row.full_name, plainPassword);
+            console.log(`[JOB-${job.id}] ✉️  Email sent to ${row.email}`);
+          } catch (emailErr) {
+            console.warn(
+              `[JOB-${job.id}] ⚠️  Email failed for ${row.email}: ${emailErr instanceof Error ? emailErr.message : String(emailErr)}`,
+            );
+            // Don't fail the job if email fails, just log it
+          }
 
           success++;
           if (success % 10 === 0 || success === rows.length) {
