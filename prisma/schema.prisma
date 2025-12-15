@@ -50,6 +50,12 @@ enum UploadStatus {
   FAILED
 }
 
+enum TransactionSource {
+  MANUAL
+  MOBILE
+  BANK
+}
+
 //////////////////////
 // CORE TABLES
 //////////////////////
@@ -109,7 +115,7 @@ model AdminProfile {
 }
 
 model HRProfile {
-  userId      String @id
+  userId      String  @id
   companyId   String
   fullName    String
   designation String?
@@ -147,52 +153,68 @@ model CoachProfile {
 //////////////////////
 
 model Account {
-  id                String      @id @default(uuid())
-  userId            String
-  type              AccountType
-  provider          String?
-  maskedAccountNo   String?
-  createdAt         DateTime    @default(now())
+  id              String      @id @default(uuid())
+  userId          String
+  employeeUserId  String?
+  companyId       String
+  type            AccountType
+  provider        String?
+  maskedAccountNo String?
+  createdAt       DateTime    @default(now())
+
+  user                  User             @relation(fields: [userId], references: [id])
+  transactions          Transaction[]
+  employeeProfile       EmployeeProfile? @relation(fields: [employeeProfileUserId], references: [userId])
   employeeProfileUserId String?
 
-  user         User             @relation(fields: [userId], references: [id])
-  transactions Transaction[]
-  employeeProfile EmployeeProfile? @relation(fields: [employeeProfileUserId], references: [userId])
-
   @@index([userId])
+  @@index([companyId])
 }
 
 model Transaction {
-  id              String          @id @default(uuid())
-  userId          String
-  accountId       String
-  amount          Decimal         @db.Decimal(12, 2)
-  type            TransactionType
-  category        String
-  description     String?
+  id        String @id @default(uuid())
+  userId    String
+  companyId String
+  accountId String
+
+  amount      Decimal           @db.Decimal(12, 2)
+  type        TransactionType
+  category    String
+  subCategory String?
+  source      TransactionSource
+  description String?
+
   transactionDate DateTime
-  createdAt       DateTime        @default(now())
+  createdAt       DateTime @default(now())
 
   user    User    @relation(fields: [userId], references: [id])
   account Account @relation(fields: [accountId], references: [id])
 
-  @@index([userId])
-  @@index([transactionDate])
+  @@index([userId, transactionDate])
+  @@index([companyId])
 }
 
 model MonthlySummary {
-  id           String   @id @default(uuid())
-  userId       String
-  month        Int
-  year         Int
-  totalIncome  Decimal  @db.Decimal(12, 2)
-  totalExpense Decimal  @db.Decimal(12, 2)
-  savings      Decimal  @db.Decimal(12, 2)
-  createdAt    DateTime @default(now())
+  id        String @id @default(uuid())
+  userId    String
+  companyId String
+
+  month       Int
+  year        Int
+  periodStart DateTime
+  periodEnd   DateTime
+
+  totalIncome  Decimal @db.Decimal(12, 2)
+  totalExpense Decimal @db.Decimal(12, 2)
+  savings      Decimal @db.Decimal(12, 2)
+
+  categoryBreakdown Json
+  createdAt         DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, month, year])
+  @@index([companyId])
 }
 
 //////////////////////
