@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { BulkCreateTransactionDto } from './dto/bulk-create-transaction.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { ValidatedUser } from '../../common/types/user.types';
@@ -25,6 +26,14 @@ export class TransactionsController {
     @Body() dto: CreateTransactionDto,
   ) {
     return this.service.create(user, dto);
+  }
+
+  @Post('bulk')
+  bulkCreate(
+    @CurrentUser() user: ValidatedUser,
+    @Body() dto: BulkCreateTransactionDto,
+  ) {
+    return this.service.bulkCreate(user, dto);
   }
 
   @Get()
