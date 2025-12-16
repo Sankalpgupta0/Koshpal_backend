@@ -17,6 +17,8 @@
     "start:prod": "node dist/main",
     "worker:dev": "ts-node src/workers/employee-upload.worker.ts",
     "worker:prod": "node dist/workers/employee-upload.worker.js",
+    "insights-worker:dev": "ts-node src/workers/monthly-insights.worker.ts",
+    "insights-worker:prod": "node dist/workers/monthly-insights.worker.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
