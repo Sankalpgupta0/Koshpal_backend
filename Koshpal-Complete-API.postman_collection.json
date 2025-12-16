@@ -1,0 +1,4342 @@
+{
+  "info": {
+    "name": "Koshpal Backend - Complete API Collection",
+    "description": "Complete API collection with all endpoints - consistent routes and comprehensive test scenarios",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.0.0",
+    "_postman_id": "koshpal-backend-api-v2"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "accountId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "transactionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "hrToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "employeeToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "employeeAccountId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "coachToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "coachId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "slotId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "description": "Basic application health check"
+          },
+          "response": []
+        },
+        {
+          "name": "Database Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health/db",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health",
+                "db"
+              ]
+            },
+            "description": "Check database connectivity"
+          },
+          "response": []
+        },
+        {
+          "name": "Redis Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health/redis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health",
+                "redis"
+              ]
+            },
+            "description": "Check Redis connectivity"
+          },
+          "response": []
+        }
+      ],
+      "description": "Basic health check endpoint"
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.accessToken);",
+                  "    console.log('\u2713 Access token saved');",
+                  "    pm.test('Login successful', function() {",
+                  "        pm.expect(jsonData).to.have.property('accessToken');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@koshpal.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with admin credentials. Token is automatically saved to collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Invalid Credentials",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@koshpal.com\",\n  \"password\": \"wrongpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Test login with invalid password - should return 401"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Missing Fields",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@koshpal.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Test login without password - should return 400"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Get authenticated user information"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User - Unauthorized",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Test without authentication token - should return 401"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.accessToken);",
+                  "    console.log('\u2713 New access token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Refresh access token using refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout (client should delete tokens)"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me",
+                "password"
+              ]
+            },
+            "description": "Change current user password"
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints for login and user management"
+    },
+    {
+      "name": "Admin Portal",
+      "item": [
+        {
+          "name": "Companies",
+          "item": [
+            {
+              "name": "Create Company",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"TechCorp Ltd\",\n  \"employeeLimit\": 150\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/companies",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "companies"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Companies",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/companies",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "companies"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Company by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/companies/:companyId",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "companies",
+                    ":companyId"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Company Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/companies/:companyId/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "companies",
+                    ":companyId",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Company Limits",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"employeeLimit\": 200\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/companies/:companyId/limits",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "companies",
+                    ":companyId",
+                    "limits"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "HRs",
+          "item": [
+            {
+              "name": "Create HR User",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"hr@techcorp.com\",\n  \"password\": \"password123\",\n  \"companyId\": \"company-id-here\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/hrs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "hrs"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All HRs",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/hrs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "hrs"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get HR by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/hrs/:hrId",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "hrs",
+                    ":hrId"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update HR Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/hrs/:hrId/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "hrs",
+                    ":hrId",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Get Platform Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "HR - Employee Management",
+      "item": [
+        {
+          "name": "Upload Employees - Excel File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Excel file (.xlsx) with columns: email, full_name, employee_code, phone"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/employees/upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "employees",
+                "upload"
+              ]
+            },
+            "description": "Upload Excel file with employee data. Requires HR role. Processes in background via BullMQ.\n\nRequired columns:\n- email (required)\n- full_name (required)\n- employee_code (optional)\n- phone (optional)"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Employees - No File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/employees/upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "employees",
+                "upload"
+              ]
+            },
+            "description": "Test without file - should return 400"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Employees - Wrong File Type",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Upload non-.xlsx file (e.g., .csv, .txt)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/employees/upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "employees",
+                "upload"
+              ]
+            },
+            "description": "Test with wrong file type - should return 400"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Uploads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/uploads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "uploads"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Upload Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/uploads/:batchId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "uploads",
+                ":batchId"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/employees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "employees"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/employees/:employeeId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "employees",
+                ":employeeId"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Employee Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/employees/:employeeId/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "employees",
+                ":employeeId",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Insights Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/insights/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "insights",
+                "summary"
+              ]
+            },
+            "description": "Aggregated financial insights for all employees in company"
+          },
+          "response": []
+        }
+      ],
+      "description": "HR module for employee bulk upload and management"
+    },
+    {
+      "name": "Employee Portal",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Financial Goals",
+          "item": [
+            {
+              "name": "Get All Goals",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/goals",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "goals"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Goal",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"goalName\": \"Vacation\",\n  \"goalAmount\": 50000,\n  \"targetDate\": \"2025-12-31\",\n  \"currentAmount\": 10000,\n  \"icon\": \"\\u2708\\ufe0f\",\n  \"color\": \"#4CAF50\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/goals",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "goals"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Goal",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"goalName\": \"Vacation Updated\",\n  \"currentAmount\": 20000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/goals/:goalId",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "goals",
+                    ":goalId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "goalId",
+                      "value": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Goal",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/goals/:goalId",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "goals",
+                    ":goalId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "goalId",
+                      "value": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"phone\": \"+91 98765 43210\",\n  \"dateOfBirth\": \"1990-01-15\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accounts",
+          "item": [
+            {
+              "name": "Create Account",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"BANK\",\n  \"provider\": \"HDFC Bank\",\n  \"balance\": 50000,\n  \"maskedAccountNo\": \"****1234\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/accounts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "accounts"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Accounts",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/accounts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "accounts"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Account",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"balance\": 75000\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/accounts/:accountId",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "accounts",
+                    ":accountId"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Account",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/accounts/:accountId",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "accounts",
+                    ":accountId"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Transactions",
+          "item": [
+            {
+              "name": "Create Transaction",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"{{employeeAccountId}}\",\n  \"amount\": 5000,\n  \"type\": \"INCOME\",\n  \"category\": \"SALARY\",\n  \"source\": \"MANUAL\",\n  \"description\": \"Monthly salary\",\n  \"transactionDate\": \"2024-01-15T10:00:00Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/transactions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "transactions"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Transactions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/transactions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "transactions"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Transaction by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/transactions/:transactionId",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "transactions",
+                    ":transactionId"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Transaction",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/transactions/:transactionId",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "transactions",
+                    ":transactionId"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Insights",
+          "item": [
+            {
+              "name": "Get Latest Summary",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/insights/summary",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "insights",
+                    "summary"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Category Breakdown",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/insights/categories?month=1&year=2024",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "insights",
+                    "categories"
+                  ],
+                  "query": [
+                    {
+                      "key": "month",
+                      "value": "1"
+                    },
+                    {
+                      "key": "year",
+                      "value": "2024"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Spending Trends",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/employee/insights/trend?months=6",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "employee",
+                    "insights",
+                    "trend"
+                  ],
+                  "query": [
+                    {
+                      "key": "months",
+                      "value": "6"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Coach Portal",
+      "item": [
+        {
+          "name": "Create Availability Slots",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData && jsonData.length > 0) {",
+                  "        pm.collectionVariables.set('slotId', jsonData[0].id);",
+                  "        console.log('\u2713 Slot ID saved:', jsonData[0].id);",
+                  "    }",
+                  "    pm.test('Slots created', function() {",
+                  "        pm.expect(jsonData).to.be.an('array');",
+                  "        pm.expect(jsonData.length).to.be.greaterThan(0);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2025-12-20\",\n  \"timeSlots\": [\n    {\n      \"startTime\": \"09:00\",\n      \"endTime\": \"10:00\"\n    },\n    {\n      \"startTime\": \"10:00\",\n      \"endTime\": \"11:00\"\n    },\n    {\n      \"startTime\": \"14:00\",\n      \"endTime\": \"15:00\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/slots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "slots"
+              ]
+            },
+            "description": "Create availability slots for coach. Each slot must be exactly 1 hour. System validates for overlapping slots."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coach Slots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/slots?date=2025-12-20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "slots"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2025-12-20",
+                  "description": "Filter by specific date (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Get all slots for the authenticated coach. Optional date filter."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Coach Slots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/slots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "slots"
+              ]
+            },
+            "description": "Get all slots for the authenticated coach (no date filter)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Coach slot management - Create and view availability slots"
+    },
+    {
+      "name": "Employee Consultations",
+      "item": [
+        {
+          "name": "Get All Coaches",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData && jsonData.length > 0) {",
+                  "        pm.collectionVariables.set('coachId', jsonData[0].userId);",
+                  "        console.log('\u2713 Coach ID saved:', jsonData[0].userId);",
+                  "    }",
+                  "    pm.test('Coaches retrieved', function() {",
+                  "        pm.expect(jsonData).to.be.an('array');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/coaches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "coaches"
+              ]
+            },
+            "description": "Get list of all active coaches with their profiles (expertise, bio, etc.)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coach Available Slots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/coaches/{{coachId}}/slots?date=2025-12-20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "coaches",
+                "{{coachId}}",
+                "slots"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2025-12-20",
+                  "description": "Filter by specific date (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Get available slots for a specific coach. Only returns AVAILABLE status slots. Optional date filter."
+          },
+          "response": []
+        },
+        {
+          "name": "Book Consultation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.test('Consultation booked', function() {",
+                  "        pm.expect(jsonData).to.have.property('id');",
+                  "        pm.expect(jsonData).to.have.property('meetingLink');",
+                  "        pm.expect(jsonData.status).to.equal('CONFIRMED');",
+                  "    });",
+                  "    console.log('\u2713 Booking ID:', jsonData.id);",
+                  "    console.log('\u2713 Meeting Link:', jsonData.meetingLink);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"{{slotId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/book",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                "book"
+              ]
+            },
+            "description": "Book a consultation with a coach using an available slot ID. Returns booking details with meeting link. Triggers email notifications to both coach and employee."
+          },
+          "response": []
+        }
+      ],
+      "description": "Employee consultation booking - List coaches, view slots, and book consultations"
+    },
+    {
+      "name": "Authorization Testing",
+      "item": [
+        {
+          "name": "Setup - Login as HR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('hrToken', jsonData.accessToken);",
+                  "    console.log('\u2713 HR token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hr@koshpal.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as HR user to test HR restrictions"
+          },
+          "response": []
+        },
+        {
+          "name": "Setup - Login as Employee",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('employeeToken', jsonData.accessToken);",
+                  "    console.log('\u2713 Employee token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"employee@koshpal.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as Employee user to test employee access"
+          },
+          "response": []
+        },
+        {
+          "name": "Setup - Login as Coach",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('coachToken', jsonData.accessToken);",
+                  "    console.log('\u2713 Coach token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"coach@koshpal.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as Coach user to test coach access and manage slots"
+          },
+          "response": []
+        },
+        {
+          "name": "Setup - Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('adminToken', jsonData.accessToken);",
+                  "    console.log('\u2713 Admin token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@koshpal.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as Admin to test full access"
+          },
+          "response": []
+        },
+        {
+          "name": "HR Blocked - Get Accounts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HR blocked from accounts', function() {",
+                  "    pm.expect(pm.response.code).to.equal(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hrToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts"
+              ]
+            },
+            "description": "HR should be blocked from accessing accounts - expects 403 Forbidden"
+          },
+          "response": []
+        },
+        {
+          "name": "HR Blocked - Create Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HR blocked from creating account', function() {",
+                  "    pm.expect(pm.response.code).to.equal(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hrToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"BANK\",\n  \"provider\": \"Test Bank\",\n  \"maskedAccountNo\": \"****1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts"
+              ]
+            },
+            "description": "HR should be blocked from creating accounts - expects 403 Forbidden"
+          },
+          "response": []
+        },
+        {
+          "name": "HR Blocked - Get Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HR blocked from transactions', function() {",
+                  "    pm.expect(pm.response.code).to.equal(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hrToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions"
+              ]
+            },
+            "description": "HR should be blocked from accessing transactions - expects 403 Forbidden"
+          },
+          "response": []
+        },
+        {
+          "name": "HR Blocked - Create Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HR blocked from creating transaction', function() {",
+                  "    pm.expect(pm.response.code).to.equal(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hrToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"test-account-id\",\n  \"amount\": 1000,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Food\",\n  \"source\": \"MANUAL\",\n  \"transactionDate\": \"2025-12-16\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions"
+              ]
+            },
+            "description": "HR should be blocked from creating transactions - expects 403 Forbidden"
+          },
+          "response": []
+        },
+        {
+          "name": "HR Blocked - Get Insights",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HR blocked from insights', function() {",
+                  "    pm.expect(pm.response.code).to.equal(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hrToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "insights",
+                "monthly"
+              ]
+            },
+            "description": "HR should be blocked from accessing insights - expects 403 Forbidden"
+          },
+          "response": []
+        },
+        {
+          "name": "HR Blocked - Get Latest Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HR blocked from latest summary', function() {",
+                  "    pm.expect(pm.response.code).to.equal(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hrToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "insights",
+                "monthly",
+                "latest"
+              ]
+            },
+            "description": "HR should be blocked from latest summary - expects 403 Forbidden"
+          },
+          "response": []
+        },
+        {
+          "name": "HR Blocked - Generate Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HR blocked from generating summary', function() {",
+                  "    pm.expect(pm.response.code).to.equal(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hrToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month\": 12,\n  \"year\": 2025\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "insights",
+                "generate"
+              ]
+            },
+            "description": "HR should be blocked from generating summaries - expects 403 Forbidden"
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get Own Accounts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Employee can access own accounts', function() {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    console.log('\u2713 Employee accessed own accounts:', jsonData.length, 'accounts');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{employeeToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts"
+              ]
+            },
+            "description": "Employee should access only their own accounts - expects 200 with filtered data"
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get Own Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Employee can access own transactions', function() {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    console.log('\u2713 Employee accessed own transactions:', jsonData.length, 'transactions');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{employeeToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions"
+              ]
+            },
+            "description": "Employee should access only their own transactions - expects 200 with filtered data"
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get Own Insights",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Employee can access own insights', function() {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    console.log('\u2713 Employee accessed own insights:', jsonData.length, 'summaries');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{employeeToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "insights",
+                "monthly"
+              ]
+            },
+            "description": "Employee should access only their own insights - expects 200 with filtered data"
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Create Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Employee can create account', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.collectionVariables.set('employeeAccountId', jsonData.id);",
+                  "    console.log('\u2713 Employee created account:', jsonData.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{employeeToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"WALLET\",\n  \"provider\": \"Test Wallet\",\n  \"maskedAccountNo\": \"****5678\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts"
+              ]
+            },
+            "description": "Employee should create account with auto-injected userId and companyId"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get All Accounts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin can access all accounts', function() {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    console.log('\u2713 Admin accessed all accounts:', jsonData.length, 'total accounts');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts"
+              ]
+            },
+            "description": "Admin should access all accounts across all companies - no filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get All Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin can access all transactions', function() {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    console.log('\u2713 Admin accessed all transactions:', jsonData.length, 'total transactions');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions"
+              ]
+            },
+            "description": "Admin should access all transactions across all companies - no filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get All Insights",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin can access all insights', function() {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    console.log('\u2713 Admin accessed all insights:', jsonData.length, 'total summaries');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "insights",
+                "monthly"
+              ]
+            },
+            "description": "Admin should access all insights across all companies - no filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Unauthorized - No Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Request without token fails', function() {",
+                  "    pm.expect(pm.response.code).to.equal(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounts"
+              ]
+            },
+            "description": "Request without authentication token should return 401 Unauthorized"
+          },
+          "response": []
+        }
+      ],
+      "description": "Comprehensive authorization testing - HR blocking, employee isolation, and admin access"
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "Create Account - Bank",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accountId', jsonData.id);",
+                  "    console.log('\u2713 Account ID saved:', jsonData.id);",
+                  "    pm.test('Account created', function() {",
+                  "        pm.expect(jsonData).to.have.property('id');",
+                  "        pm.expect(jsonData.type).to.equal('BANK');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"BANK\",\n  \"provider\": \"HDFC Bank\",\n  \"maskedAccountNo\": \"****1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Create a bank account. Account ID is auto-saved to collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Account - Cash",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CASH\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Create a cash account (minimal required fields)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Account - Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"WALLET\",\n  \"provider\": \"PayPal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Create a digital wallet account"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Account - Credit Card",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CREDIT_CARD\",\n  \"provider\": \"Visa\",\n  \"maskedAccountNo\": \"****5678\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Create a credit card account"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Account - Invalid Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"INVALID_TYPE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Test with invalid account type - should return 400 validation error"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Accounts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Get all accounts for authenticated user with transaction counts"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Account by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountId}}"
+              ]
+            },
+            "description": "Get specific account details by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Account - Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            },
+            "description": "Test with non-existent account ID - should return 404"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountId}}"
+              ]
+            },
+            "description": "Delete account (only allowed if no transactions exist)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Account - With Transactions",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountId}}"
+              ]
+            },
+            "description": "Try to delete account with transactions - should return 400 error with protection message"
+          },
+          "response": []
+        }
+      ],
+      "description": "Account management endpoints - Create, Read, Delete accounts"
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Create Transaction - Income",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('transactionId', jsonData.id);",
+                  "    console.log('\u2713 Transaction ID saved:', jsonData.id);",
+                  "    pm.test('Transaction created', function() {",
+                  "        pm.expect(jsonData).to.have.property('id');",
+                  "        pm.expect(jsonData.type).to.equal('INCOME');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 50000,\n  \"type\": \"INCOME\",\n  \"category\": \"Salary\",\n  \"subCategory\": \"Monthly Salary\",\n  \"source\": \"BANK\",\n  \"description\": \"December 2025 salary\",\n  \"transactionDate\": \"2025-12-01T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Create an income transaction. Transaction ID is auto-saved. Triggers monthly summary generation."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Transaction - Expense (Food)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 2500,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Food\",\n  \"subCategory\": \"Groceries\",\n  \"source\": \"BANK\",\n  \"description\": \"Weekly grocery shopping\",\n  \"transactionDate\": \"2025-12-15T10:30:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Create food expense transaction"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Transaction - Expense (Transportation)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 1500,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Transportation\",\n  \"source\": \"MOBILE\",\n  \"description\": \"Uber rides for the week\",\n  \"transactionDate\": \"2025-12-14T18:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Create transportation expense with MOBILE source"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Transaction - Manual Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 500,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Entertainment\",\n  \"source\": \"MANUAL\",\n  \"transactionDate\": \"2025-12-13T20:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Create manual transaction entry with minimal fields"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Transaction - Bills",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 3500,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Bills\",\n  \"subCategory\": \"Utilities\",\n  \"source\": \"BANK\",\n  \"description\": \"Electricity and water bill\",\n  \"transactionDate\": \"2025-12-05T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Create bills expense transaction"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Transaction - Invalid Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"00000000-0000-0000-0000-000000000000\",\n  \"amount\": 1000,\n  \"type\": \"INCOME\",\n  \"category\": \"Test\",\n  \"source\": \"MANUAL\",\n  \"transactionDate\": \"2025-12-15T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Test with non-existent account - should return 403 forbidden"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Transaction - Invalid Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 1000,\n  \"type\": \"CREDIT\",\n  \"category\": \"Test\",\n  \"source\": \"MANUAL\",\n  \"transactionDate\": \"2025-12-15T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Test with invalid type (must be INCOME or EXPENSE) - should return 400"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Create Transactions - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('\u2713 Bulk transactions created:', jsonData.count);",
+                  "    pm.test('Bulk transactions created successfully', function() {",
+                  "        pm.expect(jsonData).to.have.property('count');",
+                  "        pm.expect(jsonData).to.have.property('transactions');",
+                  "        pm.expect(jsonData.transactions).to.be.an('array');",
+                  "        pm.expect(jsonData.count).to.equal(jsonData.transactions.length);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactions\": [\n    {\n      \"accountId\": \"{{accountId}}\",\n      \"amount\": 5000,\n      \"type\": \"INCOME\",\n      \"category\": \"Freelance\",\n      \"subCategory\": \"Project Payment\",\n      \"source\": \"BANK\",\n      \"description\": \"Website development project\",\n      \"transactionDate\": \"2025-12-10T00:00:00.000Z\"\n    },\n    {\n      \"accountId\": \"{{accountId}}\",\n      \"amount\": 1200,\n      \"type\": \"EXPENSE\",\n      \"category\": \"Shopping\",\n      \"subCategory\": \"Clothing\",\n      \"source\": \"MOBILE\",\n      \"description\": \"Winter jacket\",\n      \"transactionDate\": \"2025-12-11T00:00:00.000Z\"\n    },\n    {\n      \"accountId\": \"{{accountId}}\",\n      \"amount\": 800,\n      \"type\": \"EXPENSE\",\n      \"category\": \"Food\",\n      \"subCategory\": \"Dining\",\n      \"source\": \"BANK\",\n      \"description\": \"Restaurant dinner\",\n      \"transactionDate\": \"2025-12-12T00:00:00.000Z\"\n    },\n    {\n      \"accountId\": \"{{accountId}}\",\n      \"amount\": 2500,\n      \"type\": \"EXPENSE\",\n      \"category\": \"Bills\",\n      \"subCategory\": \"Internet\",\n      \"source\": \"BANK\",\n      \"description\": \"Monthly internet bill\",\n      \"transactionDate\": \"2025-12-05T00:00:00.000Z\"\n    },\n    {\n      \"accountId\": \"{{accountId}}\",\n      \"amount\": 500,\n      \"type\": \"EXPENSE\",\n      \"category\": \"Transportation\",\n      \"source\": \"MANUAL\",\n      \"description\": \"Fuel\",\n      \"transactionDate\": \"2025-12-13T00:00:00.000Z\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "bulk"
+              ]
+            },
+            "description": "Create multiple transactions in a single request. Auto-triggers monthly summary generation for unique month-year combinations."
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Create Transactions - Mixed Accounts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactions\": [\n    {\n      \"accountId\": \"{{accountId}}\",\n      \"amount\": 3000,\n      \"type\": \"EXPENSE\",\n      \"category\": \"Healthcare\",\n      \"subCategory\": \"Pharmacy\",\n      \"source\": \"BANK\",\n      \"description\": \"Monthly medications\",\n      \"transactionDate\": \"2025-11-15T00:00:00.000Z\"\n    },\n    {\n      \"accountId\": \"{{accountId}}\",\n      \"amount\": 15000,\n      \"type\": \"INCOME\",\n      \"category\": \"Investment\",\n      \"subCategory\": \"Dividends\",\n      \"source\": \"BANK\",\n      \"description\": \"Quarterly dividends\",\n      \"transactionDate\": \"2025-11-20T00:00:00.000Z\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "bulk"
+              ]
+            },
+            "description": "Create bulk transactions across different months - triggers multiple summary generations"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Create - Empty Array",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactions\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "bulk"
+              ]
+            },
+            "description": "Test with empty array - should return 400 validation error"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Create - Invalid Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactions\": [\n    {\n      \"accountId\": \"00000000-0000-0000-0000-000000000000\",\n      \"amount\": 1000,\n      \"type\": \"INCOME\",\n      \"category\": \"Test\",\n      \"source\": \"MANUAL\",\n      \"transactionDate\": \"2025-12-15T00:00:00.000Z\"\n    },\n    {\n      \"accountId\": \"{{accountId}}\",\n      \"amount\": 500,\n      \"type\": \"EXPENSE\",\n      \"category\": \"Test\",\n      \"source\": \"MANUAL\",\n      \"transactionDate\": \"2025-12-15T00:00:00.000Z\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "bulk"
+              ]
+            },
+            "description": "Test with invalid account ID in bulk - should return 400 with detailed error message"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Create - Invalid Transaction Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactions\": [\n    {\n      \"accountId\": \"{{accountId}}\",\n      \"amount\": 1000,\n      \"type\": \"INVALID_TYPE\",\n      \"category\": \"Test\",\n      \"source\": \"MANUAL\",\n      \"transactionDate\": \"2025-12-15T00:00:00.000Z\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "bulk"
+              ]
+            },
+            "description": "Test with invalid transaction type in array - should return 400 validation error"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Get all transactions for authenticated user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transactions - Filter by Type (INCOME)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?type=INCOME",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "INCOME"
+                }
+              ]
+            },
+            "description": "Filter transactions by type - INCOME only"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transactions - Filter by Type (EXPENSE)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?type=EXPENSE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "EXPENSE"
+                }
+              ]
+            },
+            "description": "Filter transactions by type - EXPENSE only"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transactions - Filter by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?category=Food",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Food"
+                }
+              ]
+            },
+            "description": "Filter by category (case-insensitive partial match)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transactions - Filter by Account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?accountId={{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "accountId",
+                  "value": "{{accountId}}"
+                }
+              ]
+            },
+            "description": "Filter transactions for specific account"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transactions - Multiple Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?type=EXPENSE&category=Food&accountId={{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "EXPENSE"
+                },
+                {
+                  "key": "category",
+                  "value": "Food"
+                },
+                {
+                  "key": "accountId",
+                  "value": "{{accountId}}"
+                }
+              ]
+            },
+            "description": "Combine multiple filters (AND operation)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transaction by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/{{transactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}"
+              ]
+            },
+            "description": "Get specific transaction with account details"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transaction - Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            },
+            "description": "Test with non-existent transaction ID - should return 404"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Transaction",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/{{transactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}"
+              ]
+            },
+            "description": "Delete a transaction by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Transaction - Already Deleted",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/{{transactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}"
+              ]
+            },
+            "description": "Try to delete already deleted transaction - should return 404"
+          },
+          "response": []
+        }
+      ],
+      "description": "Transaction management - Create, Read, Delete with filtering capabilities"
+    },
+    {
+      "name": "Insights & Monthly Summary",
+      "item": [
+        {
+          "name": "Get All Monthly Summaries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "monthly"
+              ]
+            },
+            "description": "Get all monthly summaries for authenticated user (ordered by year, month desc)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Monthly Summaries - Filter by Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly?year=2025",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "monthly"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2025"
+                }
+              ]
+            },
+            "description": "Get monthly summaries for specific year"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Monthly Summaries - Filter by Month & Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly?year=2025&month=12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "monthly"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2025"
+                },
+                {
+                  "key": "month",
+                  "value": "12"
+                }
+              ]
+            },
+            "description": "Get monthly summary for specific month and year"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Latest Monthly Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "monthly",
+                "latest"
+              ]
+            },
+            "description": "Get the most recent monthly summary with savings rate"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Latest - No Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "monthly",
+                "latest"
+              ]
+            },
+            "description": "Test when no summaries exist - should return 404"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Yearly Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly/year/2025?year=2025",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "monthly",
+                "year",
+                "2025"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2025"
+                }
+              ]
+            },
+            "description": "Get aggregated yearly summary with monthly breakdown and category totals"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Yearly Summary - No Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/monthly/year/2024?year=2024",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "monthly",
+                "year",
+                "2024"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2024"
+                }
+              ]
+            },
+            "description": "Test with year that has no data - should return 404"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category Breakdown - All Time",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/category-breakdown",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "category-breakdown"
+              ]
+            },
+            "description": "Get expense category breakdown across all time periods"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category Breakdown - By Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/category-breakdown?year=2025",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "category-breakdown"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2025"
+                }
+              ]
+            },
+            "description": "Get category breakdown for specific year with percentages"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category Breakdown - By Month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/category-breakdown?year=2025&month=12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "category-breakdown"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2025"
+                },
+                {
+                  "key": "month",
+                  "value": "12"
+                }
+              ]
+            },
+            "description": "Get category breakdown for specific month"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Spending Trends - Last 6 Months",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/trends",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "trends"
+              ]
+            },
+            "description": "Get spending trends for last 6 months (default) with averages"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Spending Trends - Last 12 Months",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/trends?months=12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "trends"
+              ],
+              "query": [
+                {
+                  "key": "months",
+                  "value": "12"
+                }
+              ]
+            },
+            "description": "Get spending trends for last 12 months"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Spending Trends - Last 3 Months",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/trends?months=3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "trends"
+              ],
+              "query": [
+                {
+                  "key": "months",
+                  "value": "3"
+                }
+              ]
+            },
+            "description": "Get spending trends for last 3 months"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Monthly Summary - Manual",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month\": 12,\n  \"year\": 2025\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "generate"
+              ]
+            },
+            "description": "Manually generate/regenerate monthly summary for specific period"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Summary - Invalid Month",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month\": 13,\n  \"year\": 2025\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "generate"
+              ]
+            },
+            "description": "Test with invalid month (must be 1-12) - should return 400"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Summary - Missing Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month\": 12\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/insights/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "insights",
+                "generate"
+              ]
+            },
+            "description": "Test with missing year field - should return 400"
+          },
+          "response": []
+        },
+        {
+          "name": "Budget",
+          "item": [
+            {
+              "name": "Update Budget",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"month\": 12,\n  \"year\": 2024,\n  \"budget\": 50000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/insights/budget",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "insights",
+                    "budget"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Budget",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/insights/budget?month=12&year=2024",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "insights",
+                    "budget"
+                  ],
+                  "query": [
+                    {
+                      "key": "month",
+                      "value": "12"
+                    },
+                    {
+                      "key": "year",
+                      "value": "2024"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ],
+      "description": "Financial insights and analytics - monthly summaries, trends, and category analysis"
+    },
+    {
+      "name": "Integration Tests",
+      "item": [
+        {
+          "name": "Complete Flow - Account to Insights",
+          "item": [
+            {
+              "name": "1. Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Login successful', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.have.property('accessToken');",
+                      "    pm.collectionVariables.set('accessToken', jsonData.accessToken);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@koshpal.com\",\n  \"password\": \"password123\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Create Bank Account",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Account created', function() {",
+                      "    pm.response.to.have.status(201);",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.have.property('id');",
+                      "    pm.collectionVariables.set('accountId', jsonData.id);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"BANK\",\n  \"provider\": \"Test Bank\",\n  \"maskedAccountNo\": \"****9999\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/accounts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "accounts"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Create Income Transaction",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Income transaction created', function() {",
+                      "    pm.response.to.have.status(201);",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.type).to.equal('INCOME');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 10000,\n  \"type\": \"INCOME\",\n  \"category\": \"Salary\",\n  \"source\": \"BANK\",\n  \"transactionDate\": \"2025-12-15T00:00:00.000Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/transactions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "transactions"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "4. Create Expense Transaction",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Expense transaction created', function() {",
+                      "    pm.response.to.have.status(201);",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.type).to.equal('EXPENSE');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 3000,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Food\",\n  \"source\": \"BANK\",\n  \"transactionDate\": \"2025-12-15T00:00:00.000Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/transactions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "transactions"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "5. Verify Account has Transactions",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Account has transactions', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData._count.transactions).to.be.at.least(2);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/accounts/{{accountId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "accounts",
+                    "{{accountId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "6. Get All Transactions",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Transactions retrieved', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an('array');",
+                      "    pm.expect(jsonData.length).to.be.at.least(2);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/transactions?accountId={{accountId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "transactions"
+                  ],
+                  "query": [
+                    {
+                      "key": "accountId",
+                      "value": "{{accountId}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "7. Generate Monthly Summary",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Monthly summary generated', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.have.property('totalIncome');",
+                      "    pm.expect(jsonData).to.have.property('totalExpense');",
+                      "    pm.expect(jsonData).to.have.property('savings');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"month\": 12,\n  \"year\": 2025\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/insights/generate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "insights",
+                    "generate"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "8. Verify Monthly Summary Exists",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Monthly summary exists', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.month).to.equal(12);",
+                      "    pm.expect(jsonData.year).to.equal(2025);",
+                      "    pm.expect(jsonData).to.have.property('savingsRate');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/insights/monthly/latest",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "insights",
+                    "monthly",
+                    "latest"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ],
+      "description": "End-to-end integration tests for complete user workflows"
+    },
+    {
+      "name": "Coaches & Consultations",
+      "item": [
+        {
+          "name": "Employee - Get All Coaches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/coaches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "coaches"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get Coach Slots",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/coaches/{{coachId}}/slots?date=2025-12-18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "coaches",
+                "{{coachId}}",
+                "slots"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2025-12-18",
+                  "description": "Date in YYYY-MM-DD format"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Book Consultation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"{{slotId}}\",\n  \"notes\": \"Looking forward to discussing my financial goals\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/book",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                "book"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coach - Create Slots",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{coachToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2025-12-20\",\n  \"timeSlots\": [\n    {\n      \"startTime\": \"09:00\",\n      \"endTime\": \"10:00\"\n    },\n    {\n      \"startTime\": \"10:00\",\n      \"endTime\": \"11:00\"\n    },\n    {\n      \"startTime\": \"14:00\",\n      \"endTime\": \"15:00\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/slots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "slots"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coach - Get My Slots",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{coachToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/slots?date=2025-12-18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "slots"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2025-12-18",
+                  "description": "Optional: Filter by specific date"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coach - Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.accessToken) {",
+                  "        pm.collectionVariables.set('coachToken', response.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.refreshToken);",
+                  "        console.log('Coach tokens saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"priya.sharma@koshpal.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

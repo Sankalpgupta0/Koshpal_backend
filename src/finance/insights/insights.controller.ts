@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Query,
   UseGuards,
   UseInterceptors,
@@ -18,8 +19,9 @@ import { ScopedPrismaInterceptor } from '../../common/interceptors/scoped-prisma
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { ValidatedUser } from '../../common/types/user.types';
 import { GenerateSummaryDto } from './dto/generate-summary.dto';
+import { UpdateBudgetDto } from './dto/update-budget.dto';
 
-@Controller('insights')
+@Controller('api/v1/insights')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @UseInterceptors(ScopedPrismaInterceptor)
 @Roles(Role.EMPLOYEE, Role.ADMIN)
@@ -86,6 +88,33 @@ export class InsightsController {
       user.companyId,
       dto.month,
       dto.year,
+    );
+  }
+
+  @Patch('budget')
+  async updateBudget(
+    @CurrentUser() user: ValidatedUser,
+    @Body() dto: UpdateBudgetDto,
+  ) {
+    return this.insightsService.updateBudget(
+      user.userId,
+      user.companyId,
+      dto.month,
+      dto.year,
+      dto.budget,
+    );
+  }
+
+  @Get('budget')
+  async getBudget(
+    @CurrentUser() user: ValidatedUser,
+    @Query('month') month: string,
+    @Query('year') year: string,
+  ) {
+    return this.insightsService.getBudget(
+      user.userId,
+      parseInt(month),
+      parseInt(year),
     );
   }
 }

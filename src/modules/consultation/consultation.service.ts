@@ -30,8 +30,15 @@ export class ConsultationService {
         email: true,
         coachProfile: {
           select: {
+            fullName: true,
             expertise: true,
             bio: true,
+            rating: true,
+            successRate: true,
+            clientsHelped: true,
+            location: true,
+            languages: true,
+            profilePhoto: true,
           },
         },
       },
@@ -40,8 +47,15 @@ export class ConsultationService {
     return coaches.map((coach) => ({
       id: coach.id,
       email: coach.email,
-      expertise: coach.coachProfile?.expertise,
+      fullName: coach.coachProfile?.fullName,
+      expertise: coach.coachProfile?.expertise || [],
       bio: coach.coachProfile?.bio,
+      rating: coach.coachProfile?.rating ? parseFloat(coach.coachProfile.rating.toString()) : 0,
+      successRate: coach.coachProfile?.successRate || 0,
+      clientsHelped: coach.coachProfile?.clientsHelped || 0,
+      location: coach.coachProfile?.location,
+      languages: coach.coachProfile?.languages || [],
+      profilePhoto: coach.coachProfile?.profilePhoto,
     }));
   }
 

@@ -26,12 +26,12 @@ import { validate } from './common/config/env.validation';
       {
         name: 'default',
         ttl: 60000, // 60 seconds
-        limit: 100, // 100 requests per minute
+        limit: 2000, // 2000 requests per minute
       },
       {
         name: 'strict',
         ttl: 60000,
-        limit: 10, // 10 requests per minute for auth endpoints
+        limit: 100, // 100 requests per minute for auth endpoints
       },
     ]),
     PrismaModule,

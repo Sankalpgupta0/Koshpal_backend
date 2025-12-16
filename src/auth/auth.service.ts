@@ -13,6 +13,12 @@ export class AuthService {
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
+      include: {
+        employeeProfile: true,
+        hrProfile: true,
+        adminProfile: true,
+        coachProfile: true,
+      },
     });
 
     if (!user || !user.isActive) {
@@ -33,9 +39,27 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
+    // Get profile based on role
+    let fullName = email;
+    if (user.employeeProfile) {
+      fullName = user.employeeProfile.fullName;
+    } else if (user.hrProfile) {
+      fullName = user.hrProfile.fullName;
+    } else if (user.adminProfile) {
+      fullName = user.adminProfile.fullName;
+    }
+
     return {
       accessToken,
       refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+        name: fullName,
+        isActive: user.isActive,
+      },
     };
   }
 

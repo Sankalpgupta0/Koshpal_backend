@@ -18,7 +18,7 @@ import { Role } from '../../common/enums/role.enum';
 import { ScopedPrismaInterceptor } from '../../common/interceptors/scoped-prisma.interceptor';
 import type { ValidatedUser } from '../../common/types/user.types';
 
-@Controller('accounts')
+@Controller('api/v1/accounts')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @UseInterceptors(ScopedPrismaInterceptor)
 @Roles(Role.EMPLOYEE, Role.ADMIN)

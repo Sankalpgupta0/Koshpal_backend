@@ -44,6 +44,7 @@ export class InsightsService {
       totalIncome: summary.totalIncome.toNumber(),
       totalExpense: summary.totalExpense.toNumber(),
       savings: summary.savings.toNumber(),
+      budget: summary.budget.toNumber(),
       savingsRate: this.calculateSavingsRate(
         summary.totalIncome,
         summary.savings,
@@ -69,6 +70,7 @@ export class InsightsService {
       totalIncome: summary.totalIncome.toNumber(),
       totalExpense: summary.totalExpense.toNumber(),
       savings: summary.savings.toNumber(),
+      budget: summary.budget.toNumber(),
       savingsRate: this.calculateSavingsRate(
         summary.totalIncome,
         summary.savings,
@@ -338,6 +340,114 @@ export class InsightsService {
         summary.totalIncome,
         summary.savings,
       ),
+    };
+  }
+
+  /**
+   * Update budget for a specific month
+   */
+  async updateBudget(
+    userId: string,
+    companyId: string,
+    month: number,
+    year: number,
+    budget: number,
+  ) {
+    // Check if monthly summary exists, if not create it
+    const existingSummary = await this.prisma.monthlySummary.findUnique({
+      where: {
+        userId_month_year: {
+          userId,
+          month,
+          year,
+        },
+      },
+    });
+
+    if (existingSummary) {
+      // Update existing summary
+      const updated = await this.prisma.monthlySummary.update({
+        where: {
+          userId_month_year: {
+            userId,
+            month,
+            year,
+          },
+        },
+        data: {
+          budget: new Decimal(budget),
+        },
+      });
+
+      return {
+        ...updated,
+        totalIncome: updated.totalIncome.toNumber(),
+        totalExpense: updated.totalExpense.toNumber(),
+        savings: updated.savings.toNumber(),
+        budget: updated.budget.toNumber(),
+      };
+    } else {
+      // Create new summary with budget
+      const periodStart = new Date(year, month - 1, 1);
+      const periodEnd = new Date(year, month, 0, 23, 59, 59);
+
+      const created = await this.prisma.monthlySummary.create({
+        data: {
+          userId,
+          companyId,
+          month,
+          year,
+          periodStart,
+          periodEnd,
+          totalIncome: new Decimal(0),
+          totalExpense: new Decimal(0),
+          savings: new Decimal(0),
+          budget: new Decimal(budget),
+          categoryBreakdown: {},
+        },
+      });
+
+      return {
+        ...created,
+        totalIncome: created.totalIncome.toNumber(),
+        totalExpense: created.totalExpense.toNumber(),
+        savings: created.savings.toNumber(),
+        budget: created.budget.toNumber(),
+      };
+    }
+  }
+
+  /**
+   * Get budget for a specific month
+   */
+  async getBudget(userId: string, month: number, year: number) {
+    const summary = await this.prisma.monthlySummary.findUnique({
+      where: {
+        userId_month_year: {
+          userId,
+          month,
+          year,
+        },
+      },
+      select: {
+        budget: true,
+        month: true,
+        year: true,
+      },
+    });
+
+    if (!summary) {
+      return {
+        month,
+        year,
+        budget: 0,
+      };
+    }
+
+    return {
+      month: summary.month,
+      year: summary.year,
+      budget: summary.budget.toNumber(),
     };
   }
 

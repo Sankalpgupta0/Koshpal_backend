@@ -138,9 +138,16 @@ model EmployeeProfile {
 }
 
 model CoachProfile {
-  userId     String   @id
-  expertise  String?
-  bio        String?
+  userId          String   @id
+  fullName        String
+  expertise       String[]
+  bio             String?
+  rating          Decimal  @db.Decimal(3, 2) @default(0)
+  successRate     Int      @default(0)
+  clientsHelped   Int      @default(0)
+  location        String?
+  languages       String[]
+  profilePhoto    String?
 
   user       User     @relation(fields: [userId], references: [id])
   slots      CoachSlot[]
@@ -206,9 +213,11 @@ model MonthlySummary {
   totalIncome  Decimal @db.Decimal(12, 2)
   totalExpense Decimal @db.Decimal(12, 2)
   savings      Decimal @db.Decimal(12, 2)
+  budget       Decimal @db.Decimal(12, 2) @default(0)
 
   categoryBreakdown Json
   createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
@@ -302,4 +311,22 @@ enum SlotStatus {
   AVAILABLE
   BOOKED
   BLOCKED
+}
+
+//////////////////////
+// FINANCIAL GOALS
+//////////////////////
+
+model FinancialGoal {
+  id          String   @id @default(uuid())
+  userId      String
+  goalName    String
+  icon        String
+  goalAmount  Decimal  @db.Decimal(12, 2)
+  saving      Decimal  @db.Decimal(12, 2) @default(0)
+  goalDate    DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
