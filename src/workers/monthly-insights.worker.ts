@@ -47,7 +47,9 @@ const worker = new Worker<MonthlyInsightJob>(
       const month = date.getMonth() + 1; // 1-12
       const year = date.getFullYear();
 
-      console.log(`[JOB-${job.id}] 📅 Processing period: ${year}-${month.toString().padStart(2, '0')}`);
+      console.log(
+        `[JOB-${job.id}] 📅 Processing period: ${year}-${month.toString().padStart(2, '0')}`,
+      );
 
       // Calculate period boundaries
       const periodStart = new Date(year, month - 1, 1);
@@ -68,17 +70,27 @@ const worker = new Worker<MonthlyInsightJob>(
         },
       });
 
-      console.log(`[JOB-${job.id}] ✓ Found ${transactions.length} transactions`);
+      console.log(
+        `[JOB-${job.id}] ✓ Found ${transactions.length} transactions`,
+      );
 
       if (transactions.length === 0) {
-        console.log(`[JOB-${job.id}] ⚠️  No transactions found for this period, skipping summary generation`);
-        console.log(`[JOB-${job.id}] ✅ Completed in ${Date.now() - startTime}ms`);
+        console.log(
+          `[JOB-${job.id}] ⚠️  No transactions found for this period, skipping summary generation`,
+        );
+        console.log(
+          `[JOB-${job.id}] ✅ Completed in ${Date.now() - startTime}ms`,
+        );
         return;
       }
 
       // Calculate totals
-      const incomeTransactions = transactions.filter((t) => t.type === 'INCOME');
-      const expenseTransactions = transactions.filter((t) => t.type === 'EXPENSE');
+      const incomeTransactions = transactions.filter(
+        (t) => t.type === 'INCOME',
+      );
+      const expenseTransactions = transactions.filter(
+        (t) => t.type === 'EXPENSE',
+      );
 
       const totalIncome = incomeTransactions.reduce(
         (sum, t) => sum + t.amount.toNumber(),
@@ -93,8 +105,12 @@ const worker = new Worker<MonthlyInsightJob>(
       const savings = totalIncome - totalExpense;
 
       console.log(`[JOB-${job.id}] 💰 Calculations:`);
-      console.log(`[JOB-${job.id}]    Income: ₹${totalIncome.toFixed(2)} (${incomeTransactions.length} txns)`);
-      console.log(`[JOB-${job.id}]    Expense: ₹${totalExpense.toFixed(2)} (${expenseTransactions.length} txns)`);
+      console.log(
+        `[JOB-${job.id}]    Income: ₹${totalIncome.toFixed(2)} (${incomeTransactions.length} txns)`,
+      );
+      console.log(
+        `[JOB-${job.id}]    Expense: ₹${totalExpense.toFixed(2)} (${expenseTransactions.length} txns)`,
+      );
       console.log(`[JOB-${job.id}]    Savings: ₹${savings.toFixed(2)}`);
 
       // Calculate category breakdown (expenses only)
@@ -121,7 +137,9 @@ const worker = new Worker<MonthlyInsightJob>(
         }))
         .sort((a, b) => b.amount - a.amount);
 
-      console.log(`[JOB-${job.id}] ✓ Category breakdown: ${categoryBreakdown.length} categories`);
+      console.log(
+        `[JOB-${job.id}] ✓ Category breakdown: ${categoryBreakdown.length} categories`,
+      );
       categoryBreakdown.forEach((cat) => {
         console.log(
           `[JOB-${job.id}]    - ${cat.category}: ₹${cat.amount.toFixed(2)} (${cat.percentage.toFixed(1)}%)`,
@@ -144,6 +162,7 @@ const worker = new Worker<MonthlyInsightJob>(
           totalIncome: new Decimal(totalIncome),
           totalExpense: new Decimal(totalExpense),
           savings: new Decimal(savings),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           categoryBreakdown: JSON.parse(JSON.stringify(categoryBreakdown)),
         },
         create: {
@@ -156,6 +175,7 @@ const worker = new Worker<MonthlyInsightJob>(
           totalIncome: new Decimal(totalIncome),
           totalExpense: new Decimal(totalExpense),
           savings: new Decimal(savings),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           categoryBreakdown: JSON.parse(JSON.stringify(categoryBreakdown)),
         },
       });
@@ -166,7 +186,10 @@ const worker = new Worker<MonthlyInsightJob>(
       console.log(`[JOB-${job.id}] ⏱️  Completed in ${duration}ms`);
       console.log('='.repeat(60) + '\n');
     } catch (error) {
-      console.error(`[JOB-${job.id}] ❌ Error processing monthly insights:`, error);
+      console.error(
+        `[JOB-${job.id}] ❌ Error processing monthly insights:`,
+        error,
+      );
       console.log('='.repeat(60) + '\n');
       throw error; // Re-throw to let BullMQ handle retries
     }
@@ -198,6 +221,7 @@ worker.on('error', (err) => {
 });
 
 // Graceful shutdown
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 process.on('SIGINT', async () => {
   console.log('\n🛑 [WORKER] Shutting down gracefully...');
   await worker.close();
@@ -206,4 +230,6 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-console.log('✅ [WORKER] Monthly Insights Worker is ready and listening for jobs');
+console.log(
+  '✅ [WORKER] Monthly Insights Worker is ready and listening for jobs',
+);

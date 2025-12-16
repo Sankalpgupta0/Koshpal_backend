@@ -162,4 +162,165 @@ export class HrService {
       updatedAt: batch.updatedAt,
     }));
   }
+
+  async getEmployees(companyId: string) {
+    return this.prisma.user.findMany({
+      where: {
+        companyId,
+        role: 'EMPLOYEE',
+      },
+      select: {
+        id: true,
+        email: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getEmployee(id: string, companyId: string) {
+    const employee = await this.prisma.user.findFirst({
+      where: {
+        id,
+        companyId,
+        role: 'EMPLOYEE',
+      },
+      select: {
+        id: true,
+        email: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!employee) {
+      throw new BadRequestException('Employee not found');
+    }
+
+    return employee;
+  }
+
+  async updateEmployeeStatus(id: string, companyId: string, status: boolean) {
+    const employee = await this.prisma.user.findFirst({
+      where: {
+        id,
+        companyId,
+        role: 'EMPLOYEE',
+      },
+    });
+
+    if (!employee) {
+      throw new BadRequestException('Employee not found');
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { isActive: status },
+      select: {
+        id: true,
+        email: true,
+        isActive: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async getCompanyInsightsSummary(companyId: string) {
+    // Get aggregated insights for all employees in the company
+    const summaries = await this.prisma.monthlySummary.findMany({
+      where: {
+        user: {
+          companyId,
+          role: 'EMPLOYEE',
+        },
+      },
+      select: {
+        month: true,
+        year: true,
+        totalIncome: true,
+        totalExpense: true,
+        savings: true,
+      },
+    });
+
+    if (summaries.length === 0) {
+      return {
+        totalEmployees: 0,
+        aggregatedIncome: 0,
+        aggregatedExpense: 0,
+        aggregatedSavings: 0,
+        monthlySummaries: [],
+      };
+    }
+
+    // Count total employees with financial data
+    const employeeCount = await this.prisma.user.count({
+      where: {
+        companyId,
+        role: 'EMPLOYEE',
+        transactions: {
+          some: {},
+        },
+      },
+    });
+
+    // Aggregate by month/year
+    const monthlyAggregates = summaries.reduce((acc, summary) => {
+      const key = `${summary.year}-${summary.month}`;
+      if (!acc[key]) {
+        acc[key] = {
+          month: summary.month,
+          year: summary.year,
+          totalIncome: 0,
+          totalExpense: 0,
+          netSavings: 0,
+        };
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      acc[key].totalIncome += Number(summary.totalIncome);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      acc[key].totalExpense += Number(summary.totalExpense);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      acc[key].netSavings += Number(summary.savings);
+      return acc;
+    }, {});
+
+    const monthlySummaries = Object.values(monthlyAggregates).sort(
+      (a: any, b: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (a.year !== b.year) return b.year - a.year;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        return b.month - a.month;
+      },
+    );
+
+    interface MonthlyTotal {
+      totalIncome: number;
+      totalExpense: number;
+      totalSavings: number;
+    }
+
+    const totals = monthlySummaries.reduce<MonthlyTotal>(
+      (acc, month: any) => ({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        totalIncome: acc.totalIncome + month.totalIncome,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        totalExpense: acc.totalExpense + month.totalExpense,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        totalSavings: acc.totalSavings + month.netSavings,
+      }),
+      { totalIncome: 0, totalExpense: 0, totalSavings: 0 },
+    );
+
+    return {
+      totalEmployees: employeeCount,
+      aggregatedIncome: totals.totalIncome,
+      aggregatedExpense: totals.totalExpense,
+      aggregatedSavings: totals.totalSavings,
+      monthlySummaries: monthlySummaries.slice(0, 12), // Last 12 months
+    };
+  }
 }

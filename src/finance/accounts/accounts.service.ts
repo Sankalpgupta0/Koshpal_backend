@@ -1,25 +1,34 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { ScopedPrismaService } from '../../common/services/scoped-prisma.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { ValidatedUser } from '../../common/types/user.types';
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/require-await */
+
 @Injectable()
 export class AccountsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: ScopedPrismaService) {}
 
   async create(user: ValidatedUser, dto: CreateAccountDto) {
     return this.prisma.account.create({
       data: {
-        userId: user.userId,
-        companyId: user.companyId,
         ...dto,
-      },
+      } as any,
     });
   }
 
-  async findUserAccounts(userId: string) {
+  async findUserAccounts(_userId: string) {
     return this.prisma.account.findMany({
-      where: { userId },
+      where: {},
       include: {
         _count: {
           select: { transactions: true },
@@ -28,11 +37,10 @@ export class AccountsService {
     });
   }
 
-  async findOne(userId: string, accountId: string) {
+  async findOne(_userId: string, accountId: string) {
     const account = await this.prisma.account.findFirst({
       where: {
         id: accountId,
-        userId,
       },
       include: {
         _count: {
@@ -48,12 +56,11 @@ export class AccountsService {
     return account;
   }
 
-  async remove(userId: string, accountId: string) {
+  async remove(_userId: string, accountId: string) {
     // First check if account exists and belongs to user
     const account = await this.prisma.account.findFirst({
       where: {
         id: accountId,
-        userId,
       },
       include: {
         _count: {
@@ -67,7 +74,7 @@ export class AccountsService {
     }
 
     // Prevent deletion if account has transactions
-    if (account._count.transactions > 0) {
+    if (account?._count?.transactions > 0) {
       throw new BadRequestException(
         `Cannot delete account with ${account._count.transactions} transaction(s). Delete transactions first.`,
       );

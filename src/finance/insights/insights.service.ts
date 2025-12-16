@@ -1,6 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { ScopedPrismaService } from '../../common/services/scoped-prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
+
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 
 interface CategoryBreakdown {
   category: string;
@@ -11,18 +18,14 @@ interface CategoryBreakdown {
 
 @Injectable()
 export class InsightsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: ScopedPrismaService) {}
 
   /**
    * Get monthly summaries for a user
    * Can filter by year and month
    */
-  async getMonthlySummaries(
-    userId: string,
-    year?: number,
-    month?: number,
-  ) {
-    const where: any = { userId };
+  async getMonthlySummaries(_userId: string, year?: number, month?: number) {
+    const where: any = {};
 
     if (year !== undefined) {
       where.year = year;
@@ -51,9 +54,9 @@ export class InsightsService {
   /**
    * Get the most recent monthly summary
    */
-  async getLatestMonthlySummary(userId: string) {
+  async getLatestMonthlySummary(_userId: string) {
     const summary = await this.prisma.monthlySummary.findFirst({
-      where: { userId },
+      where: {},
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
     });
 
@@ -76,9 +79,9 @@ export class InsightsService {
   /**
    * Get yearly summary aggregating all months
    */
-  async getYearlySummary(userId: string, year: number) {
+  async getYearlySummary(_userId: string, year: number) {
     const summaries = await this.prisma.monthlySummary.findMany({
-      where: { userId, year },
+      where: { year },
       orderBy: { month: 'asc' },
     });
 
@@ -99,7 +102,7 @@ export class InsightsService {
     // Aggregate category breakdown across all months
     const categoryMap = new Map<string, number>();
     summaries.forEach((summary) => {
-      const breakdown = summary.categoryBreakdown as any as CategoryBreakdown[];
+      const breakdown = summary.categoryBreakdown as CategoryBreakdown[];
       breakdown.forEach((cat) => {
         const current = categoryMap.get(cat.category) || 0;
         categoryMap.set(cat.category, current + cat.amount);
@@ -134,12 +137,8 @@ export class InsightsService {
   /**
    * Get detailed category breakdown
    */
-  async getCategoryBreakdown(
-    userId: string,
-    year?: number,
-    month?: number,
-  ) {
-    const where: any = { userId };
+  async getCategoryBreakdown(_userId: string, year?: number, month?: number) {
+    const where: any = {};
     if (year !== undefined) where.year = year;
     if (month !== undefined) where.month = month;
 
@@ -157,9 +156,12 @@ export class InsightsService {
     let totalExpense = 0;
 
     summaries.forEach((summary) => {
-      const breakdown = summary.categoryBreakdown as any as CategoryBreakdown[];
+      const breakdown = summary.categoryBreakdown as CategoryBreakdown[];
       breakdown.forEach((cat) => {
-        const current = categoryMap.get(cat.category) || { amount: 0, count: 0 };
+        const current = categoryMap.get(cat.category) || {
+          amount: 0,
+          count: 0,
+        };
         categoryMap.set(cat.category, {
           amount: current.amount + cat.amount,
           count: current.count + cat.transactionCount,
@@ -193,9 +195,9 @@ export class InsightsService {
   /**
    * Get spending trends over time
    */
-  async getSpendingTrends(userId: string, months: number = 6) {
+  async getSpendingTrends(_userId: string, months: number = 6) {
     const summaries = await this.prisma.monthlySummary.findMany({
-      where: { userId },
+      where: {},
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
       take: months,
     });
@@ -204,20 +206,18 @@ export class InsightsService {
       throw new NotFoundException('No historical data available');
     }
 
-    const trends = summaries
-      .reverse()
-      .map((summary) => ({
-        period: `${summary.year}-${summary.month.toString().padStart(2, '0')}`,
-        year: summary.year,
-        month: summary.month,
-        totalIncome: summary.totalIncome.toNumber(),
-        totalExpense: summary.totalExpense.toNumber(),
-        savings: summary.savings.toNumber(),
-        savingsRate: this.calculateSavingsRate(
-          summary.totalIncome,
-          summary.savings,
-        ),
-      }));
+    const trends = summaries.reverse().map((summary) => ({
+      period: `${summary.year}-${summary.month.toString().padStart(2, '0')}`,
+      year: summary.year,
+      month: summary.month,
+      totalIncome: summary.totalIncome.toNumber(),
+      totalExpense: summary.totalExpense.toNumber(),
+      savings: summary.savings.toNumber(),
+      savingsRate: this.calculateSavingsRate(
+        summary.totalIncome,
+        summary.savings,
+      ),
+    }));
 
     // Calculate averages
     const avgIncome =
@@ -255,7 +255,6 @@ export class InsightsService {
     // Get all transactions for the period
     const transactions = await this.prisma.transaction.findMany({
       where: {
-        userId,
         transactionDate: {
           gte: periodStart,
           lte: periodEnd,
@@ -275,10 +274,7 @@ export class InsightsService {
     const savings = totalIncome - totalExpense;
 
     // Calculate category breakdown (expenses only)
-    const categoryMap = new Map<
-      string,
-      { amount: number; count: number }
-    >();
+    const categoryMap = new Map<string, { amount: number; count: number }>();
 
     transactions
       .filter((t) => t.type === 'EXPENSE')

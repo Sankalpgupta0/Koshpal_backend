@@ -93,11 +93,31 @@ async function main() {
     });
   }
 
+  // 5️⃣ Coach
+  await prisma.user.upsert({
+    where: { email: 'coach@koshpal.com' },
+    update: {},
+    create: {
+      email: 'coach@koshpal.com',
+      passwordHash,
+      role: Role.COACH,
+      isActive: true,
+      coachProfile: {
+        create: {
+          specialization: 'Financial Planning & Wellness',
+          experienceYears: 8,
+          rating: 4.8,
+        },
+      },
+    },
+  });
+
   console.log('✅ Seed completed');
   console.log('🔐 Test logins (password: password123)');
   console.log('ADMIN → admin@koshpal.com');
   console.log('HR → hr@koshpal.com');
   console.log('EMP → emp1@koshpal.com / emp2@koshpal.com');
+  console.log('COACH → coach@koshpal.com');
 }
 
 main()

@@ -4,16 +4,25 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
   Body,
 } from '@nestjs/common';
 import { InsightsService } from './insights.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { Role } from '../../common/enums/role.enum';
+import { ScopedPrismaInterceptor } from '../../common/interceptors/scoped-prisma.interceptor';
+
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { ValidatedUser } from '../../common/types/user.types';
 import { GenerateSummaryDto } from './dto/generate-summary.dto';
 
 @Controller('insights')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@UseInterceptors(ScopedPrismaInterceptor)
+@Roles(Role.EMPLOYEE, Role.ADMIN)
 export class InsightsController {
   constructor(private readonly insightsService: InsightsService) {}
 
@@ -40,10 +49,7 @@ export class InsightsController {
     @CurrentUser() user: ValidatedUser,
     @Query('year') year: string,
   ) {
-    return this.insightsService.getYearlySummary(
-      user.userId,
-      parseInt(year),
-    );
+    return this.insightsService.getYearlySummary(user.userId, parseInt(year));
   }
 
   @Get('category-breakdown')

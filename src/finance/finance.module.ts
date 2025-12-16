@@ -6,6 +6,7 @@ import { TransactionsController } from './transactions/transactions.controller';
 import { TransactionsService } from './transactions/transactions.service';
 import { InsightsController } from './insights/insights.controller';
 import { InsightsService } from './insights/insights.service';
+import { ScopedPrismaService } from '../common/services/scoped-prisma.service';
 
 @Module({
   imports: [
@@ -14,6 +15,17 @@ import { InsightsService } from './insights/insights.service';
     }),
   ],
   controllers: [AccountsController, TransactionsController, InsightsController],
-  providers: [AccountsService, TransactionsService, InsightsService],
+  providers: [
+    AccountsService,
+    TransactionsService,
+    InsightsService,
+    ScopedPrismaService,
+  ],
+  exports: [
+    AccountsService,
+    TransactionsService,
+    InsightsService,
+    ScopedPrismaService,
+  ],
 })
 export class FinanceModule {}

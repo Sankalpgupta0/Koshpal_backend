@@ -8,6 +8,10 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { HrModule } from './modules/hr/hr.module';
 import { FinanceModule } from './finance/finance.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { EmployeeModule } from './modules/employee/employee.module';
+import { CoachModule } from './modules/coach/coach.module';
+import { HealthModule } from './common/health/health.module';
 import { validate } from './common/config/env.validation';
 
 @Module({
@@ -31,8 +35,12 @@ import { validate } from './common/config/env.validation';
     ]),
     PrismaModule,
     AuthModule,
+    AdminModule,
     HrModule,
+    EmployeeModule,
+    CoachModule,
     FinanceModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

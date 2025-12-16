@@ -7,16 +7,23 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { BulkCreateTransactionDto } from './dto/bulk-create-transaction.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { Role } from '../../common/enums/role.enum';
+import { ScopedPrismaInterceptor } from '../../common/interceptors/scoped-prisma.interceptor';
 import type { ValidatedUser } from '../../common/types/user.types';
 
 @Controller('transactions')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@UseInterceptors(ScopedPrismaInterceptor)
+@Roles(Role.EMPLOYEE, Role.ADMIN)
 export class TransactionsController {
   constructor(private readonly service: TransactionsService) {}
 
@@ -51,10 +58,7 @@ export class TransactionsController {
   }
 
   @Get(':id')
-  getTransaction(
-    @CurrentUser() user: ValidatedUser,
-    @Param('id') id: string,
-  ) {
+  getTransaction(@CurrentUser() user: ValidatedUser, @Param('id') id: string) {
     return this.service.findOne(user.userId, id);
   }
 

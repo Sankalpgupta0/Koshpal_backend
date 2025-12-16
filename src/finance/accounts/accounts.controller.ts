@@ -6,15 +6,22 @@ import {
   Body,
   Param,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { Role } from '../../common/enums/role.enum';
+import { ScopedPrismaInterceptor } from '../../common/interceptors/scoped-prisma.interceptor';
 import type { ValidatedUser } from '../../common/types/user.types';
 
 @Controller('accounts')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@UseInterceptors(ScopedPrismaInterceptor)
+@Roles(Role.EMPLOYEE, Role.ADMIN)
 export class AccountsController {
   constructor(private readonly service: AccountsService) {}
 
