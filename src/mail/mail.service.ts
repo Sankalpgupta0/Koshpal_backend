@@ -112,6 +112,38 @@ export async function sendCredentialsEmail(
 }
 
 /**
+ * Send a generic email
+ * @param options - Email options (to, subject, html)
+ */
+export async function sendEmail(options: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<void> {
+  const emailTransporter = getTransporter();
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM || '"Koshpal" <no-reply@koshpal.com>',
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+  };
+
+  try {
+    const info = (await emailTransporter.sendMail(mailOptions)) as {
+      messageId?: string;
+    };
+    const messageId = info.messageId || 'unknown';
+    console.log(`[MAIL] Email sent to ${options.to}: ${messageId}`);
+  } catch (error) {
+    console.error(`[MAIL] Failed to send email to ${options.to}:`, error);
+    throw new Error(
+      `Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    );
+  }
+}
+
+/**
  * Verify SMTP connection
  * @returns Promise<boolean> true if connection successful
  */

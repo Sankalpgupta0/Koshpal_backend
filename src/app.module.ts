@@ -11,6 +11,7 @@ import { FinanceModule } from './finance/finance.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { EmployeeModule } from './modules/employee/employee.module';
 import { CoachModule } from './modules/coach/coach.module';
+import { ConsultationModule } from './modules/consultation/consultation.module';
 import { HealthModule } from './common/health/health.module';
 import { validate } from './common/config/env.validation';
 
@@ -39,6 +40,7 @@ import { validate } from './common/config/env.validation';
     HrModule,
     EmployeeModule,
     CoachModule,
+    ConsultationModule,
     FinanceModule,
     HealthModule,
   ],

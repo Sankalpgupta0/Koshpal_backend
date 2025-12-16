@@ -1,4 +1,5 @@
 import { PrismaClient, Role, CompanyStatus } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -104,10 +105,9 @@ async function main() {
       isActive: true,
       coachProfile: {
         create: {
-          specialization: 'Financial Planning & Wellness',
-          experienceYears: 8,
-          rating: 4.8,
-        },
+          expertise: 'Financial Planning & Wellness',
+          bio: 'Experienced financial coach specializing in employee wellness',
+        } as Prisma.CoachProfileCreateWithoutUserInput,
       },
     },
   });

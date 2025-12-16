@@ -1,48 +1,71 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { ConsultationStatus } from './dto/coach.dto';
+import { CreateCoachSlotDto } from './dto/create-coach-slot.dto';
 
 @Injectable()
 export class CoachService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async getConsultationRequests(coachId: string) {
-    // For MVP, return mock data or placeholder
-    // In production, this would query a consultationRequests table
+  async createSlots(coachId: string, dto: CreateCoachSlotDto) {
+    const date = new Date(dto.date);
+    date.setHours(0, 0, 0, 0);
+
+    const slots = dto.timeSlots.map((timeSlot) => {
+      const startTime = new Date(`${dto.date}T${timeSlot.startTime}`);
+      const endTime = new Date(`${dto.date}T${timeSlot.endTime}`);
+
+      const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+      if (duration !== 60) {
+        throw new BadRequestException('Each slot must be exactly 1 hour');
+      }
+
+      return {
+        coachId,
+        date,
+        startTime,
+        endTime,
+      };
+    });
+
+    const existingSlots = await this.prisma.coachSlot.findMany({
+      where: {
+        coachId,
+        date,
+        OR: slots.map((slot) => ({
+          AND: [
+            { startTime: { lte: slot.endTime } },
+            { endTime: { gte: slot.startTime } },
+          ],
+        })),
+      },
+    });
+
+    if (existingSlots.length > 0) {
+      throw new BadRequestException('Overlapping slots detected');
+    }
+
+    const created = await this.prisma.coachSlot.createMany({
+      data: slots,
+    });
+
     return {
-      message: 'Coach consultation requests feature coming soon',
-      coachId,
-      requests: [],
+      message: 'Slots created successfully',
+      count: created.count,
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async getConsultationRequest(requestId: string, coachId: string) {
-    // Mock implementation for MVP
-    return {
-      id: requestId,
-      coachId,
-      status: ConsultationStatus.PENDING,
-      message: 'Consultation request details coming soon',
-    };
-  }
+  async getSlots(coachId: string, dateStr?: string) {
+    const where: { coachId: string; date?: Date } = { coachId };
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async updateConsultationStatus(
-    requestId: string,
-    coachId: string,
-    status: ConsultationStatus,
-    notes?: string,
-  ) {
-    // Mock implementation for MVP
-    // In production, this would update the consultationRequests table
-    return {
-      id: requestId,
-      coachId,
-      status,
-      notes,
-      message: 'Status update feature coming soon',
-    };
+    if (dateStr) {
+      const date = new Date(dateStr);
+      date.setHours(0, 0, 0, 0);
+      where.date = date;
+    }
+
+    return this.prisma.coachSlot.findMany({
+      where,
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+    });
   }
 }

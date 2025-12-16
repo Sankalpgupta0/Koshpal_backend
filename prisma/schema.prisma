@@ -135,18 +135,17 @@ model EmployeeProfile {
   user          User           @relation(fields: [userId], references: [id])
   company       Company        @relation(fields: [companyId], references: [id])
   accounts      Account[]
-  consultations Consultation[]
 }
 
 model CoachProfile {
-  userId          String  @id
-  specialization  String?
-  experienceYears Int?
-  rating          Float?
+  userId     String   @id
+  expertise  String?
+  bio        String?
 
-  user          User           @relation(fields: [userId], references: [id])
-  consultations Consultation[]
+  user       User     @relation(fields: [userId], references: [id])
+  slots      CoachSlot[]
 }
+
 
 //////////////////////
 // FINANCIAL
@@ -218,23 +217,6 @@ model MonthlySummary {
 }
 
 //////////////////////
-// WELLNESS
-//////////////////////
-
-model Consultation {
-  id             String             @id @default(uuid())
-  employeeUserId String
-  coachUserId    String
-  status         ConsultationStatus @default(REQUESTED)
-  scheduledAt    DateTime?
-
-  employee EmployeeProfile @relation(fields: [employeeUserId], references: [userId])
-  coach    CoachProfile    @relation(fields: [coachUserId], references: [userId])
-
-  createdAt DateTime @default(now())
-}
-
-//////////////////////
 // HR UPLOAD TRACKING
 //////////////////////
 
@@ -273,4 +255,51 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, isRead])
+}
+
+//////////////////////
+// WELLNESS
+//////////////////////
+
+model ConsultationBooking {
+  id           String   @id @default(uuid())
+  slotId       String   @unique
+  coachId      String
+  employeeId   String
+
+  meetingLink  String
+  status       BookingStatus @default(CONFIRMED)
+
+  createdAt    DateTime @default(now())
+
+  slot         CoachSlot @relation(fields: [slotId], references: [id])
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+
+model CoachSlot {
+  id          String      @id @default(uuid())
+  coachId     String
+  date        DateTime    // yyyy-mm-dd (00:00)
+  startTime   DateTime
+  endTime     DateTime
+  status      SlotStatus  @default(AVAILABLE)
+
+  booking     ConsultationBooking?
+
+  createdAt   DateTime    @default(now())
+
+  coach       CoachProfile @relation(fields: [coachId], references: [userId])
+
+  @@index([coachId, date])
+}
+
+enum SlotStatus {
+  AVAILABLE
+  BOOKED
+  BLOCKED
 }
