@@ -29,4 +29,17 @@ export class CoachController {
   ) {
     return this.coachService.getSlots(user.userId, date);
   }
+
+  @Get('consultations')
+  async getConsultations(
+    @CurrentUser() user: ValidatedUser,
+    @Query('filter') filter?: string,
+  ) {
+    return this.coachService.getConsultations(user.userId, filter);
+  }
+
+  @Get('consultations/stats')
+  async getConsultationStats(@CurrentUser() user: ValidatedUser) {
+    return this.coachService.getConsultationStats(user.userId);
+  }
 }

@@ -1480,6 +1480,125 @@
             "description": "Get all slots for the authenticated coach (no date filter)"
           },
           "response": []
+        },
+        {
+          "name": "Get Consultations - All",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/consultations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "consultations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Consultations - Past",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/consultations?filter=past",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "past"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Consultations - Upcoming",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/consultations?filter=upcoming",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "upcoming"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Consultations - This Month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/consultations?filter=thisMonth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "thisMonth"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Consultation Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/consultations/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "consultations",
+                "stats"
+              ]
+            }
+          },
+          "response": []
         }
       ],
       "description": "Coach slot management - Create and view availability slots"
