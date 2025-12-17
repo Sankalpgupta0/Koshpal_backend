@@ -121,6 +121,7 @@ export class ConsultationService {
    */
   async bookConsultation(user: ValidatedUser, dto: BookConsultationDto) {
     return this.prisma.$transaction(async (tx) => {
+      // 1. Validate slot exists and is available
       const slot = await tx.coachSlot.findUnique({
         where: { id: dto.slotId },
         include: {
@@ -142,31 +143,47 @@ export class ConsultationService {
         throw new BadRequestException('Slot is not available');
       }
 
-      const meetingLink = this.meetingService.createMeeting();
+      // Get employee details
+      const employee = await tx.user.findUnique({
+        where: { id: user.userId },
+        select: { email: true },
+      });
 
+      if (!employee) {
+        throw new NotFoundException('Employee not found');
+      }
+
+      // 2. Create real Google Meet link
+      const { meetingLink, calendarEventId } = await this.meetingService.createGoogleMeet(
+        slot.coach.user.email,
+        employee.email,
+        slot.startTime,
+        slot.endTime,
+      );
+
+      // 3. Create consultation booking
       const booking = await tx.consultationBooking.create({
         data: {
           slotId: dto.slotId,
           coachId: slot.coachId,
           employeeId: user.userId,
           meetingLink,
+          calendarEventId,
           status: BookingStatus.CONFIRMED,
         },
       });
 
+      // 4. Mark slot as booked
       await tx.coachSlot.update({
         where: { id: dto.slotId },
         data: { status: SlotStatus.BOOKED },
       });
 
-      const employee = await tx.user.findUnique({
-        where: { id: user.userId },
-        select: { email: true },
-      });
-
+      // 5. Queue email notifications
       await this.emailQueue.add('send-booking-confirmation', {
         coachEmail: slot.coach.user.email,
-        employeeEmail: employee?.email,
+        employeeEmail: employee.email,
+        coachName: slot.coach.fullName,
         date: slot.date.toISOString().split('T')[0],
         startTime: slot.startTime.toISOString(),
         endTime: slot.endTime.toISOString(),
@@ -178,6 +195,7 @@ export class ConsultationService {
         booking: {
           id: booking.id,
           meetingLink: booking.meetingLink,
+          calendarEventId: booking.calendarEventId,
           date: slot.date,
           startTime: slot.startTime,
           endTime: slot.endTime,

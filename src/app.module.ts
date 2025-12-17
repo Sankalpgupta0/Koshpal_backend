@@ -26,7 +26,7 @@ import { validate } from './common/config/env.validation';
       {
         name: 'default',
         ttl: 60000, // 60 seconds
-        limit: 2000, // 2000 requests per minute
+        limit: 20000, // 2000 requests per minute
       },
       {
         name: 'strict',

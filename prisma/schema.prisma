@@ -271,17 +271,18 @@ model Notification {
 //////////////////////
 
 model ConsultationBooking {
-  id           String   @id @default(uuid())
-  slotId       String   @unique
-  coachId      String
-  employeeId   String
+  id              String   @id @default(uuid())
+  slotId          String   @unique
+  coachId         String
+  employeeId      String
 
-  meetingLink  String
-  status       BookingStatus @default(CONFIRMED)
+  meetingLink     String
+  calendarEventId String?
+  status          BookingStatus @default(CONFIRMED)
 
-  createdAt    DateTime @default(now())
+  createdAt       DateTime @default(now())
 
-  slot         CoachSlot @relation(fields: [slotId], references: [id])
+  slot            CoachSlot @relation(fields: [slotId], references: [id])
 }
 
 enum BookingStatus {
