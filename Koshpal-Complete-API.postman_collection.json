@@ -1,9 +1,9 @@
 {
   "info": {
     "name": "Koshpal Backend - Complete API Collection",
-    "description": "Complete API collection with all endpoints - consistent routes and comprehensive test scenarios",
+    "description": "Complete API collection with 155 endpoints covering all features: Authentication, Employee Management, Financial Goals, Transactions, Insights, Budget Management, Coach Portal (consultations, slots, stats), Employee Consultations (booking, viewing, filters, stats), and comprehensive test scenarios",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "_postman_id": "koshpal-backend-api-v2"
   },
   "auth": {
@@ -1725,9 +1725,186 @@
             "description": "Book a consultation with a coach using an available slot ID. Returns booking details with meeting link. Triggers email notifications to both coach and employee."
           },
           "response": []
+        },
+        {
+          "name": "Get My Consultations - All",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations"
+              ]
+            },
+            "description": "Get all consultations for logged-in employee with full details (coach info, slot time, meeting link, status)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Consultations - Past",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations?filter=past",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "past",
+                  "description": "Filter for past consultations (end time < now)"
+                }
+              ]
+            },
+            "description": "Get all past consultations (already completed) for logged-in employee"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Consultations - Upcoming",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations?filter=upcoming",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "upcoming",
+                  "description": "Filter for upcoming consultations (start time >= now)"
+                }
+              ]
+            },
+            "description": "Get all upcoming consultations for logged-in employee"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Consultations - This Week",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations?filter=thisWeek",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "thisWeek",
+                  "description": "Filter for consultations this week (Sun-Sat)"
+                }
+              ]
+            },
+            "description": "Get consultations for current week (Sunday to Saturday) for logged-in employee"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Consultations - This Month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations?filter=thisMonth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "thisMonth",
+                  "description": "Filter for consultations this month"
+                }
+              ]
+            },
+            "description": "Get consultations for current month for logged-in employee"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Consultation Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                "stats"
+              ]
+            },
+            "description": "Get consultation statistics for logged-in employee: total, past, upcoming, thisWeek, thisMonth, minutesBooked, confirmed, cancelled"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Latest Consultation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                "latest"
+              ]
+            },
+            "description": "Get the most recently booked consultation for logged-in employee. Returns null if no consultations exist."
+          },
+          "response": []
         }
       ],
-      "description": "Employee consultation booking - List coaches, view slots, and book consultations"
+      "description": "Employee consultation booking and viewing - List coaches, view slots, book consultations, view booked consultations with filters, and get statistics"
     },
     {
       "name": "Authorization Testing",
@@ -4338,6 +4515,207 @@
                 "employee",
                 "consultations",
                 "book"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get All My Consultations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get Past Consultations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations?filter=past",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "past"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get Upcoming Consultations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations?filter=upcoming",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "upcoming"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get This Week Consultations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations?filter=thisWeek",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "thisWeek"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get This Month Consultations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations?filter=thisMonth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations"
+              ],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "thisMonth"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get Consultation Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Employee - Get Latest Consultation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                "latest"
               ]
             }
           },

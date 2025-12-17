@@ -11,6 +11,20 @@ import { BookConsultationDto } from './dto/book-consultation.dto';
 import { ValidatedUser } from '../../common/types/user.types';
 import { SlotStatus, BookingStatus } from '@prisma/client';
 
+/**
+ * Consultation Service
+ * 
+ * Core business logic for managing consultations between employees and coaches.
+ * Handles:
+ * - Coach listing and profile management
+ * - Slot availability checking
+ * - Consultation booking with meeting link generation
+ * - Email notifications via BullMQ queue
+ * - Consultation history and filtering
+ * - Statistics calculation
+ * 
+ * Uses Prisma for database operations and BullMQ for async email processing
+ */
 @Injectable()
 export class ConsultationService {
   constructor(
@@ -59,6 +73,17 @@ export class ConsultationService {
     }));
   }
 
+  /**
+   * Get Coach Available Slots
+   * 
+   * Retrieves all available time slots for a specific coach on a given date.
+   * Only returns slots with AVAILABLE status (not booked or cancelled).
+   * Slots are ordered by start time in ascending order.
+   * 
+   * @param coachId - UUID of the coach
+   * @param dateStr - Date string in YYYY-MM-DD format
+   * @returns Array of available time slots sorted by start time
+   */
   async getCoachSlots(coachId: string, dateStr: string) {
     const date = new Date(dateStr);
     date.setHours(0, 0, 0, 0);
@@ -75,6 +100,25 @@ export class ConsultationService {
     return slots;
   }
 
+  /**
+   * Book Consultation
+   * 
+   * Books a consultation session between an employee and coach.
+   * Process:
+   * 1. Validates slot exists and is available
+   * 2. Generates Google Meet link for the session
+   * 3. Creates consultation booking record
+   * 4. Updates slot status to BOOKED
+   * 5. Queues email notifications to both employee and coach
+   * 
+   * All operations are wrapped in a database transaction to ensure data consistency.
+   * 
+   * @param user - Authenticated employee user
+   * @param dto - Booking details including slotId and optional notes
+   * @returns Booking confirmation with meeting link and slot details
+   * @throws NotFoundException if slot doesn't exist
+   * @throws BadRequestException if slot is not available
+   */
   async bookConsultation(user: ValidatedUser, dto: BookConsultationDto) {
     return this.prisma.$transaction(async (tx) => {
       const slot = await tx.coachSlot.findUnique({
