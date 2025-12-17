@@ -141,4 +141,222 @@ export class ConsultationService {
       };
     });
   }
+
+  async getEmployeeConsultations(employeeId: string, filter?: string) {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+    );
+
+    // Build where clause for slot filtering
+    let slotWhere: any = {};
+
+    switch (filter) {
+      case 'past':
+        slotWhere = { endTime: { lt: now } };
+        break;
+      case 'upcoming':
+        slotWhere = { startTime: { gte: now } };
+        break;
+      case 'thisWeek':
+        slotWhere = {
+          date: {
+            gte: startOfWeek,
+            lte: endOfWeek,
+          },
+        };
+        break;
+      case 'thisMonth':
+        slotWhere = {
+          date: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        };
+        break;
+    }
+
+    const bookings = await this.prisma.consultationBooking.findMany({
+      where: {
+        employeeId,
+        slot: slotWhere,
+      },
+      include: {
+        slot: {
+          include: {
+            coach: {
+              include: {
+                user: {
+                  select: {
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return bookings.map((booking) => ({
+      id: booking.id,
+      meetingLink: booking.meetingLink,
+      status: booking.status,
+      bookedAt: booking.createdAt,
+      slot: {
+        id: booking.slot.id,
+        date: booking.slot.date,
+        startTime: booking.slot.startTime,
+        endTime: booking.slot.endTime,
+        status: booking.slot.status,
+      },
+      coach: {
+        id: booking.coachId,
+        email: booking.slot.coach.user.email,
+        fullName: booking.slot.coach.fullName,
+        expertise: booking.slot.coach.expertise,
+        rating: booking.slot.coach.rating
+          ? parseFloat(booking.slot.coach.rating.toString())
+          : 0,
+        location: booking.slot.coach.location,
+        profilePhoto: booking.slot.coach.profilePhoto,
+      },
+    }));
+  }
+
+  async getEmployeeConsultationStats(employeeId: string) {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+    );
+
+    const bookings = await this.prisma.consultationBooking.findMany({
+      where: {
+        employeeId,
+      },
+      include: {
+        slot: true,
+      },
+    });
+
+    const total = bookings.length;
+    const past = bookings.filter((b) => b.slot.endTime < now).length;
+    const upcoming = bookings.filter((b) => b.slot.startTime >= now).length;
+    const thisWeek = bookings.filter(
+      (b) => b.slot.date >= startOfWeek && b.slot.date <= endOfWeek,
+    ).length;
+    const thisMonth = bookings.filter(
+      (b) => b.slot.date >= startOfMonth && b.slot.date <= endOfMonth,
+    ).length;
+
+    const minutesBooked = bookings.reduce((acc, b) => {
+      const duration =
+        (b.slot.endTime.getTime() - b.slot.startTime.getTime()) / (1000 * 60);
+      return acc + duration;
+    }, 0);
+
+    const confirmedCount = bookings.filter(
+      (b) => b.status === BookingStatus.CONFIRMED,
+    ).length;
+    const cancelledCount = bookings.filter(
+      (b) => b.status === BookingStatus.CANCELLED,
+    ).length;
+
+    return {
+      total,
+      past,
+      upcoming,
+      thisWeek,
+      thisMonth,
+      minutesBooked,
+      confirmed: confirmedCount,
+      cancelled: cancelledCount,
+    };
+  }
+
+  async getLatestConsultation(employeeId: string) {
+    const booking = await this.prisma.consultationBooking.findFirst({
+      where: {
+        employeeId,
+      },
+      include: {
+        slot: {
+          include: {
+            coach: {
+              include: {
+                user: {
+                  select: {
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!booking) {
+      return null;
+    }
+
+    return {
+      id: booking.id,
+      meetingLink: booking.meetingLink,
+      status: booking.status,
+      bookedAt: booking.createdAt,
+      slot: {
+        id: booking.slot.id,
+        date: booking.slot.date,
+        startTime: booking.slot.startTime,
+        endTime: booking.slot.endTime,
+        status: booking.slot.status,
+      },
+      coach: {
+        id: booking.coachId,
+        email: booking.slot.coach.user.email,
+        fullName: booking.slot.coach.fullName,
+        expertise: booking.slot.coach.expertise,
+        rating: booking.slot.coach.rating
+          ? parseFloat(booking.slot.coach.rating.toString())
+          : 0,
+        location: booking.slot.coach.location,
+        profilePhoto: booking.slot.coach.profilePhoto,
+      },
+    };
+  }
 }

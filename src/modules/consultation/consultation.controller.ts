@@ -42,4 +42,27 @@ export class ConsultationController {
   ) {
     return this.consultationService.bookConsultation(user, dto);
   }
+
+  @Get('consultations')
+  async getMyConsultations(
+    @CurrentUser() user: ValidatedUser,
+    @Query('filter') filter?: string,
+  ) {
+    return this.consultationService.getEmployeeConsultations(
+      user.userId,
+      filter,
+    );
+  }
+
+  @Get('consultations/stats')
+  async getMyConsultationStats(@CurrentUser() user: ValidatedUser) {
+    return this.consultationService.getEmployeeConsultationStats(
+      user.userId,
+    );
+  }
+
+  @Get('consultations/latest')
+  async getMyLatestConsultation(@CurrentUser() user: ValidatedUser) {
+    return this.consultationService.getLatestConsultation(user.userId);
+  }
 }
