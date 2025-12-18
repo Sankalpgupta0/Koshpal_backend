@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -14,6 +14,7 @@ import { CoachModule } from './modules/coach/coach.module';
 import { ConsultationModule } from './modules/consultation/consultation.module';
 import { HealthModule } from './common/health/health.module';
 import { validate } from './common/config/env.validation';
+import { TenantContextMiddleware } from './common/middleware/tenant-context.middleware';
 
 @Module({
   imports: [
@@ -53,4 +54,12 @@ import { validate } from './common/config/env.validation';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply tenant context middleware to all routes
+    // This must run AFTER JWT authentication middleware
+    consumer
+      .apply(TenantContextMiddleware)
+      .forRoutes('*');
+  }
+}

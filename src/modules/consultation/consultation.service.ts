@@ -9,7 +9,7 @@ import { Queue } from 'bullmq';
 import { MeetingService } from './meeting.service';
 import { BookConsultationDto } from './dto/book-consultation.dto';
 import { ValidatedUser } from '../../common/types/user.types';
-import { SlotStatus, BookingStatus } from '@prisma/client';
+import { SlotStatus, BookingStatus, Prisma } from '@prisma/client';
 
 /**
  * Consultation Service
@@ -103,15 +103,20 @@ export class ConsultationService {
   /**
    * Book Consultation
    * 
+   * RACE-CONDITION FIX: This method now uses SELECT FOR UPDATE to prevent
+   * concurrent bookings of the same slot.
+   * 
    * Books a consultation session between an employee and coach.
    * Process:
-   * 1. Validates slot exists and is available
-   * 2. Generates Google Meet link for the session
-   * 3. Creates consultation booking record
-   * 4. Updates slot status to BOOKED
-   * 5. Queues email notifications to both employee and coach
+   * 1. Locks the slot row with SELECT FOR UPDATE (prevents race conditions)
+   * 2. Validates slot exists and is available
+   * 3. Generates Google Meet link for the session
+   * 4. Creates consultation booking record
+   * 5. Updates slot status to BOOKED
+   * 6. Queues email notifications to both employee and coach
    * 
-   * All operations are wrapped in a database transaction to ensure data consistency.
+   * Uses SERIALIZABLE isolation level to prevent phantom reads and
+   * ensure absolute consistency.
    * 
    * @param user - Authenticated employee user
    * @param dto - Booking details including slotId and optional notes
@@ -120,28 +125,45 @@ export class ConsultationService {
    * @throws BadRequestException if slot is not available
    */
   async bookConsultation(user: ValidatedUser, dto: BookConsultationDto) {
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Validate slot exists and is available
-      const slot = await tx.coachSlot.findUnique({
-        where: { id: dto.slotId },
-        include: {
-          coach: {
-            include: {
-              user: {
-                select: { email: true },
+    return this.prisma.$transaction(
+      async (tx) => {
+        // 🔒 CRITICAL FIX: Lock the slot row with SELECT FOR UPDATE
+        // This prevents concurrent transactions from reading the same slot
+        // until this transaction completes or rolls back
+        const slotRaw = await tx.$queryRaw<any[]>`
+          SELECT * FROM "CoachSlot"
+          WHERE id = ${dto.slotId}::uuid
+          FOR UPDATE
+        `;
+
+        if (!slotRaw || slotRaw.length === 0) {
+          throw new NotFoundException('Slot not found');
+        }
+
+        const lockedSlot = slotRaw[0];
+
+        // Check if slot is still available after locking
+        if (lockedSlot.status !== SlotStatus.AVAILABLE) {
+          throw new BadRequestException('Slot is not available');
+        }
+
+        // Now fetch the full slot data with relations
+        const slot = await tx.coachSlot.findUnique({
+          where: { id: dto.slotId },
+          include: {
+            coach: {
+              include: {
+                user: {
+                  select: { email: true },
+                },
               },
             },
           },
-        },
-      });
+        });
 
-      if (!slot) {
-        throw new NotFoundException('Slot not found');
-      }
-
-      if (slot.status !== SlotStatus.AVAILABLE) {
-        throw new BadRequestException('Slot is not available');
-      }
+        if (!slot) {
+          throw new NotFoundException('Slot not found');
+        }
 
       // Get employee details
       const employee = await tx.user.findUnique({
@@ -201,7 +223,19 @@ export class ConsultationService {
           endTime: slot.endTime,
         },
       };
-    });
+    },
+    {
+      // 🔒 CRITICAL: Use SERIALIZABLE isolation level
+      // This is the highest isolation level and prevents:
+      // - Dirty reads
+      // - Non-repeatable reads
+      // - Phantom reads
+      // Essential for booking systems to prevent double-booking
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 5000, // Wait max 5 seconds to acquire lock
+      timeout: 10000, // Transaction timeout 10 seconds
+    },
+    );
   }
 
   async getEmployeeConsultations(employeeId: string, filter?: string) {

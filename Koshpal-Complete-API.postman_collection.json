@@ -1,10 +1,11 @@
 {
   "info": {
     "name": "Koshpal Backend - Complete API Collection",
-    "description": "Complete API collection with 155 endpoints covering all features: Authentication, Employee Management, Financial Goals, Transactions, Insights, Budget Management, Coach Portal (consultations, slots, stats), Employee Consultations (booking, viewing, filters, stats), and comprehensive test scenarios",
+    "description": "Complete API collection with 170+ endpoints covering all features with comprehensive test scenarios:\n\n🔐 AUTHENTICATION (25 endpoints)\n- Login (Admin/Employee/HR/Coach)\n- Session Management (NEW)\n- Refresh Token with revocation (ENHANCED)\n- Password Change\n- Active Sessions Viewing\n- Logout from all devices\n\n🏢 ADMIN PORTAL\n- Company Management\n- HR Management  \n- Platform Statistics\n\n👥 HR PORTAL\n- Employee Bulk Upload with BullMQ\n- Upload Status Tracking\n- Employee Management\n\n👤 EMPLOYEE PORTAL\n- Profile Management\n- Financial Goals CRUD\n- Account & Transaction Management\n- Monthly Insights & Budget\n\n🎯 COACH PORTAL\n- Slot Creation & Management\n- Consultation Viewing\n- Coach Statistics\n\n📅 CONSULTATIONS (ENHANCED)\n- Coach Listing & Filtering\n- Slot Availability (with race condition fix)\n- Booking (with row-level locking)\n- Booking History\n\n💰 FINANCE MODULE\n- Accounts\n- Transactions with filters\n- Insights & Analytics\n- Budget Management\n\nAll endpoints include:\n✓ Success scenarios\n✓ Error scenarios (401, 400, 404, etc.)\n✓ Validation tests\n✓ Authorization tests\n✓ Auto token management",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.1.0",
-    "_postman_id": "koshpal-backend-api-v2"
+    "version": "3.0.0",
+    "_postman_id": "koshpal-backend-api-v3",
+    "_exporter_id": "koshpal-2025"
   },
   "auth": {
     "type": "bearer",
@@ -160,7 +161,7 @@
       "name": "Authentication",
       "item": [
         {
-          "name": "Login - Success",
+          "name": "Login - Success (Admin)",
           "event": [
             {
               "listen": "test",
@@ -169,9 +170,14 @@
                   "if (pm.response.code === 200 || pm.response.code === 201) {",
                   "    var jsonData = pm.response.json();",
                   "    pm.collectionVariables.set('accessToken', jsonData.accessToken);",
-                  "    console.log('\u2713 Access token saved');",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "    pm.collectionVariables.set('adminToken', jsonData.accessToken);",
+                  "    console.log('✓ Access token saved');",
+                  "    console.log('✓ Refresh token saved');",
                   "    pm.test('Login successful', function() {",
                   "        pm.expect(jsonData).to.have.property('accessToken');",
+                  "        pm.expect(jsonData).to.have.property('refreshToken');",
+                  "        pm.expect(jsonData.user.role).to.eql('ADMIN');",
                   "    });",
                   "}"
                 ]
@@ -187,6 +193,11 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "postman-testing-device",
+                "type": "text"
               }
             ],
             "body": {
@@ -205,12 +216,170 @@
                 "login"
               ]
             },
-            "description": "Login with admin credentials. Token is automatically saved to collection variables."
+            "description": "Login with admin credentials. Tokens are automatically saved. Device ID is tracked for session management."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Success (Employee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('employeeToken', jsonData.accessToken);",
+                  "    console.log('✓ Employee token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"employee@company.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as employee user"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Success (HR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('hrToken', jsonData.accessToken);",
+                  "    console.log('✓ HR token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hr@company.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as HR user"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Success (Coach)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('coachToken', jsonData.accessToken);",
+                  "    pm.collectionVariables.set('coachId', jsonData.user.id);",
+                  "    console.log('✓ Coach token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"coach@koshpal.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as coach user"
           },
           "response": []
         },
         {
           "name": "Login - Invalid Credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 401', function() {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Error message present', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "noauth"
@@ -244,6 +413,18 @@
         },
         {
           "name": "Login - Missing Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "noauth"
@@ -276,7 +457,103 @@
           "response": []
         },
         {
+          "name": "Login - Invalid Email Format",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Test login with invalid email format"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Inactive User",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"inactive@test.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Test login with inactive user account - should return 401"
+          },
+          "response": []
+        },
+        {
           "name": "Get Current User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('User data returned', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('email');",
+                  "    pm.expect(jsonData).to.have.property('role');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -298,6 +575,18 @@
         },
         {
           "name": "Get Current User - Unauthorized",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 401', function() {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "noauth"
@@ -321,7 +610,7 @@
           "response": []
         },
         {
-          "name": "Refresh Token",
+          "name": "Refresh Token - Success",
           "event": [
             {
               "listen": "test",
@@ -330,7 +619,10 @@
                   "if (pm.response.code === 200 || pm.response.code === 201) {",
                   "    var jsonData = pm.response.json();",
                   "    pm.collectionVariables.set('accessToken', jsonData.accessToken);",
-                  "    console.log('\u2713 New access token saved');",
+                  "    console.log('✓ New access token saved');",
+                  "    pm.test('Token refresh successful', function() {",
+                  "        pm.expect(jsonData).to.have.property('accessToken');",
+                  "    });",
                   "}"
                 ]
               }
@@ -363,15 +655,217 @@
                 "refresh"
               ]
             },
-            "description": "Refresh access token using refresh token"
+            "description": "Refresh access token using valid refresh token"
           },
           "response": []
         },
         {
-          "name": "Logout",
+          "name": "Refresh Token - Invalid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 401', function() {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"invalid-token-here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Try to refresh with invalid token - should return 401"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token - After Logout (Revoked)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 401', function() {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Token should be revoked', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('Invalid');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Try to refresh after logout - should fail because token is revoked"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Sessions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Sessions array returned', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "pm.test('Session has required fields', function() {",
+                  "    var sessions = pm.response.json();",
+                  "    if(sessions.length > 0) {",
+                  "        pm.expect(sessions[0]).to.have.property('id');",
+                  "        pm.expect(sessions[0]).to.have.property('deviceId');",
+                  "        pm.expect(sessions[0]).to.have.property('ipAddress');",
+                  "        pm.expect(sessions[0]).to.have.property('createdAt');",
+                  "        pm.expect(sessions[0]).to.have.property('expiresAt');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sessions"
+              ]
+            },
+            "description": "Get all active sessions for the current user. Shows device, location, and session info."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Sessions - Unauthorized",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 401', function() {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sessions"
+              ]
+            },
+            "description": "Try to get sessions without authentication"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Logout message received', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('Logged out');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/logout",
               "host": [
@@ -384,12 +878,109 @@
                 "logout"
               ]
             },
-            "description": "Logout (client should delete tokens)"
+            "description": "Logout and revoke refresh token. Token will no longer be usable."
           },
           "response": []
         },
         {
-          "name": "Change Password",
+          "name": "Logout - Without Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 400 or 401', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 401]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Try to logout without providing refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke All Sessions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('All sessions revoked', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('revoked');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sessions/revoke-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sessions",
+                "revoke-all"
+              ]
+            },
+            "description": "Revoke all active sessions (logout from all devices). Useful after password change or security incident."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Password changed and sessions revoked', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('Password changed');",
+                  "    pm.expect(jsonData.message).to.include('sessions');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "PATCH",
             "header": [
@@ -400,7 +991,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newPassword456\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/me/password",
@@ -415,12 +1006,141 @@
                 "password"
               ]
             },
-            "description": "Change current user password"
+            "description": "Change password. All sessions are automatically revoked for security."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password - Wrong Current Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 401', function() {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"wrongpassword\",\n  \"newPassword\": \"newPassword456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me",
+                "password"
+              ]
+            },
+            "description": "Try to change password with wrong current password"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password - Weak New Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me",
+                "password"
+              ]
+            },
+            "description": "Try to change to weak password (too short)"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password - Missing Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me",
+                "password"
+              ]
+            },
+            "description": "Try to change password without providing new password"
           },
           "response": []
         }
       ],
-      "description": "Authentication endpoints for login and user management"
+      "description": "Authentication endpoints including login, session management, and password changes. All endpoints tested with success and failure scenarios."
     },
     {
       "name": "Admin Portal",

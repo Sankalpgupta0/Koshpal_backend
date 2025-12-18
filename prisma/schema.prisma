@@ -93,6 +93,7 @@ model User {
   accounts      Account[]
   transactions  Transaction[]
   notifications Notification[]
+  refreshTokens RefreshToken[]
 
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
@@ -330,4 +331,27 @@ model FinancialGoal {
   updatedAt   DateTime @updatedAt
 
   @@index([userId])
+}
+
+//////////////////////
+// REFRESH TOKENS
+//////////////////////
+
+model RefreshToken {
+  id          String    @id @default(uuid())
+  userId      String
+  token       String    @unique
+  expiresAt   DateTime
+  isRevoked   Boolean   @default(false)
+  deviceId    String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRevoked])
+  @@index([token])
+  @@index([expiresAt])
 }

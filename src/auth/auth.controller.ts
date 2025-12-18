@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, UseGuards, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Patch, Req, Delete, Param } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto, ChangePasswordDto } from './dto/auth.dto';
@@ -27,12 +28,15 @@ export class AuthController {
   /**
    * Login
    * 
+   * SECURITY FIX: Now tracks device info and stores refresh tokens
+   * 
    * Authenticates user credentials and returns JWT access and refresh tokens.
    * Supports all user roles: EMPLOYEE, HR, ADMIN, COACH
    * 
    * Rate limited to 50 login attempts per minute to prevent brute force attacks.
    * 
    * @param dto - Login credentials (email and password)
+   * @param req - Express request object for IP and user agent
    * @returns Access token, refresh token, and user information
    * @throws UnauthorizedException if credentials are invalid
    * @route POST /api/v1/auth/login
@@ -41,8 +45,13 @@ export class AuthController {
    */
   @Post('login')
   @Throttle({ strict: { limit: 50, ttl: 60000 } }) // 50 login attempts per minute
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto.email, dto.password);
+  async login(@Body() dto: LoginDto, @Req() req: Request) {
+    const context = {
+      ipAddress: req.ip || req.headers['x-forwarded-for'] as string,
+      userAgent: req.headers['user-agent'],
+      deviceId: req.headers['x-device-id'] as string,
+    };
+    return this.authService.login(dto.email, dto.password, context);
   }
 
   /**
@@ -83,22 +92,55 @@ export class AuthController {
   /**
    * Logout
    * 
-   * Logs out the current user by invalidating their session.
+   * SECURITY FIX: Now properly revokes refresh token in database
+   * 
+   * Logs out the current user by invalidating their refresh token.
    * Client should delete tokens from storage upon receiving this response.
    * 
-   * Note: Token invalidation on server-side requires Redis/DB blacklist implementation.
-   * Currently relies on client-side token deletion.
-   * 
+   * @param user - Current authenticated user
+   * @param dto - Refresh token to revoke
    * @returns Success message
    * @route POST /api/v1/auth/logout
    * @access Protected - Requires valid JWT token
    */
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  logout() {
-    // Token invalidation would require Redis/DB blacklist
-    // For now, client-side token deletion is sufficient
-    return { message: 'Logged out successfully' };
+  async logout(@CurrentUser() user: ValidatedUser, @Body() dto: RefreshTokenDto) {
+    return this.authService.logout(user.userId, dto.refreshToken);
+  }
+
+  /**
+   * Get Active Sessions
+   * 
+   * NEW: Returns all active sessions for the current user
+   * Shows devices, locations, and last activity
+   * 
+   * @param user - Current authenticated user
+   * @returns List of active sessions
+   * @route GET /api/v1/auth/sessions
+   * @access Protected
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('sessions')
+  async getSessions(@CurrentUser() user: ValidatedUser) {
+    return this.authService.getActiveSessions(user.userId);
+  }
+
+  /**
+   * Revoke All Sessions
+   * 
+   * NEW: Revokes all active sessions (logout from all devices)
+   * Useful after password change or security incident
+   * 
+   * @param user - Current authenticated user
+   * @returns Success message
+   * @route POST /api/v1/auth/sessions/revoke-all
+   * @access Protected
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('sessions/revoke-all')
+  async revokeAllSessions(@CurrentUser() user: ValidatedUser) {
+    return this.authService.revokeAllSessions(user.userId);
   }
 
   /**
@@ -107,6 +149,8 @@ export class AuthController {
    * Allows authenticated users to change their password.
    * Requires current password verification before setting new password.
    * New password must meet security requirements (min 8 characters).
+   * 
+   * After password change, all sessions are revoked for security.
    * 
    * @param user - Authenticated user from JWT token
    * @param dto - Current password and new password
@@ -122,10 +166,18 @@ export class AuthController {
     @CurrentUser() user: ValidatedUser,
     @Body() dto: ChangePasswordDto,
   ) {
-    return this.authService.changePassword(
+    const result = await this.authService.changePassword(
       user.userId,
       dto.currentPassword,
       dto.newPassword,
     );
+    
+    // SECURITY: Revoke all sessions after password change
+    await this.authService.revokeAllSessions(user.userId);
+    
+    return { 
+      ...result, 
+      message: 'Password changed successfully. All sessions have been revoked. Please log in again.' 
+    };
   }
 }
