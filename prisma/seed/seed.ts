@@ -8,78 +8,84 @@ import {
   UploadStatus,
   BookingStatus,
   SlotStatus,
-  Prisma,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { Decimal } from '@prisma/client/runtime/library';
 
 const prisma = new PrismaClient();
 
+// Helper functions
+const randomElement = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+const randomDecimal = (min: number, max: number) => new Decimal((Math.random() * (max - min) + min).toFixed(2));
+
+const firstNames = ['Rahul', 'Priya', 'Amit', 'Sneha', 'Vikram', 'Ananya', 'Rohan', 'Neha', 'Arjun', 'Kavya', 'Siddharth', 'Ishita', 'Karan', 'Diya', 'Aditya', 'Riya', 'Varun', 'Shreya', 'Nikhil', 'Pooja', 'Manish', 'Tanvi', 'Rajesh', 'Simran', 'Vivek'];
+const lastNames = ['Sharma', 'Patel', 'Kumar', 'Singh', 'Gupta', 'Verma', 'Reddy', 'Desai', 'Shah', 'Mehta', 'Joshi', 'Nair', 'Iyer', 'Rao', 'Malhotra', 'Chopra', 'Bhatia', 'Agarwal', 'Kapoor', 'Banerjee'];
+const departments = ['Engineering', 'Sales', 'Marketing', 'Finance', 'HR', 'Operations', 'Product', 'Design', 'Customer Success', 'Legal'];
+const cities = ['Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad'];
+const categories = ['Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 'Healthcare', 'Entertainment', 'Education', 'Personal Care'];
+const subCategories: Record<string, string[]> = {
+  'Food & Dining': ['Restaurants', 'Groceries', 'Cafe', 'Food Delivery'],
+  'Shopping': ['Clothing', 'Electronics', 'Books', 'Home & Garden'],
+  'Transportation': ['Uber', 'Petrol', 'Metro', 'Parking'],
+  'Bills & Utilities': ['Electricity', 'Water', 'Internet', 'Phone'],
+  'Healthcare': ['Medical', 'Pharmacy', 'Insurance', 'Dental'],
+  'Entertainment': ['Movies', 'Concerts', 'Subscriptions', 'Gaming'],
+  'Education': ['Courses', 'Books', 'Tuition', 'Certifications'],
+  'Personal Care': ['Gym', 'Salon', 'Spa', 'Cosmetics']
+};
+
 async function main() {
-  console.log('🌱 Seeding database with comprehensive data...\n');
+  console.log('🌱 Seeding database with comprehensive test data...\n');
 
   const passwordHash = await bcrypt.hash('password123', 10);
 
   // ========================================
-  // 1️⃣ COMPANIES
+  // 1️⃣ COMPANIES (3 companies)
   // ========================================
-  console.log('📦 Creating companies...');
-  const company1 = await prisma.company.create({
-    data: {
-      name: 'TechCorp Solutions',
-      domain: 'techcorp.com',
-      employeeLimit: 500,
-      status: CompanyStatus.ACTIVE,
-    },
-  });
+  console.log('📦 Creating 3 companies...');
+  
+  const companies = await Promise.all([
+    prisma.company.create({
+      data: {
+        name: 'TechCorp Solutions',
+        domain: 'techcorp.com',
+        employeeLimit: 500,
+        status: CompanyStatus.ACTIVE,
+      },
+    }),
+    prisma.company.create({
+      data: {
+        name: 'FinServe India',
+        domain: 'finserve.in',
+        employeeLimit: 200,
+        status: CompanyStatus.ACTIVE,
+      },
+    }),
+    prisma.company.create({
+      data: {
+        name: 'StartupHub Ventures',
+        domain: 'startuphub.io',
+        employeeLimit: 150,
+        status: CompanyStatus.ACTIVE,
+      },
+    }),
+  ]);
 
-  const company2 = await prisma.company.create({
-    data: {
-      name: 'FinServe India',
-      domain: 'finserve.in',
-      employeeLimit: 200,
-      status: CompanyStatus.ACTIVE,
-    },
-  });
-
-  const company3 = await prisma.company.create({
-    data: {
-      name: 'StartupHub',
-      domain: 'startuphub.com',
-      employeeLimit: 50,
-      status: CompanyStatus.INACTIVE,
-    },
-  });
-
-  console.log(`✅ Created 3 companies\n`);
+  console.log(`✅ Created ${companies.length} companies\n`);
 
   // ========================================
   // 2️⃣ ADMIN USERS
   // ========================================
   console.log('👤 Creating admin users...');
-  const admin1 = await prisma.user.create({
+  
+  const admin = await prisma.user.create({
     data: {
       email: 'admin@koshpal.com',
       passwordHash,
       role: Role.ADMIN,
-      companyId: company1.id,
       isActive: true,
-      lastLoginAt: new Date('2024-12-15T09:30:00Z'),
-      adminProfile: {
-        create: {
-          fullName: 'Sankalp Gupta',
-        },
-      },
-    },
-  });
-
-  const admin2 = await prisma.user.create({
-    data: {
-      email: 'superadmin@koshpal.com',
-      passwordHash,
-      role: Role.ADMIN,
-      isActive: true,
-      lastLoginAt: new Date('2024-12-17T14:20:00Z'),
+      lastLoginAt: new Date(),
       adminProfile: {
         create: {
           fullName: 'Super Admin',
@@ -88,741 +94,517 @@ async function main() {
     },
   });
 
-  console.log(`✅ Created 2 admin users\n`);
+  console.log(`✅ Created 1 admin user\n`);
 
   // ========================================
-  // 3️⃣ HR USERS
+  // 3️⃣ COACHES (3 coaches)
   // ========================================
-  console.log('👥 Creating HR users...');
-  const hr1 = await prisma.user.create({
-    data: {
-      email: 'hr@techcorp.com',
-      passwordHash,
-      role: Role.HR,
-      companyId: company1.id,
-      isActive: true,
-      lastLoginAt: new Date('2024-12-18T08:15:00Z'),
-      hrProfile: {
-        create: {
-          fullName: 'Priya Mehta',
-          designation: 'Senior HR Manager',
-          companyId: company1.id,
+  console.log('🎓 Creating 3 coaches...');
+  
+  const coaches = await Promise.all([
+    prisma.user.create({
+      data: {
+        email: 'priya.sharma@koshpal.com',
+        passwordHash,
+        role: Role.COACH,
+        isActive: true,
+        lastLoginAt: new Date(),
+        coachProfile: {
+          create: {
+            fullName: 'Priya Sharma',
+            expertise: ['Investment Planning', 'Retirement', 'Tax Planning'],
+            bio: 'CA, CFP with 8+ years in financial planning. Specialized in helping employees achieve financial goals.',
+            rating: new Decimal('4.8'),
+            successRate: 92,
+            clientsHelped: 147,
+            location: 'Mumbai',
+            languages: ['English', 'Hindi', 'Marathi'],
+            profilePhoto: '/coaches/priya-sharma.jpg',
+          },
         },
       },
-    },
-  });
-
-  const hr2 = await prisma.user.create({
-    data: {
-      email: 'hr@finserve.in',
-      passwordHash,
-      role: Role.HR,
-      companyId: company2.id,
-      isActive: true,
-      lastLoginAt: new Date('2024-12-16T10:45:00Z'),
-      hrProfile: {
-        create: {
-          fullName: 'Rajesh Kumar',
-          designation: 'HR Head',
-          companyId: company2.id,
+    }),
+    prisma.user.create({
+      data: {
+        email: 'rahul.verma@koshpal.com',
+        passwordHash,
+        role: Role.COACH,
+        isActive: true,
+        lastLoginAt: new Date(),
+        coachProfile: {
+          create: {
+            fullName: 'Rahul Verma',
+            expertise: ['Debt Management', 'Financial Planning', 'Investment Planning'],
+            bio: 'MBA Finance with 10 years experience. Expert in debt restructuring and personal finance.',
+            rating: new Decimal('4.9'),
+            successRate: 95,
+            clientsHelped: 289,
+            location: 'Bangalore',
+            languages: ['English', 'Hindi', 'Kannada'],
+            profilePhoto: '/coaches/rahul-verma.jpg',
+          },
         },
       },
-    },
-  });
-
-  console.log(`✅ Created 2 HR users\n`);
-
-  // ========================================
-  // 4️⃣ EMPLOYEE USERS
-  // ========================================
-  console.log('💼 Creating employee users...');
-  const emp1 = await prisma.user.create({
-    data: {
-      email: 'john.doe@techcorp.com',
-      passwordHash,
-      role: Role.EMPLOYEE,
-      companyId: company1.id,
-      isActive: true,
-      lastLoginAt: new Date('2024-12-18T09:00:00Z'),
-      employeeProfile: {
-        create: {
-          fullName: 'John Doe',
-          employeeCode: 'TC001',
-          phone: '+91-9876543210',
-          dateOfJoining: new Date('2023-01-15'),
-          companyId: company1.id,
+    }),
+    prisma.user.create({
+      data: {
+        email: 'anjali.patel@koshpal.com',
+        passwordHash,
+        role: Role.COACH,
+        isActive: true,
+        lastLoginAt: new Date(),
+        coachProfile: {
+          create: {
+            fullName: 'Anjali Patel',
+            expertise: ['Retirement Planning', 'Insurance', 'Tax Planning'],
+            bio: 'Certified Financial Planner specializing in retirement and insurance planning.',
+            rating: new Decimal('4.7'),
+            successRate: 88,
+            clientsHelped: 215,
+            location: 'Delhi',
+            languages: ['English', 'Hindi', 'Gujarati'],
+            profilePhoto: '/coaches/anjali-patel.jpg',
+          },
         },
       },
-    },
-  });
+    }),
+  ]);
 
-  const emp2 = await prisma.user.create({
-    data: {
-      email: 'sarah.smith@techcorp.com',
-      passwordHash,
-      role: Role.EMPLOYEE,
-      companyId: company1.id,
-      isActive: true,
-      lastLoginAt: new Date('2024-12-17T16:30:00Z'),
-      employeeProfile: {
-        create: {
-          fullName: 'Sarah Smith',
-          employeeCode: 'TC002',
-          phone: '+91-9876543211',
-          dateOfJoining: new Date('2023-03-20'),
-          companyId: company1.id,
-        },
-      },
-    },
-  });
-
-  const emp3 = await prisma.user.create({
-    data: {
-      email: 'amit.patel@finserve.in',
-      passwordHash,
-      role: Role.EMPLOYEE,
-      companyId: company2.id,
-      isActive: true,
-      lastLoginAt: new Date('2024-12-18T08:45:00Z'),
-      employeeProfile: {
-        create: {
-          fullName: 'Amit Patel',
-          employeeCode: 'FS001',
-          phone: '+91-9876543212',
-          dateOfJoining: new Date('2022-06-10'),
-          companyId: company2.id,
-        },
-      },
-    },
-  });
-
-  const emp4 = await prisma.user.create({
-    data: {
-      email: 'neha.verma@finserve.in',
-      passwordHash,
-      role: Role.EMPLOYEE,
-      companyId: company2.id,
-      isActive: true,
-      lastLoginAt: new Date('2024-12-15T11:20:00Z'),
-      employeeProfile: {
-        create: {
-          fullName: 'Neha Verma',
-          employeeCode: 'FS002',
-          phone: '+91-9876543213',
-          dateOfJoining: new Date('2023-09-01'),
-          companyId: company2.id,
-        },
-      },
-    },
-  });
-
-  const emp5 = await prisma.user.create({
-    data: {
-      email: 'inactive@techcorp.com',
-      passwordHash,
-      role: Role.EMPLOYEE,
-      companyId: company1.id,
-      isActive: false, // Inactive employee for testing
-      employeeProfile: {
-        create: {
-          fullName: 'Inactive Employee',
-          employeeCode: 'TC999',
-          companyId: company1.id,
-        },
-      },
-    },
-  });
-
-  console.log(`✅ Created 5 employees (4 active, 1 inactive)\n`);
+  console.log(`✅ Created ${coaches.length} coaches\n`);
 
   // ========================================
-  // 5️⃣ COACH USERS
-  // ========================================
-  console.log('🎓 Creating coach users...');
-  const coach1 = await prisma.user.create({
-    data: {
-      email: 'priya.sharma@koshpal.com',
-      passwordHash,
-      role: Role.COACH,
-      isActive: true,
-      lastLoginAt: new Date('2024-12-18T07:30:00Z'),
-      coachProfile: {
-        create: {
-          fullName: 'Priya Sharma',
-          expertise: ['Investment Planning', 'Retirement', 'Tax Planning'],
-          bio: 'CA, CFP with 8+ years experience in financial planning and wealth management. Specialized in helping employees achieve their financial goals.',
-          rating: new Decimal('4.8'),
-          successRate: 92,
-          clientsHelped: 147,
-          location: 'Mumbai',
-          languages: ['English', 'Hindi', 'Marathi'],
-          profilePhoto: '/coaches/priya-sharma.jpg',
-        },
-      },
-    },
-  });
-
-  const coach2 = await prisma.user.create({
-    data: {
-      email: 'rahul.verma@koshpal.com',
-      passwordHash,
-      role: Role.COACH,
-      isActive: true,
-      lastLoginAt: new Date('2024-12-17T18:00:00Z'),
-      coachProfile: {
-        create: {
-          fullName: 'Rahul Verma',
-          expertise: [
-            'Debt Management',
-            'Financial Planning',
-            'Investment Planning',
-          ],
-          bio: 'MBA Finance with 10 years experience. Expert in debt restructuring and personal finance management for professionals.',
-          rating: new Decimal('4.9'),
-          successRate: 95,
-          clientsHelped: 289,
-          location: 'Bangalore',
-          languages: ['English', 'Hindi', 'Kannada'],
-          profilePhoto: '/coaches/rahul-verma.jpg',
-        },
-      },
-    },
-  });
-
-  const coach3 = await prisma.user.create({
-    data: {
-      email: 'anjali.patel@koshpal.com',
-      passwordHash,
-      role: Role.COACH,
-      isActive: true,
-      lastLoginAt: new Date('2024-12-18T06:45:00Z'),
-      coachProfile: {
-        create: {
-          fullName: 'Anjali Patel',
-          expertise: ['Retirement Planning', 'Insurance', 'Tax Planning'],
-          bio: 'Certified Financial Planner specializing in retirement and insurance planning. Helping employees secure their financial future.',
-          rating: new Decimal('4.7'),
-          successRate: 88,
-          clientsHelped: 215,
-          location: 'Delhi',
-          languages: ['English', 'Hindi', 'Gujarati'],
-          profilePhoto: '/coaches/anjali-patel.jpg',
-        },
-      },
-    },
-  });
-
-  console.log(`✅ Created 3 coaches\n`);
-
-  // ========================================
-  // 6️⃣ COACH SLOTS (Next 14 days)
+  // 4️⃣ COACH SLOTS (1-10 sessions per coach)
   // ========================================
   console.log('📅 Creating coach availability slots...');
+  
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
-  const coaches = [coach1, coach2, coach3];
+  
   const timeSlots = [
     { start: '09:00', end: '10:00' },
     { start: '10:00', end: '11:00' },
-    { start: '11:00', end: '12:00' },
     { start: '14:00', end: '15:00' },
     { start: '15:00', end: '16:00' },
     { start: '16:00', end: '17:00' },
   ];
 
-  let slotsCreated = 0;
-  const allSlots: Array<{
-    id: string;
-    coachId: string;
-    status: SlotStatus;
-    date: Date;
-    startTime: Date;
-    endTime: Date;
-  }> = [];
-
+  const allSlots: any[] = [];
+  
   for (const coach of coaches) {
-    for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
+    const numSessions = randomInt(5, 10);
+    
+    for (let i = 0; i < numSessions; i++) {
+      const dayOffset = randomInt(0, 14);
       const slotDate = new Date(today);
       slotDate.setDate(today.getDate() + dayOffset);
-
+      
       // Skip weekends
       if (slotDate.getDay() === 0 || slotDate.getDay() === 6) continue;
+      
+      const timeSlot = randomElement(timeSlots);
+      const [startHour, startMinute] = timeSlot.start.split(':').map(Number);
+      const [endHour, endMinute] = timeSlot.end.split(':').map(Number);
+      
+      const startTime = new Date(slotDate);
+      startTime.setHours(startHour, startMinute, 0, 0);
+      
+      const endTime = new Date(slotDate);
+      endTime.setHours(endHour, endMinute, 0, 0);
+      
+      const slot = await prisma.coachSlot.create({
+        data: {
+          coachId: coach.id,
+          date: slotDate,
+          startTime,
+          endTime,
+          status: SlotStatus.AVAILABLE,
+        },
+      });
+      
+      allSlots.push({ ...slot, coachId: coach.id });
+    }
+  }
 
-      for (const timeSlot of timeSlots) {
-        const [startHour, startMinute] = timeSlot.start.split(':').map(Number);
-        const [endHour, endMinute] = timeSlot.end.split(':').map(Number);
+  console.log(`✅ Created ${allSlots.length} coach slots\n`);
 
-        const startTime = new Date(slotDate);
-        startTime.setHours(startHour, startMinute, 0, 0);
+  // ========================================
+  // 5️⃣ HR USERS & EMPLOYEES
+  // ========================================
+  console.log('👥 Creating HR users and employees for each company...\n');
 
-        const endTime = new Date(slotDate);
-        endTime.setHours(endHour, endMinute, 0, 0);
+  let totalHRs = 0;
+  let totalEmployees = 0;
+  const allEmployees: any[] = [];
 
-        // Block some random slots
-        const shouldBlock = Math.random() < 0.1; // 10% blocked
+  for (const company of companies) {
+    const numHRs = randomInt(1, 5);
+    const numEmployees = randomInt(10, 15);
+    
+    console.log(`   📌 ${company.name}:`);
+    console.log(`      - Creating ${numHRs} HR users...`);
+    
+    // Create HR users for this company
+    const hrs: any[] = [];
+    for (let i = 0; i < numHRs; i++) {
+      const firstName = randomElement(firstNames);
+      const lastName = randomElement(lastNames);
+      const email = `hr${i + 1}@${company.domain}`;
+      
+      const hr = await prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          role: Role.HR,
+          companyId: company.id,
+          isActive: true,
+          lastLoginAt: new Date(),
+          hrProfile: {
+            create: {
+              fullName: `${firstName} ${lastName}`,
+              designation: randomElement(['HR Manager', 'Senior HR', 'HR Lead', 'HRBP', 'Talent Manager']),
+              phone: `+91-${randomInt(7000000000, 9999999999)}`,
+              companyId: company.id,
+            },
+          },
+        },
+      });
+      
+      hrs.push(hr);
+      totalHRs++;
+    }
+    
+    console.log(`      - Creating ${numEmployees} employees...`);
+    
+    // Create employees for this company
+    for (let i = 0; i < numEmployees; i++) {
+      const firstName = randomElement(firstNames);
+      const lastName = randomElement(lastNames);
+      const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@${company.domain}`;
+      const department = randomElement(departments);
+      
+      const joiningDate = new Date();
+      joiningDate.setMonth(joiningDate.getMonth() - randomInt(1, 36));
+      
+      const employee = await prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          role: Role.EMPLOYEE,
+          companyId: company.id,
+          isActive: randomInt(0, 100) > 5, // 95% active
+          lastLoginAt: new Date(Date.now() - randomInt(0, 7) * 24 * 60 * 60 * 1000),
+          employeeProfile: {
+            create: {
+              fullName: `${firstName} ${lastName}`,
+              employeeCode: `${(company.domain || 'EMP').split('.')[0].toUpperCase().slice(0, 2)}${String(i + 1).padStart(3, '0')}`,
+              phone: `+91-${randomInt(7000000000, 9999999999)}`,
+              department,
+              dateOfJoining: joiningDate,
+              companyId: company.id,
+            },
+          },
+        },
+      });
+      
+      allEmployees.push({ user: employee, company });
+      totalEmployees++;
+    }
+    
+    console.log(`      ✅ Created ${numHRs} HRs and ${numEmployees} employees\n`);
+  }
 
-        const slot = await prisma.coachSlot.create({
+  console.log(`✅ Total: ${totalHRs} HR users and ${totalEmployees} employees\n`);
+
+  // ========================================
+  // 6️⃣ ACCOUNTS & TRANSACTIONS FOR EMPLOYEES
+  // ========================================
+  console.log('🏦 Creating accounts and transactions for employees...\n');
+
+  let totalAccounts = 0;
+  let totalTransactions = 0;
+  let totalGoals = 0;
+  let totalSummaries = 0;
+
+  const accountProviders = {
+    BANK: ['HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank', 'Kotak Mahindra'],
+    WALLET: ['Paytm', 'PhonePe', 'Google Pay', 'Amazon Pay'],
+    CREDIT_CARD: ['HDFC Regalia', 'ICICI Platinum', 'SBI Elite', 'Axis Magnus'],
+    CASH: ['Cash']
+  };
+
+  for (const { user: employee, company } of allEmployees) {
+    const numAccounts = randomInt(0, 3);
+    const employeeAccounts: any[] = [];
+    
+    // Create accounts
+    if (numAccounts > 0) {
+      // Always create at least one bank account
+      const bankAccount = await prisma.account.create({
+        data: {
+          userId: employee.id,
+          companyId: company.id,
+          type: AccountType.BANK,
+          provider: randomElement(accountProviders.BANK),
+          maskedAccountNo: `XXXX-XXXX-${randomInt(1000, 9999)}`,
+          employeeProfileUserId: employee.id,
+        },
+      });
+      employeeAccounts.push(bankAccount);
+      totalAccounts++;
+      
+      // Add additional accounts
+      for (let i = 1; i < numAccounts; i++) {
+        const accountTypes = [AccountType.WALLET, AccountType.CREDIT_CARD, AccountType.CASH];
+        const accountType = randomElement(accountTypes);
+        
+        const account = await prisma.account.create({
           data: {
-            coachId: coach.id,
-            date: slotDate,
-            startTime,
-            endTime,
-            status: shouldBlock ? SlotStatus.BLOCKED : SlotStatus.AVAILABLE,
+            userId: employee.id,
+            companyId: company.id,
+            type: accountType,
+            provider: randomElement(accountProviders[accountType]),
+            maskedAccountNo: accountType === AccountType.CASH ? null : `XXXX-${randomInt(1000, 9999)}`,
+            employeeProfileUserId: employee.id,
           },
         });
-
-        allSlots.push(slot);
-        slotsCreated++;
+        employeeAccounts.push(account);
+        totalAccounts++;
+      }
+      
+      // Create transactions (at least 10 per employee)
+      const numTransactions = randomInt(10, 30);
+      const transactions: any[] = [];
+      
+      // Salary transaction (always)
+      const salaryAmount = randomDecimal(50000, 150000);
+      transactions.push({
+        userId: employee.id,
+        companyId: company.id,
+        accountId: employeeAccounts[0].id,
+        amount: salaryAmount,
+        type: TransactionType.INCOME,
+        category: 'Salary',
+        subCategory: 'Monthly Salary',
+        source: TransactionSource.BANK,
+        description: 'Monthly Salary',
+        transactionDate: new Date(Date.now() - randomInt(1, 30) * 24 * 60 * 60 * 1000),
+      });
+      
+      // Generate random transactions
+      for (let i = 1; i < numTransactions; i++) {
+        const isIncome = randomInt(0, 100) < 15; // 15% income, 85% expense
+        const category = isIncome ? 'Other Income' : randomElement(categories);
+        const subCategory = isIncome ? 
+          randomElement(['Freelance', 'Bonus', 'Refund', 'Gift']) : 
+          randomElement(subCategories[category]);
+        
+        transactions.push({
+          userId: employee.id,
+          companyId: company.id,
+          accountId: randomElement(employeeAccounts).id,
+          amount: isIncome ? randomDecimal(1000, 20000) : randomDecimal(100, 15000),
+          type: isIncome ? TransactionType.INCOME : TransactionType.EXPENSE,
+          category,
+          subCategory,
+          source: randomElement([TransactionSource.BANK, TransactionSource.MOBILE, TransactionSource.MANUAL]),
+          description: `${subCategory} transaction`,
+          transactionDate: new Date(Date.now() - randomInt(0, 90) * 24 * 60 * 60 * 1000),
+        });
+      }
+      
+      // Create transactions in database
+      for (const txn of transactions) {
+        await prisma.transaction.create({ data: txn });
+        totalTransactions++;
+      }
+      
+      // Create monthly summary
+      const totalIncome = transactions
+        .filter(t => t.type === TransactionType.INCOME)
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      const totalExpense = transactions
+        .filter(t => t.type === TransactionType.EXPENSE)
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      const savings = totalIncome - totalExpense;
+      const budget = randomDecimal(30000, 80000);
+      
+      // Category breakdown
+      const expenseBreakdown: any = {};
+      transactions
+        .filter(t => t.type === TransactionType.EXPENSE)
+        .forEach(t => {
+          expenseBreakdown[t.category] = (expenseBreakdown[t.category] || 0) + Number(t.amount);
+        });
+      
+      await prisma.monthlySummary.create({
+        data: {
+          userId: employee.id,
+          companyId: company.id,
+          month: new Date().getMonth() + 1,
+          year: new Date().getFullYear(),
+          periodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          periodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+          totalIncome: new Decimal(totalIncome),
+          totalExpense: new Decimal(totalExpense),
+          savings: new Decimal(savings),
+          budget,
+          categoryBreakdown: {
+            income: { Salary: Number(salaryAmount) },
+            expense: expenseBreakdown,
+          },
+        },
+      });
+      totalSummaries++;
+      
+      // Create 1-3 financial goals
+      const numGoals = randomInt(1, 3);
+      const goalIcons = ['🏠', '🚗', '✈️', '💍', '🎓', '💻', '🏍️', '🏥'];
+      const goalNames = [
+        'Emergency Fund',
+        'Car Purchase',
+        'Home Down Payment',
+        'Vacation',
+        'Wedding Fund',
+        'Child Education',
+        'Laptop Purchase',
+        'Medical Insurance'
+      ];
+      
+      for (let i = 0; i < numGoals; i++) {
+        const goalAmount = randomDecimal(50000, 2000000);
+        const saving = randomDecimal(Number(goalAmount) * 0.1, Number(goalAmount) * 0.8);
+        const goalDate = new Date();
+        goalDate.setMonth(goalDate.getMonth() + randomInt(6, 36));
+        
+        await prisma.financialGoal.create({
+          data: {
+            userId: employee.id,
+            goalName: randomElement(goalNames),
+            icon: randomElement(goalIcons),
+            goalAmount,
+            saving,
+            goalDate,
+          },
+        });
+        totalGoals++;
       }
     }
   }
 
-  console.log(`✅ Created ${slotsCreated} coach slots\n`);
+  console.log(`✅ Created ${totalAccounts} accounts`);
+  console.log(`✅ Created ${totalTransactions} transactions`);
+  console.log(`✅ Created ${totalSummaries} monthly summaries`);
+  console.log(`✅ Created ${totalGoals} financial goals\n`);
 
   // ========================================
   // 7️⃣ CONSULTATION BOOKINGS
   // ========================================
-  console.log('📞 Creating consultation bookings...');
+  console.log('📞 Creating consultation bookings...\n');
+
+  let totalBookings = 0;
+  const availableSlots = allSlots.filter(s => s.status === SlotStatus.AVAILABLE);
   
-  // Book some slots (past and upcoming)
-  const availableSlots = allSlots.filter((s) => s.status === SlotStatus.AVAILABLE);
-  const employees = [emp1, emp2, emp3, emp4];
-
-  let bookingsCreated = 0;
-  for (let i = 0; i < Math.min(8, availableSlots.length); i++) {
-    const slot = availableSlots[i];
-    const employee = employees[i % employees.length];
-
-    await prisma.consultationBooking.create({
-      data: {
-        slotId: slot.id,
-        coachId: slot.coachId,
-        employeeId: employee.id,
-        meetingLink: `https://meet.google.com/${Math.random().toString(36).substring(7)}`,
-        status: BookingStatus.CONFIRMED,
-      },
-    });
-
-    // Update slot status
-    await prisma.coachSlot.update({
-      where: { id: slot.id },
-      data: { status: SlotStatus.BOOKED },
-    });
-
-    bookingsCreated++;
+  for (const coach of coaches) {
+    const coachSlots = availableSlots.filter(s => s.coachId === coach.id);
+    const numBookings = Math.min(randomInt(1, 10), coachSlots.length);
+    
+    for (let i = 0; i < numBookings; i++) {
+      const slot = coachSlots[i];
+      const employee = randomElement(allEmployees);
+      
+      await prisma.consultationBooking.create({
+        data: {
+          slotId: slot.id,
+          coachId: coach.id,
+          employeeId: employee.user.id,
+          meetingLink: `https://meet.google.com/${Math.random().toString(36).substring(7)}`,
+          status: BookingStatus.CONFIRMED,
+        },
+      });
+      
+      await prisma.coachSlot.update({
+        where: { id: slot.id },
+        data: { status: SlotStatus.BOOKED },
+      });
+      
+      totalBookings++;
+    }
   }
 
-  console.log(`✅ Created ${bookingsCreated} bookings\n`);
+  console.log(`✅ Created ${totalBookings} consultation bookings\n`);
 
   // ========================================
-  // 8️⃣ ACCOUNTS (Bank, Wallet, Credit Card)
-  // ========================================
-  console.log('🏦 Creating financial accounts...');
-  
-  // John Doe's accounts
-  const johnBank = await prisma.account.create({
-    data: {
-      userId: emp1.id,
-      companyId: company1.id,
-      type: AccountType.BANK,
-      provider: 'HDFC Bank',
-      maskedAccountNo: 'XXXX-XXXX-3456',
-      employeeProfileUserId: emp1.id,
-    },
-  });
-
-  const johnWallet = await prisma.account.create({
-    data: {
-      userId: emp1.id,
-      companyId: company1.id,
-      type: AccountType.WALLET,
-      provider: 'Paytm',
-      maskedAccountNo: '9876543210',
-      employeeProfileUserId: emp1.id,
-    },
-  });
-
-  const johnCard = await prisma.account.create({
-    data: {
-      userId: emp1.id,
-      companyId: company1.id,
-      type: AccountType.CREDIT_CARD,
-      provider: 'HDFC Regalia',
-      maskedAccountNo: 'XXXX-XXXX-7890',
-      employeeProfileUserId: emp1.id,
-    },
-  });
-
-  // Sarah's accounts
-  const sarahBank = await prisma.account.create({
-    data: {
-      userId: emp2.id,
-      companyId: company1.id,
-      type: AccountType.BANK,
-      provider: 'ICICI Bank',
-      maskedAccountNo: 'XXXX-XXXX-1234',
-      employeeProfileUserId: emp2.id,
-    },
-  });
-
-  const sarahCash = await prisma.account.create({
-    data: {
-      userId: emp2.id,
-      companyId: company1.id,
-      type: AccountType.CASH,
-      provider: 'Cash',
-      maskedAccountNo: null,
-      employeeProfileUserId: emp2.id,
-    },
-  });
-
-  // Amit's accounts
-  const amitBank = await prisma.account.create({
-    data: {
-      userId: emp3.id,
-      companyId: company2.id,
-      type: AccountType.BANK,
-      provider: 'SBI',
-      maskedAccountNo: 'XXXX-XXXX-5678',
-      employeeProfileUserId: emp3.id,
-    },
-  });
-
-  console.log(`✅ Created 6 financial accounts\n`);
-
-  // ========================================
-  // 9️⃣ TRANSACTIONS
-  // ========================================
-  console.log('💰 Creating transactions...');
-
-  const transactionsData = [
-    // John Doe - December 2024
-    { userId: emp1.id, companyId: company1.id, accountId: johnBank.id, amount: new Decimal('85000'), type: TransactionType.INCOME, category: 'Salary', subCategory: 'Monthly Salary', source: TransactionSource.BANK, description: 'December Salary', transactionDate: new Date('2024-12-01') },
-    { userId: emp1.id, companyId: company1.id, accountId: johnBank.id, amount: new Decimal('1200'), type: TransactionType.EXPENSE, category: 'Food & Dining', subCategory: 'Restaurants', source: TransactionSource.BANK, description: 'Dinner at Italian restaurant', transactionDate: new Date('2024-12-05') },
-    { userId: emp1.id, companyId: company1.id, accountId: johnCard.id, amount: new Decimal('5499'), type: TransactionType.EXPENSE, category: 'Shopping', subCategory: 'Electronics', source: TransactionSource.MOBILE, description: 'Wireless mouse', transactionDate: new Date('2024-12-07') },
-    { userId: emp1.id, companyId: company1.id, accountId: johnBank.id, amount: new Decimal('15000'), type: TransactionType.EXPENSE, category: 'Housing', subCategory: 'Rent', source: TransactionSource.BANK, description: 'Monthly rent', transactionDate: new Date('2024-12-10') },
-    { userId: emp1.id, companyId: company1.id, accountId: johnWallet.id, amount: new Decimal('250'), type: TransactionType.EXPENSE, category: 'Transportation', subCategory: 'Uber', source: TransactionSource.MOBILE, description: 'Office commute', transactionDate: new Date('2024-12-12') },
-    { userId: emp1.id, companyId: company1.id, accountId: johnBank.id, amount: new Decimal('3500'), type: TransactionType.EXPENSE, category: 'Bills & Utilities', subCategory: 'Electricity', source: TransactionSource.BANK, description: 'Power bill', transactionDate: new Date('2024-12-14') },
-    { userId: emp1.id, companyId: company1.id, accountId: johnBank.id, amount: new Decimal('2000'), type: TransactionType.INCOME, category: 'Other Income', subCategory: 'Freelance', source: TransactionSource.BANK, description: 'Freelance project payment', transactionDate: new Date('2024-12-16') },
-    
-    // John - November 2024
-    { userId: emp1.id, companyId: company1.id, accountId: johnBank.id, amount: new Decimal('85000'), type: TransactionType.INCOME, category: 'Salary', subCategory: 'Monthly Salary', source: TransactionSource.BANK, description: 'November Salary', transactionDate: new Date('2024-11-01') },
-    { userId: emp1.id, companyId: company1.id, accountId: johnBank.id, amount: new Decimal('15000'), type: TransactionType.EXPENSE, category: 'Housing', subCategory: 'Rent', source: TransactionSource.BANK, description: 'Monthly rent', transactionDate: new Date('2024-11-10') },
-    { userId: emp1.id, companyId: company1.id, accountId: johnCard.id, amount: new Decimal('8500'), type: TransactionType.EXPENSE, category: 'Shopping', subCategory: 'Clothing', source: TransactionSource.MOBILE, description: 'Winter clothes', transactionDate: new Date('2024-11-15') },
-
-    // Sarah Smith - December 2024
-    { userId: emp2.id, companyId: company1.id, accountId: sarahBank.id, amount: new Decimal('95000'), type: TransactionType.INCOME, category: 'Salary', subCategory: 'Monthly Salary', source: TransactionSource.BANK, description: 'December Salary', transactionDate: new Date('2024-12-01') },
-    { userId: emp2.id, companyId: company1.id, accountId: sarahBank.id, amount: new Decimal('18000'), type: TransactionType.EXPENSE, category: 'Housing', subCategory: 'Rent', source: TransactionSource.BANK, description: 'Monthly rent', transactionDate: new Date('2024-12-05') },
-    { userId: emp2.id, companyId: company1.id, accountId: sarahCash.id, amount: new Decimal('500'), type: TransactionType.EXPENSE, category: 'Food & Dining', subCategory: 'Groceries', source: TransactionSource.MANUAL, description: 'Weekly groceries', transactionDate: new Date('2024-12-08') },
-    { userId: emp2.id, companyId: company1.id, accountId: sarahBank.id, amount: new Decimal('12000'), type: TransactionType.EXPENSE, category: 'Healthcare', subCategory: 'Medical', source: TransactionSource.BANK, description: 'Health insurance premium', transactionDate: new Date('2024-12-12') },
-    
-    // Amit Patel - December 2024
-    { userId: emp3.id, companyId: company2.id, accountId: amitBank.id, amount: new Decimal('75000'), type: TransactionType.INCOME, category: 'Salary', subCategory: 'Monthly Salary', source: TransactionSource.BANK, description: 'December Salary', transactionDate: new Date('2024-12-01') },
-    { userId: emp3.id, companyId: company2.id, accountId: amitBank.id, amount: new Decimal('12000'), type: TransactionType.EXPENSE, category: 'Housing', subCategory: 'Rent', source: TransactionSource.BANK, description: 'Monthly rent', transactionDate: new Date('2024-12-08') },
-    { userId: emp3.id, companyId: company2.id, accountId: amitBank.id, amount: new Decimal('4500'), type: TransactionType.EXPENSE, category: 'Transportation', subCategory: 'Fuel', source: TransactionSource.BANK, description: 'Petrol expense', transactionDate: new Date('2024-12-10') },
-    { userId: emp3.id, companyId: company2.id, accountId: amitBank.id, amount: new Decimal('3000'), type: TransactionType.EXPENSE, category: 'Entertainment', subCategory: 'Movies', source: TransactionSource.BANK, description: 'Movie tickets', transactionDate: new Date('2024-12-15') },
-  ];
-
-  for (const txn of transactionsData) {
-    await prisma.transaction.create({ data: txn });
-  }
-
-  console.log(`✅ Created ${transactionsData.length} transactions\n`);
-
-  // ========================================
-  // 🔟 MONTHLY SUMMARIES
-  // ========================================
-  console.log('📊 Creating monthly summaries...');
-
-  // John - December 2024
-  await prisma.monthlySummary.create({
-    data: {
-      userId: emp1.id,
-      companyId: company1.id,
-      month: 12,
-      year: 2024,
-      periodStart: new Date('2024-12-01'),
-      periodEnd: new Date('2024-12-31'),
-      totalIncome: new Decimal('87000'),
-      totalExpense: new Decimal('27449'),
-      savings: new Decimal('59551'),
-      budget: new Decimal('40000'),
-      categoryBreakdown: {
-        income: { Salary: 85000, 'Other Income': 2000 },
-        expense: {
-          'Food & Dining': 1200,
-          Shopping: 5499,
-          Housing: 15000,
-          Transportation: 250,
-          'Bills & Utilities': 3500,
-        },
-      },
-    },
-  });
-
-  // John - November 2024
-  await prisma.monthlySummary.create({
-    data: {
-      userId: emp1.id,
-      companyId: company1.id,
-      month: 11,
-      year: 2024,
-      periodStart: new Date('2024-11-01'),
-      periodEnd: new Date('2024-11-30'),
-      totalIncome: new Decimal('85000'),
-      totalExpense: new Decimal('23500'),
-      savings: new Decimal('61500'),
-      budget: new Decimal('40000'),
-      categoryBreakdown: {
-        income: { Salary: 85000 },
-        expense: { Housing: 15000, Shopping: 8500 },
-      },
-    },
-  });
-
-  // Sarah - December 2024
-  await prisma.monthlySummary.create({
-    data: {
-      userId: emp2.id,
-      companyId: company1.id,
-      month: 12,
-      year: 2024,
-      periodStart: new Date('2024-12-01'),
-      periodEnd: new Date('2024-12-31'),
-      totalIncome: new Decimal('95000'),
-      totalExpense: new Decimal('30500'),
-      savings: new Decimal('64500'),
-      budget: new Decimal('45000'),
-      categoryBreakdown: {
-        income: { Salary: 95000 },
-        expense: {
-          Housing: 18000,
-          'Food & Dining': 500,
-          Healthcare: 12000,
-        },
-      },
-    },
-  });
-
-  // Amit - December 2024
-  await prisma.monthlySummary.create({
-    data: {
-      userId: emp3.id,
-      companyId: company2.id,
-      month: 12,
-      year: 2024,
-      periodStart: new Date('2024-12-01'),
-      periodEnd: new Date('2024-12-31'),
-      totalIncome: new Decimal('75000'),
-      totalExpense: new Decimal('19500'),
-      savings: new Decimal('55500'),
-      budget: new Decimal('35000'),
-      categoryBreakdown: {
-        income: { Salary: 75000 },
-        expense: {
-          Housing: 12000,
-          Transportation: 4500,
-          Entertainment: 3000,
-        },
-      },
-    },
-  });
-
-  console.log(`✅ Created 4 monthly summaries\n`);
-
-  // ========================================
-  // 1️⃣1️⃣ FINANCIAL GOALS
-  // ========================================
-  console.log('🎯 Creating financial goals...');
-
-  const goalsData = [
-    // John's goals
-    { userId: emp1.id, goalName: 'Emergency Fund', icon: '🏥', goalAmount: new Decimal('200000'), saving: new Decimal('125000'), goalDate: new Date('2025-06-30') },
-    { userId: emp1.id, goalName: 'Car Purchase', icon: '🚗', goalAmount: new Decimal('800000'), saving: new Decimal('350000'), goalDate: new Date('2026-03-31') },
-    { userId: emp1.id, goalName: 'Vacation to Europe', icon: '✈️', goalAmount: new Decimal('300000'), saving: new Decimal('95000'), goalDate: new Date('2025-12-01') },
-    
-    // Sarah's goals
-    { userId: emp2.id, goalName: 'Home Down Payment', icon: '🏠', goalAmount: new Decimal('1500000'), saving: new Decimal('600000'), goalDate: new Date('2026-12-31') },
-    { userId: emp2.id, goalName: 'Wedding Fund', icon: '💍', goalAmount: new Decimal('500000'), saving: new Decimal('200000'), goalDate: new Date('2025-11-01') },
-    
-    // Amit's goals
-    { userId: emp3.id, goalName: 'Child Education', icon: '🎓', goalAmount: new Decimal('2000000'), saving: new Decimal('450000'), goalDate: new Date('2030-06-01') },
-    { userId: emp3.id, goalName: 'Bike Upgrade', icon: '🏍️', goalAmount: new Decimal('150000'), saving: new Decimal('80000'), goalDate: new Date('2025-08-15') },
-    
-    // Neha's goals
-    { userId: emp4.id, goalName: 'Laptop Purchase', icon: '💻', goalAmount: new Decimal('120000'), saving: new Decimal('90000'), goalDate: new Date('2025-03-31') },
-  ];
-
-  for (const goal of goalsData) {
-    await prisma.financialGoal.create({ data: goal });
-  }
-
-  console.log(`✅ Created ${goalsData.length} financial goals\n`);
-
-  // ========================================
-  // 1️⃣2️⃣ EMPLOYEE UPLOAD BATCHES
-  // ========================================
-  console.log('📤 Creating employee upload batches...');
-
-  await prisma.employeeUploadBatch.create({
-    data: {
-      fileName: 'employees_dec_2024.xlsx',
-      totalRecords: 50,
-      successRecords: 48,
-      failedRecords: 2,
-      status: UploadStatus.COMPLETED,
-      companyId: company1.id,
-      hrUserId: hr1.id,
-      createdAt: new Date('2024-12-10T10:30:00Z'),
-      updatedAt: new Date('2024-12-10T10:35:00Z'),
-    },
-  });
-
-  await prisma.employeeUploadBatch.create({
-    data: {
-      fileName: 'new_joiners_nov_2024.xlsx',
-      totalRecords: 25,
-      successRecords: 25,
-      failedRecords: 0,
-      status: UploadStatus.COMPLETED,
-      companyId: company1.id,
-      hrUserId: hr1.id,
-      createdAt: new Date('2024-11-15T14:20:00Z'),
-      updatedAt: new Date('2024-11-15T14:22:00Z'),
-    },
-  });
-
-  await prisma.employeeUploadBatch.create({
-    data: {
-      fileName: 'employees_test.xlsx',
-      totalRecords: 10,
-      successRecords: 0,
-      failedRecords: 10,
-      status: UploadStatus.FAILED,
-      companyId: company2.id,
-      hrUserId: hr2.id,
-      createdAt: new Date('2024-12-05T09:15:00Z'),
-      updatedAt: new Date('2024-12-05T09:16:00Z'),
-    },
-  });
-
-  await prisma.employeeUploadBatch.create({
-    data: {
-      fileName: 'processing_batch.xlsx',
-      totalRecords: 100,
-      successRecords: 75,
-      failedRecords: 0,
-      status: UploadStatus.PROCESSING,
-      companyId: company2.id,
-      hrUserId: hr2.id,
-      createdAt: new Date('2024-12-18T08:00:00Z'),
-      updatedAt: new Date('2024-12-18T08:10:00Z'),
-    },
-  });
-
-  console.log(`✅ Created 4 upload batches\n`);
-
-  // ========================================
-  // 1️⃣3️⃣ NOTIFICATIONS
+  // 8️⃣ NOTIFICATIONS
   // ========================================
   console.log('🔔 Creating notifications...');
 
-  const notificationsData = [
-    // John's notifications
-    { userId: emp1.id, title: 'Consultation Booked', message: 'Your consultation with Priya Sharma is confirmed for Dec 20, 2024', isRead: false, createdAt: new Date('2024-12-18T09:30:00Z') },
-    { userId: emp1.id, title: 'Goal Achievement', message: 'You are 62.5% towards your Emergency Fund goal!', isRead: true, createdAt: new Date('2024-12-15T10:00:00Z') },
-    { userId: emp1.id, title: 'Budget Alert', message: 'You have spent 68% of your December budget', isRead: true, createdAt: new Date('2024-12-14T08:30:00Z') },
-    
-    // Sarah's notifications
-    { userId: emp2.id, title: 'New Financial Tip', message: 'Check out our latest guide on tax saving investments', isRead: false, createdAt: new Date('2024-12-17T11:00:00Z') },
-    { userId: emp2.id, title: 'Profile Updated', message: 'Your financial profile has been successfully updated', isRead: true, createdAt: new Date('2024-12-10T14:20:00Z') },
-    
-    // Amit's notifications
-    { userId: emp3.id, title: 'Upcoming Consultation', message: 'Your session with Rahul Verma is in 2 days', isRead: false, createdAt: new Date('2024-12-18T07:00:00Z') },
-    { userId: emp3.id, title: 'Monthly Summary Ready', message: 'Your November financial summary is now available', isRead: true, createdAt: new Date('2024-12-01T09:00:00Z') },
-    
-    // Coach notifications
-    { userId: coach1.id, title: 'New Booking Request', message: 'John Doe has booked a slot with you', isRead: false, createdAt: new Date('2024-12-18T09:30:00Z') },
-    { userId: coach2.id, title: 'Session Reminder', message: 'You have 3 consultations scheduled for tomorrow', isRead: true, createdAt: new Date('2024-12-17T18:00:00Z') },
+  const notificationTemplates = [
+    { title: 'Consultation Booked', message: 'Your consultation is confirmed', isRead: false },
+    { title: 'Goal Achievement', message: 'You are making great progress on your goal!', isRead: false },
+    { title: 'Budget Alert', message: 'You have spent 75% of your monthly budget', isRead: true },
+    { title: 'New Financial Tip', message: 'Check out our latest guide on tax saving', isRead: false },
+    { title: 'Monthly Summary Ready', message: 'Your monthly financial summary is available', isRead: true },
   ];
 
-  for (const notif of notificationsData) {
-    await prisma.notification.create({ data: notif });
+  let totalNotifications = 0;
+  for (const { user: employee } of allEmployees.slice(0, 20)) { // First 20 employees
+    const numNotifs = randomInt(2, 5);
+    
+    for (let i = 0; i < numNotifs; i++) {
+      const template = randomElement(notificationTemplates);
+      await prisma.notification.create({
+        data: {
+          userId: employee.id,
+          ...template,
+          createdAt: new Date(Date.now() - randomInt(0, 30) * 24 * 60 * 60 * 1000),
+        },
+      });
+      totalNotifications++;
+    }
   }
 
-  console.log(`✅ Created ${notificationsData.length} notifications\n`);
+  console.log(`✅ Created ${totalNotifications} notifications\n`);
 
   // ========================================
-  // 1️⃣4️⃣ REFRESH TOKENS (Active Sessions)
+  // 9️⃣ EMPLOYEE UPLOAD BATCHES
   // ========================================
-  console.log('🔐 Creating refresh tokens (active sessions)...');
-  console.log('⚠️  RefreshToken table migration not applied - skipping for now\n');
-  
-  // NOTE: RefreshToken seeding commented out until migration is applied
-  // Uncomment after running: npx prisma migrate dev --name add_refresh_tokens
-  
-  /*
-  const refreshTokenHash = await bcrypt.hash('sample_refresh_token_12345', 10);
-  const futureExpiry = new Date();
-  futureExpiry.setDate(futureExpiry.getDate() + 7); // 7 days from now
+  console.log('📤 Creating employee upload batches...');
 
-  await prisma.refreshToken.create({
-    data: {
-      userId: emp1.id,
-      token: refreshTokenHash + '_john_web',
-      expiresAt: futureExpiry,
-      isRevoked: false,
-      deviceId: 'chrome-desktop-001',
-      ipAddress: '192.168.1.101',
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120.0.0.0',
-      createdAt: new Date('2024-12-18T09:00:00Z'),
-    },
-  });
+  let totalBatches = 0;
+  for (const company of companies) {
+    const numBatches = randomInt(2, 4);
+    
+    for (let i = 0; i < numBatches; i++) {
+      const totalRecords = randomInt(10, 100);
+      const successRecords = randomInt(Math.floor(totalRecords * 0.8), totalRecords);
+      const failedRecords = totalRecords - successRecords;
+      
+      const hrUser = await prisma.user.findFirst({ 
+        where: { companyId: company.id, role: Role.HR } 
+      });
+      
+      if (hrUser) {
+        await prisma.employeeUploadBatch.create({
+          data: {
+            fileName: `employees_${new Date().toISOString().split('T')[0]}_${i + 1}.xlsx`,
+            totalRecords,
+            successRecords,
+            failedRecords,
+            status: failedRecords > totalRecords * 0.3 ? UploadStatus.FAILED : UploadStatus.COMPLETED,
+            companyId: company.id,
+            hrUserId: hrUser.id,
+            createdAt: new Date(Date.now() - randomInt(0, 60) * 24 * 60 * 60 * 1000),
+            updatedAt: new Date(),
+          },
+        });
+        totalBatches++;
+      }
+    }
+  }
 
-  await prisma.refreshToken.create({
-    data: {
-      userId: emp1.id,
-      token: refreshTokenHash + '_john_mobile',
-      expiresAt: futureExpiry,
-      isRevoked: false,
-      deviceId: 'iphone-14-pro',
-      ipAddress: '192.168.1.102',
-      userAgent: 'KoshpalApp/1.0 (iPhone; iOS 17.0)',
-      createdAt: new Date('2024-12-17T14:30:00Z'),
-    },
-  });
-
-  await prisma.refreshToken.create({
-    data: {
-      userId: emp2.id,
-      token: refreshTokenHash + '_sarah_web',
-      expiresAt: futureExpiry,
-      isRevoked: false,
-      deviceId: 'firefox-desktop-002',
-      ipAddress: '192.168.1.105',
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/120.0',
-      createdAt: new Date('2024-12-17T16:30:00Z'),
-    },
-  });
-
-  // Revoked token (for testing)
-  await prisma.refreshToken.create({
-    data: {
-      userId: emp3.id,
-      token: refreshTokenHash + '_amit_revoked',
-      expiresAt: futureExpiry,
-      isRevoked: true,
-      deviceId: 'chrome-desktop-003',
-      ipAddress: '192.168.1.110',
-      userAgent: 'Mozilla/5.0 (X11; Linux x86_64) Chrome/120.0.0.0',
-      createdAt: new Date('2024-12-15T10:00:00Z'),
-      revokedAt: new Date('2024-12-16T11:30:00Z'),
-    },
-  });
-
-  console.log(`✅ Created 4 refresh tokens (3 active, 1 revoked)\n`);
-  */
+  console.log(`✅ Created ${totalBatches} upload batches\n`);
 
   // ========================================
   // ✅ SEEDING COMPLETE
@@ -832,34 +614,30 @@ async function main() {
   console.log('========================================\n');
 
   console.log('📋 Summary:');
-  console.log('   • 3 Companies (2 active, 1 inactive)');
-  console.log('   • 2 Admins');
-  console.log('   • 2 HR users');
-  console.log('   • 5 Employees (4 active, 1 inactive)');
-  console.log('   • 3 Coaches with profiles');
-  console.log(`   • ${slotsCreated} Coach availability slots`);
-  console.log(`   • ${bookingsCreated} Consultation bookings`);
-  console.log('   • 6 Financial accounts');
-  console.log(`   • ${transactionsData.length} Transactions`);
-  console.log('   • 4 Monthly summaries');
-  console.log(`   • ${goalsData.length} Financial goals`);
-  console.log('   • 4 Upload batches');
-  console.log(`   • ${notificationsData.length} Notifications`);
-  console.log('   • 0 Refresh tokens (migration pending)\n');
+  console.log(`   • ${companies.length} Companies`);
+  console.log('   • 1 Admin');
+  console.log(`   • ${totalHRs} HR users (1-5 per company)`);
+  console.log(`   • ${totalEmployees} Employees (10-15 per company)`);
+  console.log(`   • ${coaches.length} Coaches`);
+  console.log(`   • ${allSlots.length} Coach slots`);
+  console.log(`   • ${totalBookings} Consultation bookings (1-10 per coach)`);
+  console.log(`   • ${totalAccounts} Financial accounts (0-3 per employee)`);
+  console.log(`   • ${totalTransactions} Transactions (10+ per employee)`);
+  console.log(`   • ${totalSummaries} Monthly summaries`);
+  console.log(`   • ${totalGoals} Financial goals`);
+  console.log(`   • ${totalNotifications} Notifications`);
+  console.log(`   • ${totalBatches} Upload batches\n`);
 
-  console.log('🔐 Test Login Credentials (password: password123):');
+  console.log('🔐 Sample Login Credentials (password: password123):');
   console.log('   ┌─────────────────────────────────────────┐');
   console.log('   │ ADMIN  → admin@koshpal.com              │');
-  console.log('   │ ADMIN  → superadmin@koshpal.com         │');
-  console.log('   │ HR     → hr@techcorp.com                │');
-  console.log('   │ HR     → hr@finserve.in                 │');
-  console.log('   │ EMP    → john.doe@techcorp.com          │');
-  console.log('   │ EMP    → sarah.smith@techcorp.com       │');
-  console.log('   │ EMP    → amit.patel@finserve.in         │');
-  console.log('   │ EMP    → neha.verma@finserve.in         │');
+  console.log('   │ HR     → hr1@techcorp.com               │');
+  console.log('   │ HR     → hr1@finserve.in                │');
+  console.log('   │ HR     → hr1@startuphub.io              │');
   console.log('   │ COACH  → priya.sharma@koshpal.com       │');
   console.log('   │ COACH  → rahul.verma@koshpal.com        │');
   console.log('   │ COACH  → anjali.patel@koshpal.com       │');
+  console.log('   │ EMP    → Check database for emails      │');
   console.log('   └─────────────────────────────────────────┘\n');
 }
 

@@ -164,20 +164,127 @@ export class HrService {
   }
 
   async getEmployees(companyId: string) {
-    return this.prisma.user.findMany({
+    const employees = await this.prisma.user.findMany({
       where: {
         companyId,
         role: 'EMPLOYEE',
       },
-      select: {
-        id: true,
-        email: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        employeeProfile: {
+          select: {
+            fullName: true,
+            department: true,
+            phone: true,
+            dateOfJoining: true,
+          },
+        },
+        monthlySummaries: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            totalIncome: true,
+            totalExpense: true,
+            savings: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Get consultation booking counts for each employee
+    const employeeIds = employees.map((emp) => emp.id);
+    const bookingCounts = await this.prisma.consultationBooking.groupBy({
+      by: ['employeeId'],
+      where: {
+        employeeId: { in: employeeIds },
+        status: 'CONFIRMED',
+      },
+      _count: true,
+    });
+
+    const bookingMap = new Map(
+      bookingCounts.map((b) => [b.employeeId, b._count]),
+    );
+
+    // Calculate engagement and status for each employee
+    return employees.map((emp) => {
+      const hasFinancialData = emp.monthlySummaries.length > 0;
+      const sessionsAttended = bookingMap.get(emp.id) || 0;
+
+      // Determine onboarding status (only Invited or Onboarded)
+      let status = 'Invited';
+      if (hasFinancialData) {
+        status = 'Onboarded';
+      }
+
+      // Determine engagement level (only Active or Inactive)
+      let engagement = 'Inactive';
+      if (hasFinancialData && emp.isActive) {
+        const lastActivity = emp.monthlySummaries[0]?.createdAt;
+        if (lastActivity) {
+          const daysSinceActivity = Math.floor(
+            (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60 * 24),
+          );
+          if (daysSinceActivity < 60) {
+            engagement = 'Active';
+          }
+        }
+      }
+
+      // Calculate last activity
+      let lastActivity = 'Never';
+      if (emp.monthlySummaries.length > 0) {
+        const lastDate = emp.monthlySummaries[0].createdAt;
+        const daysAgo = Math.floor(
+          (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        if (daysAgo < 1) {
+          lastActivity = 'Today';
+        } else if (daysAgo < 30) {
+          lastActivity = `${daysAgo}d ago`;
+        } else if (daysAgo < 60) {
+          lastActivity = `${Math.floor(daysAgo / 30)}mo ago`;
+        } else {
+          lastActivity = `${Math.floor(daysAgo / 30)}mo ago`;
+        }
+      }
+
+      return {
+        id: emp.id,
+        name: emp.employeeProfile?.fullName || emp.email,
+        email: emp.email,
+        department: emp.employeeProfile?.department || 'Unknown',
+        role: 'Financial Analyst', // Default role
+        status,
+        engagement,
+        lastActivity,
+        sessionsAttended,
+        isActive: emp.isActive,
+        phone: emp.employeeProfile?.phone,
+        dateOfJoining: emp.employeeProfile?.dateOfJoining,
+      };
+    });
+  }
+
+  async getDepartments(companyId: string) {
+    const employeeProfiles = await this.prisma.employeeProfile.findMany({
+      where: {
+        companyId,
+      },
+      select: {
+        department: true,
+      },
+      distinct: ['department'],
+    });
+
+    // Extract unique departments and filter out null/undefined
+    const departments = employeeProfiles
+      .map((profile) => profile.department)
+      .filter((dept) => dept !== null && dept !== undefined)
+      .sort();
+
+    return departments;
   }
 
   async getEmployee(id: string, companyId: string) {
@@ -321,6 +428,334 @@ export class HrService {
       aggregatedExpense: totals.totalExpense,
       aggregatedSavings: totals.totalSavings,
       monthlySummaries: monthlySummaries.slice(0, 12), // Last 12 months
+    };
+  }
+
+  async getDashboardStats(companyId: string) {
+    // Get total active employees
+    const totalEmployees = await this.prisma.user.count({
+      where: {
+        companyId,
+        role: 'EMPLOYEE',
+        isActive: true,
+      },
+    });
+
+    // Get employees with financial data (monitored)
+    const monitoredEmployees = await this.prisma.user.count({
+      where: {
+        companyId,
+        role: 'EMPLOYEE',
+        isActive: true,
+        employeeProfile: {
+          accounts: {
+            some: {},
+          },
+        },
+      },
+    });
+
+    // Calculate average financial health score
+    const employeesWithTransactions = await this.prisma.user.findMany({
+      where: {
+        companyId,
+        role: 'EMPLOYEE',
+        isActive: true,
+      },
+      include: {
+        monthlySummaries: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    let totalHealthScore = 0;
+    let employeesWithHealth = 0;
+
+    employeesWithTransactions.forEach((emp) => {
+      if (emp.monthlySummaries.length > 0) {
+        const summary = emp.monthlySummaries[0];
+        const income = Number(summary.totalIncome);
+        const expense = Number(summary.totalExpense);
+        const savings = Number(summary.savings);
+
+        // Calculate health score (0-100)
+        let healthScore = 50;
+        if (income > 0) {
+          const savingsRate = (savings / income) * 100;
+          const expenseRatio = (expense / income) * 100;
+          healthScore = Math.min(
+            100,
+            Math.max(0, savingsRate * 0.7 + (100 - expenseRatio) * 0.3),
+          );
+        }
+
+        totalHealthScore += healthScore;
+        employeesWithHealth++;
+      }
+    });
+
+    const avgFinancialHealth =
+      employeesWithHealth > 0
+        ? Math.round(totalHealthScore / employeesWithHealth)
+        : 0;
+
+    // Get consultation bookings for this period
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const sessionsThisPeriod = await this.prisma.consultationBooking.count({
+      where: {
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+    });
+
+    // Calculate participation rate
+    const participationRate =
+      totalEmployees > 0
+        ? Math.round((monitoredEmployees / totalEmployees) * 100)
+        : 0;
+
+    return {
+      employeeMonitored: monitoredEmployees,
+      employeeMonitoredChange: '+12%',
+      avgFinancialHealth,
+      avgFinancialHealthPeriod: 'This Month',
+      participationRate,
+      participationRateChange: '-5%',
+      sessionsThisPeriod,
+      sessionsRate: `${Math.round((sessionsThisPeriod / (totalEmployees || 1)) * 100)}%`,
+    };
+  }
+
+  async getFinancialHealthDistribution(companyId: string) {
+    const employees = await this.prisma.user.findMany({
+      where: {
+        companyId,
+        role: 'EMPLOYEE',
+        isActive: true,
+      },
+      include: {
+        monthlySummaries: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    let low = 0;
+    let medium = 0;
+    let high = 0;
+
+    employees.forEach((emp) => {
+      if (emp.monthlySummaries.length > 0) {
+        const summary = emp.monthlySummaries[0];
+        const income = Number(summary.totalIncome);
+        const expense = Number(summary.totalExpense);
+        const savings = Number(summary.savings);
+
+        let healthScore = 50;
+        if (income > 0) {
+          const savingsRate = (savings / income) * 100;
+          const expenseRatio = (expense / income) * 100;
+          healthScore = Math.min(
+            100,
+            Math.max(0, savingsRate * 0.7 + (100 - expenseRatio) * 0.3),
+          );
+        }
+
+        if (healthScore < 40) {
+          low++;
+        } else if (healthScore < 70) {
+          medium++;
+        } else {
+          high++;
+        }
+      }
+    });
+
+    return {
+      distribution: [
+        { category: 'Low (0-39)', value: low, range: '0-39' },
+        { category: 'Medium (40-69)', value: medium, range: '40-69' },
+        { category: 'High (70-100)', value: high, range: '70-100' },
+      ],
+      total: low + medium + high,
+    };
+  }
+
+  async getParticipationByDepartment(companyId: string) {
+    // Get all employees with their departments
+    const allEmployees = await this.prisma.user.findMany({
+      where: {
+        companyId,
+        role: 'EMPLOYEE',
+        isActive: true,
+      },
+      include: {
+        employeeProfile: {
+          include: {
+            accounts: true,
+          },
+        },
+      },
+    });
+
+    // Group by department
+    const deptMap = new Map();
+
+    allEmployees.forEach((emp) => {
+      const dept = emp.employeeProfile?.department || 'Unknown';
+
+      if (!deptMap.has(dept)) {
+        deptMap.set(dept, { total: 0, participating: 0 });
+      }
+
+      const data = deptMap.get(dept);
+      data.total++;
+
+      // Check if employee is participating (has financial accounts)
+      if (emp.employeeProfile?.accounts && emp.employeeProfile.accounts.length > 0) {
+        data.participating++;
+      }
+    });
+
+    // Convert to array and calculate rates
+    const departments = Array.from(deptMap.entries()).map(([dept, data]) => {
+      const rate = data.total > 0 ? (data.participating / data.total) * 100 : 0;
+
+      return {
+        department: dept,
+        total: data.total,
+        participating: data.participating,
+        participationRate: Math.round(rate),
+      };
+    });
+
+    return departments.sort((a, b) => b.participationRate - a.participationRate);
+  }
+
+  async getDashboardAlerts(companyId: string) {
+    const alerts: Array<{
+      type: string;
+      title: string;
+      message: string;
+      severity: string;
+    }> = [];
+
+    // Check for low participation by department
+    const deptParticipation = await this.getParticipationByDepartment(companyId);
+    deptParticipation.forEach((dept) => {
+      if (dept.participationRate < 30 && dept.total > 5) {
+        alerts.push({
+          type: 'warning',
+          title: `Low participation in ${dept.department} dept`,
+          message: `Only ${dept.participationRate}% participated in last 30 days`,
+          severity: 'medium',
+        });
+      }
+    });
+
+    // Check for failed upload batches
+    const failedBatches = await this.prisma.employeeUploadBatch.count({
+      where: {
+        companyId,
+        status: 'FAILED',
+        createdAt: {
+          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        },
+      },
+    });
+
+    if (failedBatches > 0) {
+      alerts.push({
+        type: 'error',
+        title: `${failedBatches} failed invite deliveries`,
+        message: 'Review email addresses and resend',
+        severity: 'high',
+      });
+    }
+
+    // Check for recent successful data sync
+    const recentBatch = await this.prisma.employeeUploadBatch.findFirst({
+      where: {
+        companyId,
+        status: 'COMPLETED',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (
+      recentBatch &&
+      recentBatch.createdAt > new Date(Date.now() - 24 * 60 * 60 * 1000)
+    ) {
+      alerts.push({
+        type: 'success',
+        title: 'Data sync completed',
+        message: 'All metrics updated',
+        severity: 'low',
+      });
+    }
+
+    return alerts;
+  }
+
+  async getHrProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        hrProfile: true,
+      },
+    });
+
+    if (!user || !user.hrProfile) {
+      throw new BadRequestException('HR profile not found');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.hrProfile.fullName,
+      phone: user.hrProfile.phone,
+      designation: user.hrProfile.designation,
+      companyId: user.companyId,
+    };
+  }
+
+  async updateHrProfile(
+    userId: string,
+    updateData: { fullName?: string; phone?: string; designation?: string },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { hrProfile: true },
+    });
+
+    if (!user || !user.hrProfile) {
+      throw new BadRequestException('HR profile not found');
+    }
+
+    const updatedProfile = await this.prisma.hRProfile.update({
+      where: { userId: userId },
+      data: {
+        ...(updateData.fullName && { fullName: updateData.fullName }),
+        ...(updateData.phone !== undefined && { phone: updateData.phone }),
+        ...(updateData.designation && { designation: updateData.designation }),
+      },
+    });
+
+    return {
+      message: 'Profile updated successfully',
+      profile: {
+        id: user.id,
+        email: user.email,
+        fullName: updatedProfile.fullName,
+        phone: updatedProfile.phone,
+        designation: updatedProfile.designation,
+      },
     };
   }
 }

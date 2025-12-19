@@ -119,6 +119,7 @@ model HRProfile {
   userId      String  @id
   companyId   String
   fullName    String
+  phone       String?
   designation String?
 
   user    User    @relation(fields: [userId], references: [id])
@@ -131,6 +132,7 @@ model EmployeeProfile {
   employeeCode  String?
   fullName      String
   phone         String?
+  department    String?
   dateOfJoining DateTime?
 
   user          User           @relation(fields: [userId], references: [id])

@@ -53,6 +53,11 @@ export class HrController {
     return this.hrService.getEmployees(user.companyId);
   }
 
+  @Get('employees/departments/list')
+  async getDepartments(@CurrentUser() user: CurrentUserDto) {
+    return this.hrService.getDepartments(user.companyId);
+  }
+
   @Get('employees/:id')
   async getEmployee(
     @Param('id') id: string,
@@ -73,5 +78,38 @@ export class HrController {
   @Get('insights/summary')
   async getInsightsSummary(@CurrentUser() user: CurrentUserDto) {
     return this.hrService.getCompanyInsightsSummary(user.companyId);
+  }
+
+  @Get('dashboard/stats')
+  async getDashboardStats(@CurrentUser() user: CurrentUserDto) {
+    return this.hrService.getDashboardStats(user.companyId);
+  }
+
+  @Get('dashboard/financial-health')
+  async getFinancialHealthDistribution(@CurrentUser() user: CurrentUserDto) {
+    return this.hrService.getFinancialHealthDistribution(user.companyId);
+  }
+
+  @Get('dashboard/participation-by-department')
+  async getParticipationByDepartment(@CurrentUser() user: CurrentUserDto) {
+    return this.hrService.getParticipationByDepartment(user.companyId);
+  }
+
+  @Get('dashboard/alerts')
+  async getDashboardAlerts(@CurrentUser() user: CurrentUserDto) {
+    return this.hrService.getDashboardAlerts(user.companyId);
+  }
+
+  @Get('profile')
+  async getProfile(@CurrentUser() user: CurrentUserDto) {
+    return this.hrService.getHrProfile(user.userId);
+  }
+
+  @Patch('profile')
+  async updateProfile(
+    @CurrentUser() user: CurrentUserDto,
+    @Body() updateData: { fullName?: string; phone?: string; designation?: string },
+  ) {
+    return this.hrService.updateHrProfile(user.userId, updateData);
   }
 }
