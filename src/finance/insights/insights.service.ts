@@ -85,6 +85,7 @@ export class InsightsService {
     const summaries = await this.prisma.monthlySummary.findMany({
       where: { year },
       orderBy: { month: 'asc' },
+      take: 12, // Limit to 12 months max
     });
 
     if (summaries.length === 0) {
@@ -147,6 +148,7 @@ export class InsightsService {
     const summaries = await this.prisma.monthlySummary.findMany({
       where,
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      take: 12, // Limit to 12 months to prevent unbounded queries
     });
 
     if (summaries.length === 0) {
@@ -318,7 +320,7 @@ export class InsightsService {
         categoryBreakdown: JSON.parse(JSON.stringify(categoryBreakdown)),
       },
       create: {
-        userId,
+        // userId will be injected by scoped-prisma.service.ts
         companyId,
         month,
         year,
@@ -393,7 +395,7 @@ export class InsightsService {
 
       const created = await this.prisma.monthlySummary.create({
         data: {
-          userId,
+          // userId will be injected by scoped-prisma.service.ts
           companyId,
           month,
           year,

@@ -1,11 +1,13 @@
 import { Worker, Job } from 'bullmq';
 import * as XLSX from 'xlsx';
 import * as bcrypt from 'bcrypt';
-import { PrismaClient, Role, UploadStatus } from '@prisma/client';
+import { Role, UploadStatus } from '@prisma/client';
 import { generateRandomPassword } from '../utils/password.util';
 import { sendCredentialsEmail } from '../mail/mail.service';
+import { getSharedPrisma } from './shared-prisma';
 
-const prisma = new PrismaClient();
+// Use shared Prisma instance - NEVER create new PrismaClient()
+const prisma = getSharedPrisma();
 
 // Redis configuration
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';

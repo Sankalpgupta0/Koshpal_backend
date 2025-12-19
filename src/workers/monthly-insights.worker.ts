@@ -1,8 +1,9 @@
 import { Worker, Job } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { getSharedPrisma } from './shared-prisma';
 
-const prisma = new PrismaClient();
+// Use shared Prisma instance - NEVER create new PrismaClient()
+const prisma = getSharedPrisma();
 
 // Redis configuration
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';

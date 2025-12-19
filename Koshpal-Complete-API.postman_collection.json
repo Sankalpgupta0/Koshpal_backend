@@ -1,10 +1,10 @@
 {
   "info": {
     "name": "Koshpal Backend - Complete API Collection",
-    "description": "Complete API collection with 170+ endpoints covering all features with comprehensive test scenarios:\n\n🔐 AUTHENTICATION (25 endpoints)\n- Login (Admin/Employee/HR/Coach)\n- Session Management (NEW)\n- Refresh Token with revocation (ENHANCED)\n- Password Change\n- Active Sessions Viewing\n- Logout from all devices\n\n🏢 ADMIN PORTAL\n- Company Management\n- HR Management  \n- Platform Statistics\n\n👥 HR PORTAL\n- Employee Bulk Upload with BullMQ\n- Upload Status Tracking\n- Employee Management\n\n👤 EMPLOYEE PORTAL\n- Profile Management\n- Financial Goals CRUD\n- Account & Transaction Management\n- Monthly Insights & Budget\n\n🎯 COACH PORTAL\n- Slot Creation & Management\n- Consultation Viewing\n- Coach Statistics\n\n📅 CONSULTATIONS (ENHANCED)\n- Coach Listing & Filtering\n- Slot Availability (with race condition fix)\n- Booking (with row-level locking)\n- Booking History\n\n💰 FINANCE MODULE\n- Accounts\n- Transactions with filters\n- Insights & Analytics\n- Budget Management\n\nAll endpoints include:\n✓ Success scenarios\n✓ Error scenarios (401, 400, 404, etc.)\n✓ Validation tests\n✓ Authorization tests\n✓ Auto token management",
+    "description": "Complete API collection with 175+ endpoints covering all features with comprehensive test scenarios:\n\n🔐 AUTHENTICATION (25 endpoints)\n- Login (Admin/Employee/HR/Coach)\n- Session Management (NEW)\n- Refresh Token with revocation (ENHANCED)\n- Password Change\n- Active Sessions Viewing\n- Logout from all devices\n\n🏢 ADMIN PORTAL\n- Company Management\n- HR Management  \n- Platform Statistics\n\n👥 HR PORTAL\n- Employee Bulk Upload with BullMQ\n- Upload Status Tracking\n- Employee Management\n\n👤 EMPLOYEE PORTAL\n- Profile Management\n- Financial Goals CRUD\n- Account & Transaction Management\n- Monthly Insights & Budget\n\n🎯 COACH PORTAL\n- Slot Creation & Management\n- Consultation Viewing\n- Coach Statistics\n\n📅 CONSULTATIONS (ENHANCED)\n- Coach Listing & Filtering\n- Slot Availability (with race condition fix)\n- Booking (with row-level locking)\n- Booking History\n\n💰 FINANCE MODULE (✨ ENHANCED)\n- Accounts\n- Transactions with filters\n- ✨ NEW: Optional Account Transactions (Zero-Account Support)\n- ✨ NEW: Smart Account Matching from Metadata\n- ✨ NEW: Auto-Account Creation from SMS/Mobile Transactions\n- Insights & Analytics\n- Budget Management\n\n✨ NEW TRANSACTION FEATURES:\n• Transactions without accounts (accountId optional)\n• Smart account matching by bank metadata\n• Auto-account creation from transaction data\n• Mixed bulk transactions (with/without accounts)\n• Never fail SMS/mobile transaction ingestion\n\nAll endpoints include:\n✓ Success scenarios\n✓ Error scenarios (401, 400, 404, etc.)\n✓ Validation tests\n✓ Authorization tests\n✓ Auto token management",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "3.0.0",
-    "_postman_id": "koshpal-backend-api-v3",
+    "version": "3.1.0",
+    "_postman_id": "koshpal-backend-api-v3.1",
     "_exporter_id": "koshpal-2025"
   },
   "auth": {
@@ -1932,7 +1932,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"accountId\": \"{{employeeAccountId}}\",\n  \"amount\": 5000,\n  \"type\": \"INCOME\",\n  \"category\": \"SALARY\",\n  \"source\": \"MANUAL\",\n  \"description\": \"Monthly salary\",\n  \"transactionDate\": \"2024-01-15T10:00:00Z\"\n}"
+                  "raw": "{\n  \"accountId\": \"{{employeeAccountId}}\",\n  \"amount\": 5000,\n  \"type\": \"INCOME\",\n  \"category\": \"SALARY\",\n  \"source\": \"MANUAL\",\n  \"description\": \"Monthly salary\",\n  \"transactionDate\": \"2024-01-15T10:00:00Z\"\n}\n\n// Note: accountId is now OPTIONAL\n// Can omit accountId for cash transactions\n// Can provide bank metadata for auto-account creation"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/employee/transactions",
@@ -1945,7 +1945,8 @@
                     "employee",
                     "transactions"
                   ]
-                }
+                },
+                "description": "Create a transaction. accountId is now optional - transactions can exist without accounts or auto-create accounts from metadata."
               },
               "response": []
             },
@@ -4126,6 +4127,189 @@
               ]
             },
             "description": "Test with invalid transaction type in array - should return 400 validation error"
+          },
+          "response": []
+        },
+        {
+          "name": "✨ Create Transaction - No Account (NEW)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.test('Transaction created without account', function() {",
+                  "        pm.expect(jsonData).to.have.property('id');",
+                  "        pm.expect(jsonData.accountId).to.be.null;",
+                  "        pm.expect(jsonData.type).to.equal('EXPENSE');",
+                  "    });",
+                  "    console.log('✓ Transaction created without account link');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Food\",\n  \"subCategory\": \"Dining\",\n  \"source\": \"MANUAL\",\n  \"description\": \"Cash payment at restaurant\",\n  \"transactionDate\": \"2025-12-15T18:30:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "✨ NEW: Create transaction without account. Transaction is created with accountId=null. Useful for cash transactions or when account doesn't exist yet."
+          },
+          "response": []
+        },
+        {
+          "name": "✨ Create Transaction - With Metadata (Auto-Create Account)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.test('Transaction created with auto-account', function() {",
+                  "        pm.expect(jsonData).to.have.property('id');",
+                  "        pm.expect(jsonData.accountId).to.not.be.null;",
+                  "        pm.expect(jsonData.bank).to.equal('HDFC');",
+                  "        pm.expect(jsonData.maskedAccountNo).to.equal('XXXX1234');",
+                  "    });",
+                  "    console.log('✓ Account auto-created from transaction metadata');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Shopping\",\n  \"subCategory\": \"Electronics\",\n  \"source\": \"MOBILE\",\n  \"description\": \"Card payment via SMS notification\",\n  \"bank\": \"HDFC\",\n  \"maskedAccountNo\": \"XXXX1234\",\n  \"merchant\": \"Amazon\",\n  \"provider\": \"BANK\",\n  \"transactionDate\": \"2025-12-16T14:20:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "✨ NEW: Create transaction with bank metadata. System auto-creates account 'HDFC XXXX1234' and links transaction. Subsequent transactions with same metadata will match existing account."
+          },
+          "response": []
+        },
+        {
+          "name": "✨ Create Transaction - Match Existing by Metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.test('Transaction matched to existing account', function() {",
+                  "        pm.expect(jsonData).to.have.property('id');",
+                  "        pm.expect(jsonData.accountId).to.not.be.null;",
+                  "        pm.expect(jsonData.bank).to.equal('HDFC');",
+                  "    });",
+                  "    console.log('✓ Transaction linked to existing account by metadata');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1200,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Transportation\",\n  \"source\": \"MOBILE\",\n  \"description\": \"Fuel payment\",\n  \"bank\": \"HDFC\",\n  \"maskedAccountNo\": \"XXXX1234\",\n  \"provider\": \"BANK\",\n  \"transactionDate\": \"2025-12-17T09:15:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "✨ NEW: Transaction with same bank metadata matches existing account. No duplicate account created. Demonstrates smart account matching."
+          },
+          "response": []
+        },
+        {
+          "name": "✨ Bulk Create - Mixed Account Scenarios (NEW)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.test('Bulk transactions with mixed accounts', function() {",
+                  "        pm.expect(jsonData).to.have.property('count');",
+                  "        pm.expect(jsonData).to.have.property('accountsLinked');",
+                  "        pm.expect(jsonData).to.have.property('accountsUnlinked');",
+                  "        pm.expect(jsonData.count).to.equal(4);",
+                  "    });",
+                  "    console.log('✓ Mixed bulk: ' + jsonData.accountsLinked + ' linked, ' + jsonData.accountsUnlinked + ' unlinked');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactions\": [\n    {\n      \"accountId\": \"{{accountId}}\",\n      \"amount\": 10000,\n      \"type\": \"INCOME\",\n      \"category\": \"Salary\",\n      \"source\": \"BANK\",\n      \"description\": \"Explicit account ID provided\",\n      \"transactionDate\": \"2025-12-01T00:00:00.000Z\"\n    },\n    {\n      \"amount\": 2500,\n      \"type\": \"EXPENSE\",\n      \"category\": \"Shopping\",\n      \"source\": \"MOBILE\",\n      \"description\": \"SMS transaction - auto-create account\",\n      \"bank\": \"ICICI\",\n      \"maskedAccountNo\": \"XXXX5678\",\n      \"provider\": \"BANK\",\n      \"transactionDate\": \"2025-12-10T00:00:00.000Z\"\n    },\n    {\n      \"amount\": 800,\n      \"type\": \"EXPENSE\",\n      \"category\": \"Food\",\n      \"source\": \"MANUAL\",\n      \"description\": \"Cash payment - no account\",\n      \"transactionDate\": \"2025-12-11T00:00:00.000Z\"\n    },\n    {\n      \"amount\": 1500,\n      \"type\": \"EXPENSE\",\n      \"category\": \"Transportation\",\n      \"source\": \"MOBILE\",\n      \"description\": \"Second ICICI transaction - matches existing\",\n      \"bank\": \"ICICI\",\n      \"maskedAccountNo\": \"XXXX5678\",\n      \"provider\": \"BANK\",\n      \"transactionDate\": \"2025-12-12T00:00:00.000Z\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "bulk"
+              ]
+            },
+            "description": "✨ NEW: Demonstrates all account scenarios in bulk: explicit accountId, auto-create from metadata, no account, and metadata matching. Returns count of linked vs unlinked transactions."
           },
           "response": []
         },

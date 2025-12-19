@@ -7,8 +7,10 @@ import {
 } from 'class-validator';
 
 export class CreateTransactionDto {
+  // accountId is OPTIONAL - backend will match/create account automatically
+  @IsOptional()
   @IsString()
-  accountId: string;
+  accountId?: string;
 
   @IsNumber()
   amount: number;
@@ -32,4 +34,21 @@ export class CreateTransactionDto {
 
   @IsDateString()
   transactionDate: string;
+
+  // Additional metadata for account matching/creation
+  @IsOptional()
+  @IsString()
+  merchant?: string;
+
+  @IsOptional()
+  @IsString()
+  bank?: string;
+
+  @IsOptional()
+  @IsString()
+  maskedAccountNo?: string; // Last 4 digits
+
+  @IsOptional()
+  @IsString()
+  provider?: string; // Bank/wallet provider name
 }

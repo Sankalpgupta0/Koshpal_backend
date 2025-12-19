@@ -167,6 +167,7 @@ model Account {
   type            AccountType
   provider        String?
   maskedAccountNo String?
+  bank            String?     // Added for better account matching
   createdAt       DateTime    @default(now())
 
   user                  User             @relation(fields: [userId], references: [id])
@@ -174,6 +175,7 @@ model Account {
   employeeProfile       EmployeeProfile? @relation(fields: [employeeProfileUserId], references: [userId])
   employeeProfileUserId String?
 
+  @@unique([userId, maskedAccountNo, provider], name: "unique_user_account")
   @@index([userId])
   @@index([companyId])
 }
@@ -182,7 +184,10 @@ model Transaction {
   id        String @id @default(uuid())
   userId    String
   companyId String
-  accountId String
+  // accountId is OPTIONAL: Transactions can exist without accounts
+  // Why: SMS/mobile transactions may arrive before account is created
+  // Source of truth: Transaction data, not account linkage
+  accountId String?
 
   amount      Decimal           @db.Decimal(12, 2)
   type        TransactionType
@@ -191,14 +196,21 @@ model Transaction {
   source      TransactionSource
   description String?
 
+  // Additional metadata for account matching
+  merchant        String?
+  bank            String?
+  maskedAccountNo String?
+
   transactionDate DateTime
   createdAt       DateTime @default(now())
 
-  user    User    @relation(fields: [userId], references: [id])
-  account Account @relation(fields: [accountId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+  // Optional relation: transaction can exist without account
+  account Account? @relation(fields: [accountId], references: [id])
 
   @@index([userId, transactionDate])
   @@index([companyId])
+  @@index([accountId])
 }
 
 model MonthlySummary {

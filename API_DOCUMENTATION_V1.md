@@ -10,46 +10,27 @@
 3. [Admin Portal](#admin-portal)
 4. [HR Management](#hr-management)
 5. [Employee Portal](#employee-portal)
-6. [Financial Goals](#financial-goals)
-7. [Transactions](#transactions)
-8. [Insights & Budget](#insights--budget)
-9. [Coach Portal](#coach-portal)
-10. [Employee Consultations](#employee-consultations)
+6. [Accounts](#accounts)
+7. [Financial Goals](#financial-goals)
+8. [Transactions](#transactions)
+9. [Insights & Budget](#insights--budget)
+10. [Coach Portal](#coach-portal)
+11. [Employee Consultations](#employee-consultations)
+12. [Error Responses](#error-responses)
+13. [Rate Limits](#rate-limits)
+14. [Date & Time Format](#date--time-format)
+15. [Pagination](#pagination)
 
 ---
 
 ## Authentication
 
-### 1.1 Register User
-**POST** `/api/v1/auth/register`
-
-Register a new user account (Employee, HR, Admin, or Coach).
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "role": "EMPLOYEE",
-  "companyId": "uuid" // Optional for EMPLOYEE
-}
-```
-
-**Response:** `201 Created`
-```json
-{
-  "id": "uuid",
-  "email": "user@example.com",
-  "role": "EMPLOYEE"
-}
-```
-
----
-
-### 1.2 Login
+### 1.1 Login
 **POST** `/api/v1/auth/login`
 
-Authenticate user and receive access tokens.
+Authenticate user and receive access tokens. Supports all roles: EMPLOYEE, HR, ADMIN, COACH.
+
+**Rate Limit:** 50 requests per minute
 
 **Request Body:**
 ```json
@@ -62,45 +43,88 @@ Authenticate user and receive access tokens.
 **Response:** `200 OK`
 ```json
 {
-  "accessToken": "jwt-token",
-  "refreshToken": "refresh-token",
+  "accessToken": "jwt-access-token",
+  "refreshToken": "jwt-refresh-token",
   "user": {
     "id": "uuid",
     "email": "user@example.com",
-    "role": "EMPLOYEE"
+    "role": "EMPLOYEE",
+    "companyId": "uuid"
   }
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Invalid credentials
+- `429 Too Many Requests` - Rate limit exceeded
+
+**Security Features:**
+- Tracks device info (IP, User-Agent, Device ID)
+- Stores refresh token in database for session management
+- Rate limited to prevent brute force attacks
+
+---
+
+### 1.2 Get Current User
+**GET** `/api/v1/auth/me`
+
+Get currently authenticated user's information.
+
+**Headers:** `Authorization: Bearer {accessToken}`
+
+**Response:** `200 OK`
+```json
+{
+  "userId": "uuid",
+  "email": "user@example.com",
+  "role": "EMPLOYEE",
+  "companyId": "uuid"
 }
 ```
 
 ---
 
-### 1.3 Refresh Token
+### 1.3 Refresh Access Token
 **POST** `/api/v1/auth/refresh`
 
-Get new access token using refresh token.
+Generate new access token using refresh token.
 
 **Request Body:**
 ```json
 {
-  "refreshToken": "refresh-token"
+  "refreshToken": "refresh-token-string"
 }
 ```
 
 **Response:** `200 OK`
 ```json
 {
-  "accessToken": "new-jwt-token"
+  "accessToken": "new-jwt-access-token"
 }
 ```
+
+**Error Responses:**
+- `401 Unauthorized` - Invalid or expired refresh token
+
+**Token Lifetimes:**
+- Access Token: 15 minutes
+- Refresh Token: 7 days
 
 ---
 
 ### 1.4 Logout
 **POST** `/api/v1/auth/logout`
 
-Invalidate refresh token and logout user.
+Logout user and revoke refresh token.
 
 **Headers:** `Authorization: Bearer {accessToken}`
+
+**Request Body:**
+```json
+{
+  "refreshToken": "refresh-token-string"
+}
+```
 
 **Response:** `200 OK`
 ```json
@@ -108,6 +132,84 @@ Invalidate refresh token and logout user.
   "message": "Logged out successfully"
 }
 ```
+
+**Note:** Revokes the refresh token in database. Client should delete stored tokens.
+
+---
+
+### 1.5 Get Active Sessions
+**GET** `/api/v1/auth/sessions`
+
+Get all active sessions for current user.
+
+**Headers:** `Authorization: Bearer {accessToken}`
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "uuid",
+    "deviceId": "device-123",
+    "deviceName": "Chrome on macOS",
+    "ipAddress": "192.168.1.1",
+    "location": "Mumbai, India",
+    "lastActivity": "2025-12-19T10:00:00.000Z",
+    "createdAt": "2025-12-15T08:00:00.000Z"
+  }
+]
+```
+
+---
+
+### 1.6 Revoke All Sessions
+**POST** `/api/v1/auth/sessions/revoke-all`
+
+Logout from all devices by revoking all active sessions.
+
+**Headers:** `Authorization: Bearer {accessToken}`
+
+**Response:** `200 OK`
+```json
+{
+  "message": "All sessions revoked successfully",
+  "revokedCount": 3
+}
+```
+
+**Use Cases:**
+- After password change
+- Security incident response
+- Lost device scenario
+
+---
+
+### 1.7 Change Password
+**PATCH** `/api/v1/auth/me/password`
+
+Change password for authenticated user.
+
+**Headers:** `Authorization: Bearer {accessToken}`
+
+**Request Body:**
+```json
+{
+  "currentPassword": "oldPassword123",
+  "newPassword": "newPassword456"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Password changed successfully. All sessions have been revoked. Please log in again."
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Current password is incorrect
+- `400 Bad Request` - New password doesn't meet requirements (min 8 characters)
+
+**Security Note:** Automatically revokes all sessions after password change. User must log in again with new password.
 
 ---
 
@@ -236,10 +338,10 @@ Get detailed information about a specific company.
 
 ---
 
-### 3.4 Update Company
-**PATCH** `/api/v1/admin/companies/:companyId`
+### 3.4 Update Company Status
+**PATCH** `/api/v1/admin/companies/:id/status`
 
-Update company information.
+Update company status (active/inactive).
 
 **Headers:** `Authorization: Bearer {adminToken}`  
 **Role Required:** `ADMIN`
@@ -247,8 +349,7 @@ Update company information.
 **Request Body:**
 ```json
 {
-  "name": "Tech Corp Inc",
-  "address": "456 New St"
+  "isActive": false
 }
 ```
 
@@ -256,55 +357,57 @@ Update company information.
 ```json
 {
   "id": "uuid",
-  "name": "Tech Corp Inc",
-  "updatedAt": "2025-12-17T11:00:00.000Z"
+  "isActive": false,
+  "updatedAt": "2025-12-19T10:00:00.000Z"
 }
 ```
 
 ---
 
-### 3.5 Delete Company
-**DELETE** `/api/v1/admin/companies/:companyId`
+### 3.5 Update Company Limits
+**PATCH** `/api/v1/admin/companies/:id/limits`
 
-Delete a company from the system.
+Update company employee and HR limits.
 
 **Headers:** `Authorization: Bearer {adminToken}`  
 **Role Required:** `ADMIN`
 
+**Request Body:**
+```json
+{
+  "maxEmployees": 500,
+  "maxHrs": 10
+}
+```
+
 **Response:** `200 OK`
 ```json
 {
-  "message": "Company deleted successfully"
+  "id": "uuid",
+  "maxEmployees": 500,
+  "maxHrs": 10,
+  "updatedAt": "2025-12-19T10:00:00.000Z"
 }
 ```
 
 ---
 
-## HR Management
+### 3.6 Create HR
+**POST** `/api/v1/admin/hrs`
 
-### 4.1 Create Employee
-**POST** `/api/v1/hr/employees`
+Create a new HR account.
 
-Create a new employee account.
-
-**Headers:** `Authorization: Bearer {hrToken}`  
-**Role Required:** `HR`
+**Headers:** `Authorization: Bearer {adminToken}`  
+**Role Required:** `ADMIN`
 
 **Request Body:**
 ```json
 {
-  "email": "employee@techcorp.com",
-  "password": "password123",
+  "email": "hr@techcorp.com",
+  "password": "SecurePass123!",
+  "companyId": "uuid",
   "firstName": "John",
-  "lastName": "Doe",
-  "dateOfBirth": "1990-01-01",
-  "gender": "MALE",
-  "phoneNumber": "+1234567890",
-  "address": "789 Employee St",
-  "salary": 75000,
-  "position": "Software Engineer",
-  "department": "Engineering",
-  "hireDate": "2025-01-01"
+  "lastName": "Doe"
 }
 ```
 
@@ -312,18 +415,220 @@ Create a new employee account.
 ```json
 {
   "id": "uuid",
-  "email": "employee@techcorp.com",
-  "profile": {
-    "firstName": "John",
-    "lastName": "Doe",
-    "position": "Software Engineer"
-  }
+  "email": "hr@techcorp.com",
+  "role": "HR",
+  "companyId": "uuid",
+  "createdAt": "2025-12-19T10:00:00.000Z"
 }
 ```
 
 ---
 
-### 4.2 Get All Employees
+### 3.7 Get All HRs
+**GET** `/api/v1/admin/hrs`
+
+List all HR accounts in the system.
+
+**Headers:** `Authorization: Bearer {adminToken}`  
+**Role Required:** `ADMIN`
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "uuid",
+    "email": "hr@techcorp.com",
+    "role": "HR",
+    "companyId": "uuid",
+    "isActive": true,
+    "company": {
+      "id": "uuid",
+      "name": "Tech Corp"
+    },
+    "createdAt": "2025-12-19T10:00:00.000Z"
+  }
+]
+```
+
+---
+
+### 3.8 Get HR Details
+**GET** `/api/v1/admin/hrs/:id`
+
+Get detailed information about a specific HR account.
+
+**Headers:** `Authorization: Bearer {adminToken}`  
+**Role Required:** `ADMIN`
+
+**Response:** `200 OK`
+```json
+{
+  "id": "uuid",
+  "email": "hr@techcorp.com",
+  "role": "HR",
+  "companyId": "uuid",
+  "isActive": true,
+  "company": {
+    "id": "uuid",
+    "name": "Tech Corp",
+    "domain": "techcorp.com"
+  },
+  "createdAt": "2025-12-19T10:00:00.000Z"
+}
+```
+
+---
+
+### 3.9 Update HR Status
+**PATCH** `/api/v1/admin/hrs/:id/status`
+
+Update HR account status (active/inactive).
+
+**Headers:** `Authorization: Bearer {adminToken}`  
+**Role Required:** `ADMIN`
+
+**Request Body:**
+```json
+{
+  "isActive": false
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "id": "uuid",
+  "isActive": false,
+  "updatedAt": "2025-12-19T10:00:00.000Z"
+}
+```
+
+---
+
+### 3.10 Get Platform Stats
+**GET** `/api/v1/admin/stats`
+
+Get platform-wide statistics.
+
+**Headers:** `Authorization: Bearer {adminToken}`  
+**Role Required:** `ADMIN`
+
+**Response:** `200 OK`
+```json
+{
+  "totalCompanies": 50,
+  "totalEmployees": 2500,
+  "totalHrs": 75,
+  "totalCoaches": 20,
+  "activeCompanies": 48,
+  "totalTransactions": 150000,
+  "totalConsultations": 1200
+}
+```
+
+---
+
+## HR Management
+
+### 4.1 Upload Employees
+**POST** `/api/v1/hr/employees/upload`
+
+Upload employees via CSV file.
+
+**Headers:** `Authorization: Bearer {hrToken}`  
+**Role Required:** `HR`
+
+**Request:** `multipart/form-data`
+- `file`: CSV file with employee data
+
+**CSV Format:**
+```csv
+email,password,firstName,lastName,dateOfBirth,gender,phoneNumber,address,salary,position,department,hireDate
+john@techcorp.com,Pass123!,John,Doe,1990-01-01,MALE,+1234567890,123 St,75000,Engineer,IT,2025-01-01
+```
+
+**Response:** `201 Created`
+```json
+{
+  "message": "Upload started",
+  "batchId": "uuid",
+  "status": "PROCESSING"
+}
+```
+
+**Note:** The upload is processed asynchronously via a queue. Check upload status using the batch ID.
+
+---
+
+### 4.2 Get All Uploads
+**GET** `/api/v1/hr/uploads`
+
+Get all employee upload batches for the HR's company.
+
+**Headers:** `Authorization: Bearer {hrToken}`  
+**Role Required:** `HR`
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "uuid",
+    "filename": "employees_2025.csv",
+    "status": "COMPLETED",
+    "totalRows": 50,
+    "successCount": 48,
+    "failureCount": 2,
+    "uploadedBy": "hr@techcorp.com",
+    "uploadedAt": "2025-12-19T10:00:00.000Z"
+  }
+]
+```
+
+**Status Values:**
+- `PENDING`: Upload received, waiting to process
+- `PROCESSING`: Currently processing rows
+- `COMPLETED`: All rows processed
+- `FAILED`: Upload failed
+
+---
+
+### 4.3 Get Upload Status
+**GET** `/api/v1/hr/uploads/:batchId`
+
+Get detailed status of a specific upload batch.
+
+**Headers:** `Authorization: Bearer {hrToken}`  
+**Role Required:** `HR`
+
+**Response:** `200 OK`
+```json
+{
+  "id": "uuid",
+  "filename": "employees_2025.csv",
+  "status": "COMPLETED",
+  "totalRows": 50,
+  "successCount": 48,
+  "failureCount": 2,
+  "errorDetails": [
+    {
+      "row": 5,
+      "email": "duplicate@techcorp.com",
+      "error": "Email already exists"
+    },
+    {
+      "row": 12,
+      "email": "invalid@",
+      "error": "Invalid email format"
+    }
+  ],
+  "uploadedAt": "2025-12-19T10:00:00.000Z",
+  "completedAt": "2025-12-19T10:05:00.000Z"
+}
+```
+
+---
+
+### 4.4 Get All Employees
 **GET** `/api/v1/hr/employees`
 
 List all employees in HR's company.
@@ -337,11 +642,13 @@ List all employees in HR's company.
   {
     "id": "uuid",
     "email": "employee@techcorp.com",
+    "isActive": true,
     "profile": {
       "firstName": "John",
       "lastName": "Doe",
       "position": "Software Engineer",
-      "department": "Engineering"
+      "department": "Engineering",
+      "salary": 75000
     },
     "createdAt": "2025-01-01T00:00:00.000Z"
   }
@@ -350,8 +657,8 @@ List all employees in HR's company.
 
 ---
 
-### 4.3 Get Employee Details
-**GET** `/api/v1/hr/employees/:employeeId`
+### 4.5 Get Employee Details
+**GET** `/api/v1/hr/employees/:id`
 
 Get detailed information about a specific employee.
 
@@ -363,26 +670,31 @@ Get detailed information about a specific employee.
 {
   "id": "uuid",
   "email": "employee@techcorp.com",
+  "isActive": true,
   "profile": {
     "firstName": "John",
     "lastName": "Doe",
-    "dateOfBirth": "1990-01-01",
+    "dateOfBirth": "1990-01-01T00:00:00.000Z",
+    "gender": "MALE",
     "phoneNumber": "+1234567890",
+    "address": "123 St",
     "salary": 75000,
     "position": "Software Engineer",
-    "department": "Engineering"
+    "department": "Engineering",
+    "hireDate": "2025-01-01T00:00:00.000Z"
   },
   "accounts": [],
-  "transactions": []
+  "transactions": [],
+  "createdAt": "2025-01-01T00:00:00.000Z"
 }
 ```
 
 ---
 
-### 4.4 Update Employee
-**PATCH** `/api/v1/hr/employees/:employeeId`
+### 4.6 Update Employee Status
+**PATCH** `/api/v1/hr/employees/:id/status`
 
-Update employee information.
+Update employee status (active/inactive).
 
 **Headers:** `Authorization: Bearer {hrToken}`  
 **Role Required:** `HR`
@@ -390,8 +702,7 @@ Update employee information.
 **Request Body:**
 ```json
 {
-  "salary": 80000,
-  "position": "Senior Software Engineer"
+  "isActive": false
 }
 ```
 
@@ -399,19 +710,17 @@ Update employee information.
 ```json
 {
   "id": "uuid",
-  "profile": {
-    "salary": 80000,
-    "position": "Senior Software Engineer"
-  }
+  "isActive": false,
+  "updatedAt": "2025-12-19T10:00:00.000Z"
 }
 ```
 
 ---
 
-### 4.5 Delete Employee
-**DELETE** `/api/v1/hr/employees/:employeeId`
+### 4.7 Get Company Insights Summary
+**GET** `/api/v1/hr/insights/summary`
 
-Remove an employee from the system.
+Get aggregated financial insights for all employees in the HR's company.
 
 **Headers:** `Authorization: Bearer {hrToken}`  
 **Role Required:** `HR`
@@ -419,29 +728,21 @@ Remove an employee from the system.
 **Response:** `200 OK`
 ```json
 {
-  "message": "Employee deleted successfully"
-}
-```
-
----
-
-### 4.6 Bulk Upload Employees
-**POST** `/api/v1/hr/employees/bulk-upload`
-
-Upload multiple employees via CSV file.
-
-**Headers:** `Authorization: Bearer {hrToken}`  
-**Role Required:** `HR`
-
-**Request:** `multipart/form-data`
-- `file`: CSV file with employee data
-
-**Response:** `201 Created`
-```json
-{
-  "message": "Employees uploaded successfully",
-  "count": 10,
-  "employees": []
+  "totalEmployees": 50,
+  "activeEmployees": 48,
+  "totalSalaryExpenditure": 3750000,
+  "averageSalary": 75000,
+  "totalTransactions": 5000,
+  "totalIncome": 3750000,
+  "totalExpenses": 2500000,
+  "averageSavingsRate": 33.33,
+  "topSpendingCategories": [
+    {
+      "category": "Groceries",
+      "totalAmount": 400000,
+      "percentage": 16
+    }
+  ]
 }
 ```
 
@@ -502,6 +803,126 @@ Update logged-in employee's profile.
   }
 }
 ```
+
+---
+
+## Accounts
+
+### 5.1 Create Account
+**POST** `/api/v1/accounts`
+
+Create a new financial account.
+
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
+
+**Request Body:**
+```json
+{
+  "accountName": "HDFC Savings",
+  "provider": "HDFC Bank",
+  "maskedAccountNo": "****1234",
+  "accountType": "SAVINGS",
+  "balance": 50000
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "id": "uuid",
+  "userId": "uuid",
+  "accountName": "HDFC Savings",
+  "provider": "HDFC Bank",
+  "maskedAccountNo": "****1234",
+  "accountType": "SAVINGS",
+  "balance": 50000,
+  "createdAt": "2025-12-19T00:00:00.000Z"
+}
+```
+
+**Error Responses:**
+- `409 Conflict` - Account with same provider and masked account number already exists for user
+- `400 Bad Request` - Invalid account data
+
+---
+
+### 5.2 Get My Accounts
+**GET** `/api/v1/accounts`
+
+Get all accounts for logged-in user.
+
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "uuid",
+    "userId": "uuid",
+    "accountName": "HDFC Savings",
+    "provider": "HDFC Bank",
+    "maskedAccountNo": "****1234",
+    "accountType": "SAVINGS",
+    "balance": 50000,
+    "createdAt": "2025-12-19T00:00:00.000Z",
+    "updatedAt": "2025-12-19T00:00:00.000Z"
+  }
+]
+```
+
+---
+
+### 5.3 Get Account by ID
+**GET** `/api/v1/accounts/:id`
+
+Get specific account details.
+
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
+
+**Response:** `200 OK`
+```json
+{
+  "id": "uuid",
+  "userId": "uuid",
+  "accountName": "HDFC Savings",
+  "provider": "HDFC Bank",
+  "maskedAccountNo": "****1234",
+  "accountType": "SAVINGS",
+  "balance": 50000,
+  "createdAt": "2025-12-19T00:00:00.000Z",
+  "updatedAt": "2025-12-19T00:00:00.000Z"
+}
+```
+
+**Error Responses:**
+- `404 Not Found` - Account not found or not owned by user
+- `403 Forbidden` - Not authorized to access this account
+
+---
+
+### 5.4 Delete Account
+**DELETE** `/api/v1/accounts/:id`
+
+Delete an account.
+
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Account deleted successfully"
+}
+```
+
+**Error Responses:**
+- `404 Not Found` - Account not found or not owned by user
+- `403 Forbidden` - Not authorized to delete this account
+
+**Note:** Deleting an account will set all associated transactions' `accountId` to `null`.
 
 ---
 
@@ -614,55 +1035,97 @@ Delete a financial goal.
 
 ## Transactions
 
-### 7.1 Get My Transactions
-**GET** `/api/v1/employee/transactions`
+### 7.1 Get All Transactions
+**GET** `/api/v1/transactions`
 
-Get all transactions for logged-in employee.
+Get all transactions for logged-in user.
 
-**Headers:** `Authorization: Bearer {employeeToken}`  
-**Role Required:** `EMPLOYEE`
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
 
 **Query Parameters:**
-- `startDate` (optional): Filter by start date (YYYY-MM-DD)
-- `endDate` (optional): Filter by end date (YYYY-MM-DD)
+- `accountId` (optional): Filter by account ID
 - `type` (optional): Filter by type (INCOME, EXPENSE)
-- `category` (optional): Filter by category
+- `category` (optional): Filter by category (partial match)
+- `limit` (optional): Limit results (default: 50)
+- `skip` (optional): Skip results for pagination (default: 0)
 
 **Response:** `200 OK`
 ```json
-[
-  {
-    "id": "uuid",
-    "amount": 1500,
-    "type": "EXPENSE",
-    "category": "Groceries",
-    "description": "Weekly shopping",
-    "transactionDate": "2025-12-15T00:00:00.000Z",
-    "source": "BANK"
-  }
-]
+{
+  "transactions": [
+    {
+      "id": "uuid",
+      "accountId": "uuid",
+      "amount": 1500,
+      "type": "EXPENSE",
+      "category": "Food",
+      "subCategory": "Groceries",
+      "description": "Weekly shopping",
+      "transactionDate": "2025-12-15T00:00:00.000Z",
+      "source": "BANK",
+      "merchant": "Amazon",
+      "bank": "HDFC",
+      "maskedAccountNo": "XXXX1234",
+      "createdAt": "2025-12-15T10:00:00.000Z"
+    }
+  ],
+  "total": 150,
+  "page": 1,
+  "limit": 50
+}
 ```
 
 ---
 
-### 7.2 Create Transaction
-**POST** `/api/v1/employee/transactions`
+### 7.2 Create Transaction ✨ ENHANCED
+**POST** `/api/v1/transactions`
 
-Create a new transaction.
+Create a new transaction. **accountId is now OPTIONAL** - transactions can exist without accounts.
 
-**Headers:** `Authorization: Bearer {employeeToken}`  
-**Role Required:** `EMPLOYEE`
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
 
-**Request Body:**
+**Request Body (with explicit account):**
 ```json
 {
   "accountId": "uuid",
   "amount": 1500,
   "type": "EXPENSE",
-  "category": "Groceries",
+  "category": "Food",
+  "subCategory": "Groceries",
   "description": "Weekly shopping",
-  "transactionDate": "2025-12-15",
+  "transactionDate": "2025-12-15T10:00:00.000Z",
   "source": "BANK"
+}
+```
+
+**Request Body (without account - ✨ NEW):**
+```json
+{
+  "amount": 500,
+  "type": "EXPENSE",
+  "category": "Food",
+  "description": "Cash payment at restaurant",
+  "transactionDate": "2025-12-15T18:30:00.000Z",
+  "source": "MANUAL"
+}
+```
+
+**Request Body (with metadata for auto-account creation - ✨ NEW):**
+```json
+{
+  "amount": 5000,
+  "type": "EXPENSE",
+  "category": "Shopping",
+  "subCategory": "Electronics",
+  "description": "Card payment via SMS",
+  "bank": "HDFC",
+  "maskedAccountNo": "XXXX1234",
+  "merchant": "Amazon",
+  "provider": "BANK",
+  "source": "MOBILE",
+  "transactionDate": "2025-12-16T14:20:00.000Z"
 }
 ```
 
@@ -670,28 +1133,128 @@ Create a new transaction.
 ```json
 {
   "id": "uuid",
+  "accountId": "uuid or null",
   "amount": 1500,
   "type": "EXPENSE",
-  "category": "Groceries",
-  "balance": 23500
+  "category": "Food",
+  "subCategory": "Groceries",
+  "description": "Weekly shopping",
+  "transactionDate": "2025-12-15T00:00:00.000Z",
+  "source": "BANK",
+  "bank": "HDFC",
+  "maskedAccountNo": "XXXX1234",
+  "merchant": null,
+  "createdAt": "2025-12-15T10:00:00.000Z"
+}
+```
+
+**Smart Account Matching Logic:**
+1. **Explicit accountId provided** → Validates and uses that account
+2. **Metadata provided (bank + maskedAccountNo + provider)** → Matches existing account or auto-creates new one
+3. **No account info** → Creates transaction with accountId=null
+4. **Never fails** → Transaction always created even without account
+
+---
+
+### 7.3 Bulk Create Transactions ✨ ENHANCED
+**POST** `/api/v1/transactions/bulk`
+
+Create multiple transactions in a single request. Supports mixed scenarios (with/without accounts).
+
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
+
+**Request Body:**
+```json
+{
+  "transactions": [
+    {
+      "accountId": "uuid",
+      "amount": 10000,
+      "type": "INCOME",
+      "category": "Salary",
+      "source": "BANK",
+      "description": "Explicit account ID",
+      "transactionDate": "2025-12-01T00:00:00.000Z"
+    },
+    {
+      "amount": 2500,
+      "type": "EXPENSE",
+      "category": "Shopping",
+      "source": "MOBILE",
+      "description": "SMS transaction - auto-create",
+      "bank": "ICICI",
+      "maskedAccountNo": "XXXX5678",
+      "provider": "BANK",
+      "transactionDate": "2025-12-10T00:00:00.000Z"
+    },
+    {
+      "amount": 800,
+      "type": "EXPENSE",
+      "category": "Food",
+      "source": "MANUAL",
+      "description": "Cash payment - no account",
+      "transactionDate": "2025-12-11T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "message": "Successfully created 3 transactions",
+  "count": 3,
+  "transactions": [...],
+  "accountsLinked": 2,
+  "accountsUnlinked": 1
 }
 ```
 
 ---
 
-### 7.3 Update Transaction
-**PATCH** `/api/v1/employee/transactions/:transactionId`
+### 7.4 Get Transaction by ID
+**GET** `/api/v1/transactions/:transactionId`
+
+Get details of a specific transaction.
+
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
+
+**Response:** `200 OK`
+```json
+{
+  "id": "uuid",
+  "accountId": "uuid",
+  "amount": 1500,
+  "type": "EXPENSE",
+  "category": "Food",
+  "description": "Weekly shopping",
+  "transactionDate": "2025-12-15T00:00:00.000Z",
+  "source": "BANK",
+  "createdAt": "2025-12-15T10:00:00.000Z"
+}
+```
+
+**Error Responses:**
+- `404 Not Found` - Transaction not found
+
+---
+
+### 7.5 Update Transaction
+**PATCH** `/api/v1/transactions/:transactionId`
 
 Update an existing transaction.
 
-**Headers:** `Authorization: Bearer {employeeToken}`  
-**Role Required:** `EMPLOYEE`
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
 
 **Request Body:**
 ```json
 {
   "amount": 1600,
-  "category": "Food & Dining"
+  "category": "Food & Dining",
+  "description": "Updated description"
 }
 ```
 
@@ -700,19 +1263,24 @@ Update an existing transaction.
 {
   "id": "uuid",
   "amount": 1600,
-  "category": "Food & Dining"
+  "category": "Food & Dining",
+  "description": "Updated description"
 }
 ```
 
+**Error Responses:**
+- `404 Not Found` - Transaction not found
+- `403 Forbidden` - Not authorized to update this transaction
+
 ---
 
-### 7.4 Delete Transaction
-**DELETE** `/api/v1/employee/transactions/:transactionId`
+### 7.6 Delete Transaction
+**DELETE** `/api/v1/transactions/:transactionId`
 
 Delete a transaction.
 
-**Headers:** `Authorization: Bearer {employeeToken}`  
-**Role Required:** `EMPLOYEE`
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
 
 **Response:** `200 OK`
 ```json
@@ -721,71 +1289,21 @@ Delete a transaction.
 }
 ```
 
----
-
-### 7.5 Get Transaction Summary
-**GET** `/api/v1/employee/transactions/summary`
-
-Get transaction summary (total income, expenses, balance).
-
-**Headers:** `Authorization: Bearer {employeeToken}`  
-**Role Required:** `EMPLOYEE`
-
-**Query Parameters:**
-- `startDate` (optional): Filter start date
-- `endDate` (optional): Filter end date
-
-**Response:** `200 OK`
-```json
-{
-  "totalIncome": 50000,
-  "totalExpenses": 30000,
-  "balance": 20000,
-  "transactionCount": 150
-}
-```
+**Error Responses:**
+- `404 Not Found` - Transaction not found
+- `403 Forbidden` - Not authorized to delete this transaction
 
 ---
 
 ## Insights & Budget
 
-### 8.1 Get My Insights
-**GET** `/api/v1/employee/insights`
+### 8.1 Get Monthly Summary
+**GET** `/api/v1/insights/monthly-summary`
 
-Get financial insights and spending patterns.
+Get monthly financial summary for logged-in user.
 
-**Headers:** `Authorization: Bearer {employeeToken}`  
-**Role Required:** `EMPLOYEE`
-
-**Response:** `200 OK`
-```json
-{
-  "monthlyIncome": 50000,
-  "monthlyExpenses": 30000,
-  "savingsRate": 40,
-  "topCategories": [
-    {
-      "category": "Groceries",
-      "amount": 8000,
-      "percentage": 26.67
-    }
-  ],
-  "trends": {
-    "incomeGrowth": 5.5,
-    "expenseGrowth": 3.2
-  }
-}
-```
-
----
-
-### 8.2 Get Monthly Summary
-**GET** `/api/v1/employee/insights/monthly-summary`
-
-Get monthly financial summary.
-
-**Headers:** `Authorization: Bearer {employeeToken}`  
-**Role Required:** `EMPLOYEE`
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
 
 **Query Parameters:**
 - `year` (required): Year (e.g., 2025)
@@ -794,29 +1312,84 @@ Get monthly financial summary.
 **Response:** `200 OK`
 ```json
 {
+  "id": "uuid",
+  "userId": "uuid",
   "year": 2025,
   "month": 12,
   "totalIncome": 50000,
   "totalExpenses": 30000,
-  "savings": 20000,
+  "savingsAmount": 20000,
+  "savingsRate": 40,
   "budget": 35000,
   "spendingByCategory": {
     "Groceries": 8000,
     "Transport": 5000,
     "Entertainment": 3000
-  }
+  },
+  "createdAt": "2025-12-01T00:00:00.000Z",
+  "updatedAt": "2025-12-19T10:00:00.000Z"
+}
+```
+
+**Response when no data:** `200 OK`
+```json
+{
+  "year": 2025,
+  "month": 12,
+  "totalIncome": 0,
+  "totalExpenses": 0,
+  "savingsAmount": 0,
+  "savingsRate": 0,
+  "budget": null,
+  "spendingByCategory": {}
 }
 ```
 
 ---
 
-### 8.3 Set Monthly Budget
-**PATCH** `/api/v1/employee/insights/budget`
+### 8.2 Generate/Refresh Monthly Summary
+**POST** `/api/v1/insights/generate`
+
+Generate or refresh monthly summary from transactions.
+
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
+
+**Request Body:**
+```json
+{
+  "year": 2025,
+  "month": 12
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "message": "Monthly summary generated successfully",
+  "summary": {
+    "id": "uuid",
+    "year": 2025,
+    "month": 12,
+    "totalIncome": 50000,
+    "totalExpenses": 30000,
+    "savingsAmount": 20000,
+    "savingsRate": 40
+  }
+}
+```
+
+**Note:** This endpoint recalculates all metrics from actual transaction data and updates or creates the monthly summary.
+
+---
+
+### 8.3 Update Monthly Budget
+**PATCH** `/api/v1/insights/budget`
 
 Set or update monthly budget.
 
-**Headers:** `Authorization: Bearer {employeeToken}`  
-**Role Required:** `EMPLOYEE`
+**Headers:** `Authorization: Bearer {token}`  
+**Role Required:** `EMPLOYEE`, `ADMIN`
 
 **Request Body:**
 ```json
@@ -830,38 +1403,15 @@ Set or update monthly budget.
 **Response:** `200 OK`
 ```json
 {
+  "id": "uuid",
   "year": 2025,
   "month": 12,
   "budget": 35000,
-  "message": "Budget updated successfully"
+  "updatedAt": "2025-12-19T10:00:00.000Z"
 }
 ```
 
----
-
-### 8.4 Get Current Budget
-**GET** `/api/v1/employee/insights/budget`
-
-Get current month's budget.
-
-**Headers:** `Authorization: Bearer {employeeToken}`  
-**Role Required:** `EMPLOYEE`
-
-**Query Parameters:**
-- `year` (optional): Year (defaults to current)
-- `month` (optional): Month (defaults to current)
-
-**Response:** `200 OK`
-```json
-{
-  "year": 2025,
-  "month": 12,
-  "budget": 35000,
-  "spent": 28000,
-  "remaining": 7000,
-  "percentageUsed": 80
-}
-```
+**Note:** If monthly summary doesn't exist, it will be created with the budget value.
 
 ---
 

@@ -88,8 +88,18 @@ export class ScopedPrismaService {
       },
       create: (args: Prisma.AccountCreateArgs) => {
         const context = this.ensureContext();
-        (args.data as any).userId = context.userId;
+        
+        // Remove userId if it exists in data (we'll use the relation instead)
+        if ('userId' in (args.data as any)) {
+          delete (args.data as any).userId;
+        }
+        
+        // Set the user relation using connect instead of scalar userId
+        (args.data as any).user = {
+          connect: { id: context.userId }
+        };
         (args.data as any).companyId = context.companyId;
+        
         return this.prisma.account.create(args);
       },
       delete: (args: Prisma.AccountDeleteArgs) => {
@@ -144,8 +154,17 @@ export class ScopedPrismaService {
           throw new Error('HR role does not have access to transaction data');
         }
 
-        (args.data as any).userId = context.userId;
+        // Remove userId if it exists in data (we'll use the relation instead)
+        if ('userId' in (args.data as any)) {
+          delete (args.data as any).userId;
+        }
+
+        // Set the user relation using connect instead of scalar userId
+        (args.data as any).user = {
+          connect: { id: context.userId }
+        };
         (args.data as any).companyId = context.companyId;
+        
         return this.prisma.transaction.create(args);
       },
       delete: (args: Prisma.TransactionDeleteArgs) => {
@@ -208,14 +227,34 @@ export class ScopedPrismaService {
       },
       create: (args: Prisma.MonthlySummaryCreateArgs) => {
         const context = this.ensureContext();
-        (args.data as any).userId = context.userId;
+        
+        // Remove userId if it exists in data
+        if ('userId' in (args.data as any)) {
+          delete (args.data as any).userId;
+        }
+        
+        // Set the user relation using connect
+        (args.data as any).user = {
+          connect: { id: context.userId }
+        };
         (args.data as any).companyId = context.companyId;
+        
         return this.prisma.monthlySummary.create(args);
       },
       upsert: (args: Prisma.MonthlySummaryUpsertArgs) => {
         const context = this.ensureContext();
-        (args.create as any).userId = context.userId;
+        
+        // Remove userId if it exists in create data
+        if ('userId' in (args.create as any)) {
+          delete (args.create as any).userId;
+        }
+        
+        // Set the user relation using connect
+        (args.create as any).user = {
+          connect: { id: context.userId }
+        };
         (args.create as any).companyId = context.companyId;
+        
         return this.prisma.monthlySummary.upsert(args);
       },
       delete: (args: Prisma.MonthlySummaryDeleteArgs) => {
