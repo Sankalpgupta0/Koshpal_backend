@@ -540,6 +540,7 @@ export class ConsultationService {
       meetingLink: upcomingBooking.meetingLink,
       status: upcomingBooking.status,
       bookedAt: upcomingBooking.createdAt,
+      notes: upcomingBooking.notes,
       slot: {
         id: upcomingBooking.slot.id,
         date: upcomingBooking.slot.date,

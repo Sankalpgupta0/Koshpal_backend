@@ -5,7 +5,9 @@
 # Runs the NestJS server and all BullMQ workers
 ###############################################################################
 
-set -e
+set -a
+source .env
+set +a
 
 # Colors for output
 RED='\033[0;31m'
