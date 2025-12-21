@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -13,7 +14,7 @@ import { SlotStatus, BookingStatus, Prisma } from '@prisma/client';
 
 /**
  * Consultation Service
- * 
+ *
  * Core business logic for managing consultations between employees and coaches.
  * Handles:
  * - Coach listing and profile management
@@ -22,11 +23,13 @@ import { SlotStatus, BookingStatus, Prisma } from '@prisma/client';
  * - Email notifications via BullMQ queue
  * - Consultation history and filtering
  * - Statistics calculation
- * 
+ *
  * Uses Prisma for database operations and BullMQ for async email processing
  */
 @Injectable()
 export class ConsultationService {
+  private readonly logger = new Logger(ConsultationService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly meetingService: MeetingService,
@@ -64,7 +67,9 @@ export class ConsultationService {
       fullName: coach.coachProfile?.fullName,
       expertise: coach.coachProfile?.expertise || [],
       bio: coach.coachProfile?.bio,
-      rating: coach.coachProfile?.rating ? parseFloat(coach.coachProfile.rating.toString()) : 0,
+      rating: coach.coachProfile?.rating
+        ? parseFloat(coach.coachProfile.rating.toString())
+        : 0,
       successRate: coach.coachProfile?.successRate || 0,
       clientsHelped: coach.coachProfile?.clientsHelped || 0,
       location: coach.coachProfile?.location,
@@ -75,11 +80,11 @@ export class ConsultationService {
 
   /**
    * Get Coach Available Slots
-   * 
+   *
    * Retrieves all available time slots for a specific coach on a given date.
    * Only returns slots with AVAILABLE status (not booked or cancelled).
    * Slots are ordered by start time in ascending order.
-   * 
+   *
    * @param coachId - UUID of the coach
    * @param dateStr - Date string in YYYY-MM-DD format
    * @returns Array of available time slots sorted by start time
@@ -102,27 +107,28 @@ export class ConsultationService {
 
   /**
    * Book Consultation
-   * 
+   *
    * RACE-CONDITION FIX: This method now uses SELECT FOR UPDATE to prevent
    * concurrent bookings of the same slot.
-   * 
+   *
    * Books a consultation session between an employee and coach.
    * Process:
    * 1. Locks the slot row with SELECT FOR UPDATE (prevents race conditions)
    * 2. Validates slot exists and is available
-   * 3. Generates Google Meet link for the session
-   * 4. Creates consultation booking record
-   * 5. Updates slot status to BOOKED
-   * 6. Queues email notifications to both employee and coach
-   * 
+   * 3. Validates slot is not in the past
+   * 4. Generates Google Meet link for the session
+   * 5. Creates consultation booking record with notes
+   * 6. Updates slot status to BOOKED
+   * 7. Queues email notifications to both employee and coach
+   *
    * Uses SERIALIZABLE isolation level to prevent phantom reads and
    * ensure absolute consistency.
-   * 
+   *
    * @param user - Authenticated employee user
    * @param dto - Booking details including slotId and optional notes
    * @returns Booking confirmation with meeting link and slot details
    * @throws NotFoundException if slot doesn't exist
-   * @throws BadRequestException if slot is not available
+   * @throws BadRequestException if slot is not available or in the past
    */
   async bookConsultation(user: ValidatedUser, dto: BookConsultationDto) {
     return this.prisma.$transaction(
@@ -130,11 +136,20 @@ export class ConsultationService {
         // 🔒 CRITICAL FIX: Lock the slot row with SELECT FOR UPDATE
         // This prevents concurrent transactions from reading the same slot
         // until this transaction completes or rolls back
-        const slotRaw = await tx.$queryRaw<any[]>`
-          SELECT * FROM "CoachSlot"
-          WHERE id = ${dto.slotId}::uuid
-          FOR UPDATE
-        `;
+        const slotRaw = await tx.$queryRaw<
+          Array<{
+            id: string;
+            status: string;
+            startTime: Date;
+            [key: string]: any;
+          }>
+        >(
+          Prisma.sql`
+            SELECT * FROM "CoachSlot"
+            WHERE id = ${dto.slotId}
+            FOR UPDATE
+          `,
+        );
 
         if (!slotRaw || slotRaw.length === 0) {
           throw new NotFoundException('Slot not found');
@@ -144,7 +159,18 @@ export class ConsultationService {
 
         // Check if slot is still available after locking
         if (lockedSlot.status !== SlotStatus.AVAILABLE) {
-          throw new BadRequestException('Slot is not available');
+          throw new BadRequestException(
+            'This slot has already been booked. Please select another time slot.',
+          );
+        }
+
+        // Check if slot is in the past
+        const slotStartTime = new Date(lockedSlot.startTime);
+        const now = new Date();
+        if (slotStartTime < now) {
+          throw new BadRequestException(
+            'Cannot book a slot in the past. Please select a future time slot.',
+          );
         }
 
         // Now fetch the full slot data with relations
@@ -165,76 +191,96 @@ export class ConsultationService {
           throw new NotFoundException('Slot not found');
         }
 
-      // Get employee details
-      const employee = await tx.user.findUnique({
-        where: { id: user.userId },
-        select: { email: true },
-      });
+        // Get employee details
+        const employee = await tx.user.findUnique({
+          where: { id: user.userId },
+          select: {
+            email: true,
+            employeeProfile: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+        });
 
-      if (!employee) {
-        throw new NotFoundException('Employee not found');
-      }
+        if (!employee) {
+          throw new NotFoundException('Employee not found');
+        }
 
-      // 2. Create real Google Meet link
-      const { meetingLink, calendarEventId } = await this.meetingService.createGoogleMeet(
-        slot.coach.user.email,
-        employee.email,
-        slot.startTime,
-        slot.endTime,
-      );
+        // 2. Create real Google Meet link
+        const { meetingLink, calendarEventId } =
+          await this.meetingService.createGoogleMeet(
+            slot.coach.user.email,
+            employee.email,
+            slot.startTime,
+            slot.endTime,
+          );
 
-      // 3. Create consultation booking
-      const booking = await tx.consultationBooking.create({
-        data: {
-          slotId: dto.slotId,
-          coachId: slot.coachId,
-          employeeId: user.userId,
+        // 3. Create consultation booking
+        const booking = await tx.consultationBooking.create({
+          data: {
+            slotId: dto.slotId,
+            coachId: slot.coachId,
+            employeeId: user.userId,
+            meetingLink,
+            calendarEventId,
+            status: BookingStatus.CONFIRMED,
+          },
+        });
+
+        // 4. Mark slot as booked
+        await tx.coachSlot.update({
+          where: { id: dto.slotId },
+          data: { status: SlotStatus.BOOKED },
+        });
+
+        // 5. Queue email notifications with notes
+        // Format date as YYYY-MM-DD in UTC to avoid timezone shifts
+        const year = slot.date.getUTCFullYear();
+        const month = String(slot.date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(slot.date.getUTCDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
+        
+        await this.emailQueue.add('send-booking-confirmation', {
+          coachEmail: slot.coach.user.email,
+          employeeEmail: employee.email,
+          coachName: slot.coach.fullName,
+          employeeName: employee.employeeProfile?.fullName || employee.email,
+          date: dateString,
+          startTime: slot.startTime.toISOString(),
+          endTime: slot.endTime.toISOString(),
           meetingLink,
-          calendarEventId,
-          status: BookingStatus.CONFIRMED,
-        },
-      });
+          notes: dto.notes,
+        });
 
-      // 4. Mark slot as booked
-      await tx.coachSlot.update({
-        where: { id: dto.slotId },
-        data: { status: SlotStatus.BOOKED },
-      });
+        this.logger.log(
+          `✅ Consultation booked: Employee ${user.userId} with Coach ${slot.coachId} on ${slot.startTime.toISOString()}`,
+        );
 
-      // 5. Queue email notifications
-      await this.emailQueue.add('send-booking-confirmation', {
-        coachEmail: slot.coach.user.email,
-        employeeEmail: employee.email,
-        coachName: slot.coach.fullName,
-        date: slot.date.toISOString().split('T')[0],
-        startTime: slot.startTime.toISOString(),
-        endTime: slot.endTime.toISOString(),
-        meetingLink,
-      });
-
-      return {
-        message: 'Consultation booked successfully',
-        booking: {
-          id: booking.id,
-          meetingLink: booking.meetingLink,
-          calendarEventId: booking.calendarEventId,
-          date: slot.date,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-        },
-      };
-    },
-    {
-      // 🔒 CRITICAL: Use SERIALIZABLE isolation level
-      // This is the highest isolation level and prevents:
-      // - Dirty reads
-      // - Non-repeatable reads
-      // - Phantom reads
-      // Essential for booking systems to prevent double-booking
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      maxWait: 5000, // Wait max 5 seconds to acquire lock
-      timeout: 10000, // Transaction timeout 10 seconds
-    },
+        return {
+          message: 'Consultation booked successfully',
+          booking: {
+            id: booking.id,
+            meetingLink: booking.meetingLink,
+            calendarEventId: booking.calendarEventId,
+            date: slot.date,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+          },
+        };
+      },
+      {
+        // 🔒 CRITICAL: Use SERIALIZABLE isolation level
+        // This is the highest isolation level and prevents:
+        // - Dirty reads
+        // - Non-repeatable reads
+        // - Phantom reads
+        // Essential for booking systems to prevent double-booking
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        maxWait: 5000, // Wait max 5 seconds to acquire lock
+        timeout: 10000, // Transaction timeout 10 seconds
+      },
     );
   }
 
@@ -259,7 +305,7 @@ export class ConsultationService {
     );
 
     // Build where clause for slot filtering
-    let slotWhere: any = {};
+    let slotWhere: Prisma.CoachSlotWhereInput = {};
 
     switch (filter) {
       case 'past':

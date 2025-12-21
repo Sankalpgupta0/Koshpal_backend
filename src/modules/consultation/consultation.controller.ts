@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -18,18 +19,22 @@ import type { ValidatedUser } from '../../common/types/user.types';
 
 /**
  * Consultation Controller
- * 
+ *
  * Handles all employee consultation-related endpoints including:
  * - Viewing available coaches
  * - Checking coach availability slots
  * - Booking consultations
  * - Viewing booked consultations with filters
  * - Getting consultation statistics
- * 
+ *
  * All endpoints require EMPLOYEE role authentication
+ * Read endpoints skip throttling for better UX
+ * Write endpoints have strict throttling for security
+ *
  * Base route: /api/v1/employee
  */
 @Controller('api/v1/employee')
+@SkipThrottle() // Skip by default
 @Roles(Role.EMPLOYEE)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ConsultationController {
@@ -73,19 +78,22 @@ export class ConsultationController {
 
   /**
    * Book Consultation
-   * 
+   *
    * Books a consultation session with a coach for a specific time slot.
    * Automatically generates a Google Meet link and sends email notifications
    * to both the employee and coach.
-   * 
+   *
    * @param user - Authenticated user from JWT token
    * @param dto - Booking details including slotId and optional notes
    * @returns Booking confirmation with meeting link and slot details
    * @throws BadRequestException if slot is already booked
    * @route POST /api/v1/employee/consultations/book
    * @access Protected - Employee only
+   * @throttle 10 requests per minute per user (prevents abuse)
    */
   @Post('consultations/book')
+  @SkipThrottle({ default: false }) // Enable throttling for this endpoint
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 bookings per minute
   async bookConsultation(
     @CurrentUser() user: ValidatedUser,
     @Body() dto: BookConsultationDto,
@@ -95,7 +103,7 @@ export class ConsultationController {
 
   /**
    * Get My Consultations
-   * 
+   *
    * Retrieves all consultations for the logged-in employee.
    * Supports filtering by time period:
    * - 'past': Consultations that have ended
@@ -103,7 +111,7 @@ export class ConsultationController {
    * - 'thisWeek': Consultations in current week (Sun-Sat)
    * - 'thisMonth': Consultations in current month
    * - No filter: All consultations
-   * 
+   *
    * @param user - Authenticated user from JWT token
    * @param filter - Optional filter: 'past' | 'upcoming' | 'thisWeek' | 'thisMonth'
    * @returns Array of consultations with coach details, slot info, and meeting links

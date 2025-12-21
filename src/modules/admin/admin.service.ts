@@ -98,6 +98,17 @@ export class AdminService {
         role: Role.HR,
         companyId: dto.companyId,
         isActive: true,
+        hrProfile: {
+          create: {
+            companyId: dto.companyId,
+            fullName: dto.fullName as string,
+            phone: (dto.phone as string | undefined) ?? undefined,
+            designation: (dto.designation as string | undefined) ?? undefined,
+          },
+        },
+      },
+      include: {
+        hrProfile: true,
       },
     });
 
@@ -121,6 +132,7 @@ export class AdminService {
             name: true,
           },
         },
+        hrProfile: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -141,6 +153,7 @@ export class AdminService {
             name: true,
           },
         },
+        hrProfile: true,
       },
     });
 

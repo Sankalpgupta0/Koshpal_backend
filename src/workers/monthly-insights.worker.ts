@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import { Decimal } from '@prisma/client/runtime/library';
 import { getSharedPrisma } from './shared-prisma';

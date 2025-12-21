@@ -50,11 +50,11 @@ async function bootstrap() {
   console.log(`
 ╔════════════════════════════════════════════════════╗
 ║                                                    ║
-║   🚀 Koshpal Backend Server                       ║
+║   🚀 Koshpal Backend Server                        ║
 ║                                                    ║
-║   Environment: ${process.env.NODE_ENV || 'development'}                           ║
+║   Environment: ${process.env.NODE_ENV || 'development'}                         ║
 ║   Port: ${port}                                       ║
-║   URL: http://localhost:${port}                        ║
+║   URL: http://localhost:${port}                       ║
 ║                                                    ║
 ╚════════════════════════════════════════════════════╝
   `);

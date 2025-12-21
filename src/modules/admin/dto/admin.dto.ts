@@ -36,6 +36,17 @@ export class CreateHrDto {
 
   @IsString()
   companyId: string;
+
+  @IsString()
+  fullName: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsString()
+  @IsOptional()
+  designation?: string;
 }
 
 export class UpdateHrStatusDto {

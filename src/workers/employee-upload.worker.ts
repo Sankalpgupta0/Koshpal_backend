@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import * as XLSX from 'xlsx';
 import * as bcrypt from 'bcrypt';

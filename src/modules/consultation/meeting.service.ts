@@ -52,13 +52,13 @@ export class MeetingService {
         requestBody: {
           summary: 'Koshpal Financial Consultation',
           description: '1-on-1 financial coaching session scheduled via Koshpal Employee Portal',
-          start: { 
+          start: {
             dateTime: startTime.toISOString(),
-            timeZone: 'UTC',
+            timeZone: 'Asia/Kolkata',
           },
-          end: { 
+          end: {
             dateTime: endTime.toISOString(),
-            timeZone: 'UTC',
+            timeZone: 'Asia/Kolkata',
           },
           attendees: [
             { email: employeeEmail },
