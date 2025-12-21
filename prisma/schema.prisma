@@ -292,6 +292,7 @@ model ConsultationBooking {
   employeeId      String
 
   meetingLink     String
+  notes           String?
   calendarEventId String?
   status          BookingStatus @default(CONFIRMED)
 

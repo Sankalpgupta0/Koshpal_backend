@@ -239,7 +239,7 @@ export class ConsultationService {
         // Format date as YYYY-MM-DD in UTC to avoid timezone shifts
         const year = slot.date.getUTCFullYear();
         const month = String(slot.date.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(slot.date.getUTCDate()).padStart(2, '0');
+        const day = String(slot.date.getUTCDate() + 1).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
         
         await this.emailQueue.add('send-booking-confirmation', {
@@ -448,9 +448,17 @@ export class ConsultationService {
   }
 
   async getLatestConsultation(employeeId: string) {
-    const booking = await this.prisma.consultationBooking.findFirst({
+    const now = new Date();
+    
+    // First, try to get the nearest upcoming consultation
+    const upcomingBooking = await this.prisma.consultationBooking.findFirst({
       where: {
         employeeId,
+        slot: {
+          startTime: {
+            gte: now, // Future meetings only
+          },
+        },
       },
       include: {
         slot: {
@@ -468,17 +476,149 @@ export class ConsultationService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        slot: {
+          startTime: 'asc', // Closest upcoming meeting first
+        },
+      },
+    });
+
+    // If no upcoming meeting, get the most recent past meeting
+    if (!upcomingBooking) {
+      const pastBooking = await this.prisma.consultationBooking.findFirst({
+        where: {
+          employeeId,
+        },
+        include: {
+          slot: {
+            include: {
+              coach: {
+                include: {
+                  user: {
+                    select: {
+                      email: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          slot: {
+            startTime: 'desc', // Most recent past meeting
+          },
+        },
+      });
+
+      if (!pastBooking) {
+        return null;
+      }
+
+      return {
+        id: pastBooking.id,
+        meetingLink: pastBooking.meetingLink,
+        status: pastBooking.status,
+        bookedAt: pastBooking.createdAt,
+        slot: {
+          id: pastBooking.slot.id,
+          date: pastBooking.slot.date,
+          startTime: pastBooking.slot.startTime,
+          endTime: pastBooking.slot.endTime,
+          status: pastBooking.slot.status,
+        },
+        coach: {
+          id: pastBooking.slot.coach.userId,
+          name: pastBooking.slot.coach.fullName,
+          email: pastBooking.slot.coach.user.email,
+          expertise: pastBooking.slot.coach.expertise,
+        },
+      };
+    }
+
+    return {
+      id: upcomingBooking.id,
+      meetingLink: upcomingBooking.meetingLink,
+      status: upcomingBooking.status,
+      bookedAt: upcomingBooking.createdAt,
+      slot: {
+        id: upcomingBooking.slot.id,
+        date: upcomingBooking.slot.date,
+        startTime: upcomingBooking.slot.startTime,
+        endTime: upcomingBooking.slot.endTime,
+        status: upcomingBooking.slot.status,
+      },
+      coach: {
+        id: upcomingBooking.coachId,
+        email: upcomingBooking.slot.coach.user.email,
+        fullName: upcomingBooking.slot.coach.fullName,
+        expertise: upcomingBooking.slot.coach.expertise,
+        rating: upcomingBooking.slot.coach.rating
+          ? parseFloat(upcomingBooking.slot.coach.rating.toString())
+          : 0,
+        location: upcomingBooking.slot.coach.location,
+        profilePhoto: upcomingBooking.slot.coach.profilePhoto,
+      },
+    };
+  }
+
+  /**
+   * Get Consultation Details by ID
+   *
+   * Retrieves complete details of a specific consultation booking.
+   * Includes full coach profile, slot timing, meeting link, status, and notes.
+   * Only returns the consultation if it belongs to the requesting employee.
+   *
+   * @param employeeUserId - UUID of the employee requesting the details
+   * @param consultationId - UUID of the consultation booking
+   * @returns Full consultation details with coach and slot information
+   * @throws NotFoundException if consultation doesn't exist or doesn't belong to user
+   */
+  async getConsultationDetails(
+    employeeUserId: string,
+    consultationId: string,
+  ) {
+    // Get employee profile
+    const employee = await this.prisma.employeeProfile.findUnique({
+      where: { userId: employeeUserId },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Employee profile not found');
+    }
+
+    // Fetch consultation with full details
+    const booking = await this.prisma.consultationBooking.findFirst({
+      where: {
+        id: consultationId,
+        employeeId: employee.userId,
+      },
+      include: {
+        slot: {
+          include: {
+            coach: {
+              include: {
+                user: {
+                  select: {
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
     if (!booking) {
-      return null;
+      throw new NotFoundException(
+        'Consultation not found or does not belong to you',
+      );
     }
 
     return {
       id: booking.id,
       meetingLink: booking.meetingLink,
+      notes: booking.notes,
       status: booking.status,
       bookedAt: booking.createdAt,
       slot: {
@@ -489,16 +629,21 @@ export class ConsultationService {
         status: booking.slot.status,
       },
       coach: {
-        id: booking.coachId,
+        id: booking.slot.coach.userId,
         email: booking.slot.coach.user.email,
         fullName: booking.slot.coach.fullName,
         expertise: booking.slot.coach.expertise,
+        bio: booking.slot.coach.bio,
         rating: booking.slot.coach.rating
           ? parseFloat(booking.slot.coach.rating.toString())
           : 0,
+        successRate: booking.slot.coach.successRate || 0,
+        clientsHelped: booking.slot.coach.clientsHelped || 0,
         location: booking.slot.coach.location,
+        languages: booking.slot.coach.languages || [],
         profilePhoto: booking.slot.coach.profilePhoto,
       },
     };
   }
 }
+

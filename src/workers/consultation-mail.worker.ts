@@ -26,6 +26,7 @@ const worker = new Worker(
     }
 
     const data = job.data as ConsultationEmailData;
+    console.log("sankalp", data);
 
     console.log(`[JOB-${job.id}] 📧 Sending consultation booking emails...`);
 

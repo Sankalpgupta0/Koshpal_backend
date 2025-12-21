@@ -183,16 +183,19 @@ export async function sendConsultationBookingEmails(data: {
   const startDateTime = new Date(startTime);
   const endDateTime = new Date(endTime);
   
-  // Parse date string in IST timezone
+  // Parse date string correctly without timezone conversion issues
+  // Create date object directly from YYYY-MM-DD parts
   const [year, month, day] = date.split('-').map(Number);
-  const dateObj = new Date(Date.UTC(year, month - 1, day));
   
-  const formattedDate = dateObj.toLocaleDateString('en-IN', {
+  // Format the date using the raw year, month, day values
+  const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const tempDate = new Date(dateString + 'T12:00:00'); // Use noon to avoid timezone edge cases
+  
+  const formattedDate = tempDate.toLocaleDateString('en-IN', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'Asia/Kolkata',
   });
   const formattedStartTime = startDateTime.toLocaleTimeString('en-IN', {
     hour: '2-digit',

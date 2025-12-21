@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'HR', 'EMPLOYEE', 'COACH');
 
@@ -69,6 +66,7 @@ CREATE TABLE "HRProfile" (
     "userId" TEXT NOT NULL,
     "companyId" TEXT NOT NULL,
     "fullName" TEXT NOT NULL,
+    "phone" TEXT,
     "designation" TEXT,
 
     CONSTRAINT "HRProfile_pkey" PRIMARY KEY ("userId")
@@ -81,6 +79,7 @@ CREATE TABLE "EmployeeProfile" (
     "employeeCode" TEXT,
     "fullName" TEXT NOT NULL,
     "phone" TEXT,
+    "department" TEXT,
     "dateOfJoining" TIMESTAMP(3),
 
     CONSTRAINT "EmployeeProfile_pkey" PRIMARY KEY ("userId")
@@ -194,6 +193,7 @@ CREATE TABLE "ConsultationBooking" (
     "coachId" TEXT NOT NULL,
     "employeeId" TEXT NOT NULL,
     "meetingLink" TEXT NOT NULL,
+    "notes" TEXT,
     "calendarEventId" TEXT,
     "status" "BookingStatus" NOT NULL DEFAULT 'CONFIRMED',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -364,4 +364,3 @@ ALTER TABLE "CoachSlot" ADD CONSTRAINT "CoachSlot_coachId_fkey" FOREIGN KEY ("co
 
 -- AddForeignKey
 ALTER TABLE "RefreshToken" ADD CONSTRAINT "RefreshToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

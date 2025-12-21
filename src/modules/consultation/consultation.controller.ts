@@ -166,4 +166,26 @@ export class ConsultationController {
   async getMyLatestConsultation(@CurrentUser() user: ValidatedUser) {
     return this.consultationService.getLatestConsultation(user.userId);
   }
+
+  /**
+   * Get Consultation Details
+   * 
+   * Retrieves detailed information about a specific consultation by ID.
+   * Includes coach profile, slot timing, meeting link, status, and notes.
+   * Only returns consultation if it belongs to the requesting employee.
+   * 
+   * @param user - Authenticated user from JWT token
+   * @param id - UUID of the consultation booking
+   * @returns Consultation details with full coach profile and slot information
+   * @throws NotFoundException if consultation doesn't exist or doesn't belong to user
+   * @route GET /api/v1/employee/consultations/:id
+   * @access Protected - Employee only
+   */
+  @Get('consultations/:id')
+  async getConsultationDetails(
+    @CurrentUser() user: ValidatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.consultationService.getConsultationDetails(user.userId, id);
+  }
 }

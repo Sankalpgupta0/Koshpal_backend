@@ -6,17 +6,12 @@ import { randomUUID } from 'crypto';
 @Injectable()
 export class MeetingService {
   private readonly logger = new Logger(MeetingService.name);
-  
-  constructor(private prisma: PrismaService) {}
+
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Create a real Google Meet link using Google Calendar API
-   * 
-   * @param coachEmail - Email of the coach
-   * @param employeeEmail - Email of the employee attending
-   * @param startTime - Start time of the meeting
-   * @param endTime - End time of the meeting
-   * @returns Object with meetingLink and calendarEventId
+   * Creates a REAL Google Meet link using Google Calendar API
+   * Uses refresh token (server-to-server OAuth)
    */
   async createGoogleMeet(
     coachEmail: string,
@@ -25,89 +20,136 @@ export class MeetingService {
     endTime: Date,
   ): Promise<{ meetingLink: string; calendarEventId: string }> {
     try {
-      // Check if Google Calendar is configured
-      if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_REFRESH_TOKEN) {
-        this.logger.warn('⚠️  Google Calendar not configured, using placeholder link');
+      // ---------------------------------------------------------
+      // 1️⃣ Safety: Check Google OAuth configuration
+      // ---------------------------------------------------------
+      if (
+        !process.env.GOOGLE_CLIENT_ID ||
+        !process.env.GOOGLE_CLIENT_SECRET ||
+        !process.env.GOOGLE_REFRESH_TOKEN
+      ) {
+        this.logger.warn('⚠️ Google Calendar not configured. Using placeholder link.');
         return {
-          meetingLink: this.createMeeting(),
+          meetingLink: this.createPlaceholderMeeting(),
           calendarEventId: `placeholder-${randomUUID()}`,
         };
       }
 
+      // ---------------------------------------------------------
+      // 2️⃣ OAuth Client (NO redirect_uri here)
+      // ---------------------------------------------------------
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI,
       );
 
       oauth2Client.setCredentials({
         refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
       });
 
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      // ---------------------------------------------------------
+      // 3️⃣ Google Calendar API
+      // ---------------------------------------------------------
+      const calendar = google.calendar({
+        version: 'v3',
+        auth: oauth2Client,
+      });
 
+      // ---------------------------------------------------------
+      // 4️⃣ Create Calendar Event + Google Meet
+      // ---------------------------------------------------------
       const event = await calendar.events.insert({
         calendarId: 'primary',
         conferenceDataVersion: 1,
         requestBody: {
           summary: 'Koshpal Financial Consultation',
-          description: '1-on-1 financial coaching session scheduled via Koshpal Employee Portal',
+          description:
+            '1-on-1 financial coaching session scheduled via Koshpal Employee Portal',
+
           start: {
             dateTime: startTime.toISOString(),
             timeZone: 'Asia/Kolkata',
           },
+
           end: {
             dateTime: endTime.toISOString(),
             timeZone: 'Asia/Kolkata',
           },
+
           attendees: [
             { email: employeeEmail },
             { email: coachEmail },
           ],
+
           conferenceData: {
             createRequest: {
               requestId: `koshpal-${randomUUID()}`,
-              conferenceSolutionKey: { type: 'hangoutsMeet' },
+              conferenceSolutionKey: {
+                type: 'hangoutsMeet',
+              },
             },
           },
+
           reminders: {
             useDefault: false,
             overrides: [
-              { method: 'email', minutes: 24 * 60 }, // 1 day before
-              { method: 'popup', minutes: 60 },       // 1 hour before
-              { method: 'popup', minutes: 10 },       // 10 minutes before
+              { method: 'email', minutes: 24 * 60 }, // 1 day
+              { method: 'popup', minutes: 60 },     // 1 hour
+              { method: 'popup', minutes: 10 },     // 10 minutes
             ],
           },
         },
       });
 
-      if (!event.data.hangoutLink) {
-        throw new BadRequestException('Failed to generate Google Meet link');
+      // ---------------------------------------------------------
+      // 5️⃣ Validate Meet link
+      // ---------------------------------------------------------
+      if (!event.data.hangoutLink || !event.data.id) {
+        throw new BadRequestException('Google Meet link not generated');
       }
 
-      this.logger.log(`✅ Created Google Meet for consultation: ${event.data.id}`);
+      this.logger.log(`✅ Google Meet created | Event ID: ${event.data.id}`);
 
       return {
         meetingLink: event.data.hangoutLink,
-        calendarEventId: event.data.id!,
+        calendarEventId: event.data.id,
       };
-    } catch (error) {
-      this.logger.error(`❌ Failed to create Google Meet: ${error.message}`);
-      // Fallback to placeholder if Google Calendar fails
-      this.logger.warn('⚠️  Falling back to placeholder meeting link');
+    } catch (error: any) {
+      // ---------------------------------------------------------
+      // 6️⃣ Error Handling + Safe Fallback
+      // ---------------------------------------------------------
+      this.logger.error('='.repeat(60));
+      this.logger.error('❌ Failed to create Google Meet');
+
+      this.logger.error(
+        JSON.stringify(error?.response?.data || error?.message || error, null, 2),
+      );
+
+      this.logger.error('');
+      this.logger.error('🔧 Common causes:');
+      this.logger.error('   • Refresh token generated with wrong OAuth client');
+      this.logger.error('   • OAuth client type is NOT "Web application"');
+      this.logger.error('   • Google Calendar API is disabled');
+      this.logger.error('   • Token generated with wrong scopes');
+      this.logger.error('='.repeat(60));
+
+      this.logger.warn('⚠️ Falling back to placeholder meeting link');
+
       return {
-        meetingLink: this.createMeeting(),
+        meetingLink: this.createPlaceholderMeeting(),
         calendarEventId: `error-${randomUUID()}`,
       };
     }
   }
 
   /**
-   * Fallback: Create a placeholder meeting link for development/testing
-   * Use this when Google Calendar is not configured
+   * Fallback placeholder Google Meet-style link
+   * Used ONLY for local/dev safety
    */
-  createMeeting(): string {
-    const randomString = Math.random().toString(36).substring(2, 12);
-    return `https://meet.google.com/${randomString}`;
+  private createPlaceholderMeeting(): string {
+    const part1 = Math.random().toString(36).substring(2, 5);
+    const part2 = Math.random().toString(36).substring(2, 6);
+    const part3 = Math.random().toString(36).substring(2, 5);
+    return `https://meet.google.com/${part1}-${part2}-${part3}`;
   }
 }
