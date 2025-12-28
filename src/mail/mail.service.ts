@@ -171,26 +171,20 @@ export async function sendConsultationBookingEmails(data: {
   endTime: string | Date;
   meetingLink: string;
 }): Promise<void> {
-  const {
-    employeeEmail,
-    coachEmail,
-    date,
-    startTime,
-    endTime,
-    meetingLink,
-  } = data;
+  const { employeeEmail, coachEmail, date, startTime, endTime, meetingLink } =
+    data;
 
   const startDateTime = new Date(startTime);
   const endDateTime = new Date(endTime);
-  
+
   // Parse date string correctly without timezone conversion issues
   // Create date object directly from YYYY-MM-DD parts
   const [year, month, day] = date.split('-').map(Number);
-  
+
   // Format the date using the raw year, month, day values
   const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   const tempDate = new Date(dateString + 'T12:00:00'); // Use noon to avoid timezone edge cases
-  
+
   const formattedDate = tempDate.toLocaleDateString('en-IN', {
     weekday: 'long',
     year: 'numeric',
@@ -375,13 +369,14 @@ export async function sendConsultationCancellationEmails(data: {
   cancelledBy: 'EMPLOYEE' | 'COACH';
   reason?: string;
 }): Promise<void> {
-  const { employeeEmail, coachEmail, date, startTime, cancelledBy, reason } = data;
+  const { employeeEmail, coachEmail, date, startTime, cancelledBy, reason } =
+    data;
 
   const startDateTime = new Date(startTime);
   const [year, month, day] = date.split('-').map(Number);
   const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   const tempDate = new Date(dateString + 'T12:00:00');
-  
+
   const formattedDate = tempDate.toLocaleDateString('en-IN', {
     weekday: 'long',
     year: 'numeric',
@@ -443,6 +438,7 @@ export async function sendConsultationCancellationEmails(data: {
     `,
   });
 
-  console.log(`[MAIL] Consultation cancellation emails sent to ${employeeEmail} and ${coachEmail}`);
+  console.log(
+    `[MAIL] Consultation cancellation emails sent to ${employeeEmail} and ${coachEmail}`,
+  );
 }
-

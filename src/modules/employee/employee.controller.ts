@@ -20,7 +20,7 @@ import { AccountsService } from '../../finance/accounts/accounts.service';
 import { TransactionsService } from '../../finance/transactions/transactions.service';
 
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/require-await */
+
 import { InsightsService } from '../../finance/insights/insights.service';
 import { EmployeeService } from './employee.service';
 import { CreateAccountDto } from '../../finance/accounts/dto/create-account.dto';
@@ -46,9 +46,9 @@ export class EmployeeController {
 
   /**
    * Get Employee Profile (Enhanced)
-   * 
+   *
    * CRITICAL: Returns comprehensive employee profile with full data
-   * 
+   *
    * Returns complete information including:
    * - User details (email, role, status, last login)
    * - Full employee profile (demographics, contact, work info)
@@ -56,9 +56,9 @@ export class EmployeeController {
    * - Financial statistics (accounts, balance)
    * - Goal statistics (active, completed, progress)
    * - Consultation history (total, upcoming, completed)
-   * 
+   *
    * This replaces the minimal profile endpoint with production-ready data.
-   * 
+   *
    * @param user - Authenticated employee
    * @returns Comprehensive profile with all related data and statistics
    * @throws NotFoundException if employee profile doesn't exist

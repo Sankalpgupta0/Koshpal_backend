@@ -9,7 +9,7 @@ import { ValidatedUser } from '../../common/types/user.types';
 
 /**
  * Test Suite for Transaction System with Optional AccountId
- * 
+ *
  * Tests cover all scenarios from TRANSACTION_SYSTEM_FIX.md:
  * 1. Employee with 0 accounts → transaction created
  * 2. Employee with matching account → transaction linked
@@ -92,16 +92,18 @@ describe('TransactionsService - Zero Account Scenarios', () => {
       };
 
       jest.spyOn(prismaService.account, 'findMany').mockResolvedValue([]);
-      jest.spyOn(prismaService.transaction, 'create').mockResolvedValue(mockTransaction as any);
+      jest
+        .spyOn(prismaService.transaction, 'create')
+        .mockResolvedValue(mockTransaction as any);
 
       const result = await service.create(mockUser, dto);
 
       expect(result.accountId).toBeNull();
       expect(prismaService.transaction.create).toHaveBeenCalled();
-      expect(insightsQueue.add).toHaveBeenCalledWith(
-        'recalculate-insights',
-        { userId: mockUser.userId, companyId: mockUser.companyId },
-      );
+      expect(insightsQueue.add).toHaveBeenCalledWith('recalculate-insights', {
+        userId: mockUser.userId,
+        companyId: mockUser.companyId,
+      });
     });
 
     it('should auto-create account when metadata provided', async () => {
@@ -135,8 +137,12 @@ describe('TransactionsService - Zero Account Scenarios', () => {
       };
 
       jest.spyOn(prismaService.account, 'findFirst').mockResolvedValue(null);
-      jest.spyOn(prismaService.account, 'create').mockResolvedValue(mockAccount as any);
-      jest.spyOn(prismaService.transaction, 'create').mockResolvedValue(mockTransaction as any);
+      jest
+        .spyOn(prismaService.account, 'create')
+        .mockResolvedValue(mockAccount as any);
+      jest
+        .spyOn(prismaService.transaction, 'create')
+        .mockResolvedValue(mockTransaction as any);
 
       const result = await service.create(mockUser, dto);
 
@@ -173,8 +179,12 @@ describe('TransactionsService - Zero Account Scenarios', () => {
         amount: 3000,
       };
 
-      jest.spyOn(prismaService.account, 'findFirst').mockResolvedValue(mockAccount as any);
-      jest.spyOn(prismaService.transaction, 'create').mockResolvedValue(mockTransaction as any);
+      jest
+        .spyOn(prismaService.account, 'findFirst')
+        .mockResolvedValue(mockAccount as any);
+      jest
+        .spyOn(prismaService.transaction, 'create')
+        .mockResolvedValue(mockTransaction as any);
 
       const result = await service.create(mockUser, dto);
 
@@ -197,7 +207,9 @@ describe('TransactionsService - Zero Account Scenarios', () => {
         userId: 'different-user',
       } as any);
 
-      await expect(service.create(mockUser, dto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(mockUser, dto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -247,8 +259,12 @@ describe('TransactionsService - Zero Account Scenarios', () => {
         userId: mockUser.userId,
       } as any);
 
-      jest.spyOn(prismaService.account, 'findFirst')
-        .mockResolvedValueOnce({ id: 'acc-matched-456', userId: mockUser.userId } as any)
+      jest
+        .spyOn(prismaService.account, 'findFirst')
+        .mockResolvedValueOnce({
+          id: 'acc-matched-456',
+          userId: mockUser.userId,
+        } as any)
         .mockResolvedValueOnce(null);
 
       const mockTransactions = [
@@ -275,7 +291,7 @@ describe('TransactionsService - Zero Account Scenarios', () => {
     it('should handle transactions with NULL accountId in queries', () => {
       // This test verifies that our data structure supports NULL accountId
       // Actual analytics queries are tested in insights.service.spec.ts
-      
+
       const transactionsWithMixedAccounts = [
         { id: 'txn-1', accountId: 'acc-123', amount: 1000 },
         { id: 'txn-2', accountId: null, amount: 2000 },
@@ -283,9 +299,16 @@ describe('TransactionsService - Zero Account Scenarios', () => {
       ];
 
       // Verify we can filter and aggregate correctly
-      const withAccounts = transactionsWithMixedAccounts.filter(t => t.accountId !== null);
-      const withoutAccounts = transactionsWithMixedAccounts.filter(t => t.accountId === null);
-      const totalAmount = transactionsWithMixedAccounts.reduce((sum, t) => sum + t.amount, 0);
+      const withAccounts = transactionsWithMixedAccounts.filter(
+        (t) => t.accountId !== null,
+      );
+      const withoutAccounts = transactionsWithMixedAccounts.filter(
+        (t) => t.accountId === null,
+      );
+      const totalAmount = transactionsWithMixedAccounts.reduce(
+        (sum, t) => sum + t.amount,
+        0,
+      );
 
       expect(withAccounts).toHaveLength(2);
       expect(withoutAccounts).toHaveLength(1);

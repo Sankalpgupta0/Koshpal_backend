@@ -20,7 +20,7 @@ export class AuthService {
 
   /**
    * Login with Refresh Token Storage
-   * 
+   *
    * SECURITY FIX: Now stores refresh tokens in database for:
    * - Token revocation on logout
    * - Session management
@@ -60,10 +60,10 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload);
-    
+
     // Generate a unique refresh token
     const refreshToken = this.generateRefreshToken();
-    
+
     // Store refresh token in database (hashed)
     const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
     const expiresAt = new Date();
@@ -115,7 +115,7 @@ export class AuthService {
 
   /**
    * Refresh Access Token
-   * 
+   *
    * SECURITY FIX: Now validates refresh token against database
    * and checks if it's been revoked or expired
    */
@@ -133,7 +133,7 @@ export class AuthService {
       });
 
       // Find matching token by comparing hash
-      let matchedToken: typeof storedTokens[0] | null = null;
+      let matchedToken: (typeof storedTokens)[0] | null = null;
       for (const storedToken of storedTokens) {
         const isMatch = await bcrypt.compare(refreshToken, storedToken.token);
         if (isMatch) {
@@ -174,7 +174,7 @@ export class AuthService {
 
   /**
    * Logout - Revoke Refresh Token
-   * 
+   *
    * SECURITY FIX: Now properly revokes refresh token
    */
   async logout(userId: string, refreshToken: string) {
@@ -210,7 +210,7 @@ export class AuthService {
 
   /**
    * Revoke All Sessions for a User
-   * 
+   *
    * Useful for security incidents or password changes
    */
   async revokeAllSessions(userId: string) {
@@ -230,7 +230,7 @@ export class AuthService {
 
   /**
    * Get Active Sessions for a User
-   * 
+   *
    * Shows all devices/locations with active sessions
    */
   async getActiveSessions(userId: string) {
@@ -281,14 +281,15 @@ export class AuthService {
     // Revoke all sessions after password change
     await this.revokeAllSessions(userId);
 
-    return { 
-      message: 'Password changed successfully. All sessions have been revoked. Please log in again.' 
+    return {
+      message:
+        'Password changed successfully. All sessions have been revoked. Please log in again.',
     };
   }
 
   /**
    * Forgot Password - Generate Reset Token
-   * 
+   *
    * SECURITY FEATURES:
    * - Rate limited via controller (5 attempts per 15 minutes per email)
    * - Single-use tokens
@@ -308,7 +309,8 @@ export class AuthService {
     });
 
     // Always return success message to prevent email enumeration
-    const successMessage = 'If an account exists with this email, you will receive a password reset link shortly.';
+    const successMessage =
+      'If an account exists with this email, you will receive a password reset link shortly.';
 
     if (!user) {
       return { message: successMessage };
@@ -369,7 +371,7 @@ export class AuthService {
 
   /**
    * Reset Password - Verify Token and Update Password
-   * 
+   *
    * SECURITY FEATURES:
    * - Token validation (exists, not used, not expired)
    * - Password validation (min 8 chars, uppercase, lowercase, number)
@@ -377,7 +379,10 @@ export class AuthService {
    * - All sessions revoked after password reset
    * - Password hashed with bcrypt
    */
-  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     // Find all unused, non-expired tokens
     const storedTokens = await this.prisma.passwordResetToken.findMany({
       where: {
@@ -390,7 +395,7 @@ export class AuthService {
     });
 
     // Find matching token by comparing hash
-    let matchedToken: typeof storedTokens[0] | null = null;
+    let matchedToken: (typeof storedTokens)[0] | null = null;
     for (const storedToken of storedTokens) {
       const isMatch = await bcrypt.compare(token, storedToken.tokenHash);
       if (isMatch) {
@@ -438,8 +443,9 @@ export class AuthService {
       }),
     ]);
 
-    return { 
-      message: 'Password reset successfully. All sessions have been revoked. Please log in with your new password.' 
+    return {
+      message:
+        'Password reset successfully. All sessions have been revoked. Please log in with your new password.',
     };
   }
 }

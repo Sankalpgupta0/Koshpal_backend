@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -13,13 +22,13 @@ import type { ValidatedUser } from '../../common/types/user.types';
 
 /**
  * Coach Controller
- * 
+ *
  * Handles all coach-specific endpoints including:
  * - Managing availability slots
  * - Viewing booked consultations
  * - Getting consultation statistics
  * - Cancelling consultations
- * 
+ *
  * All endpoints require COACH role authentication
  * Base route: /api/v1/coach
  */
@@ -34,11 +43,11 @@ export class CoachController {
 
   /**
    * Create Availability Slots
-   * 
+   *
    * Allows coaches to create multiple time slots for a specific date.
    * Each slot represents a time when the coach is available for consultations.
    * Slots are created with AVAILABLE status by default.
-   * 
+   *
    * @param user - Authenticated coach from JWT token
    * @param dto - Slot creation data with date and array of time slots
    * @returns Confirmation with created slots count and details
@@ -63,11 +72,11 @@ export class CoachController {
 
   /**
    * Get My Slots
-   * 
+   *
    * Retrieves all slots created by the coach.
    * Can be filtered by date to see slots for a specific day.
    * Returns slots with all statuses: AVAILABLE, BOOKED, CANCELLED
-   * 
+   *
    * @param user - Authenticated coach from JWT token
    * @param date - Optional date filter in YYYY-MM-DD format
    * @returns Array of coach's slots with booking information
@@ -84,16 +93,16 @@ export class CoachController {
 
   /**
    * Get My Consultations
-   * 
+   *
    * Retrieves all consultations booked with the coach.
    * Supports filtering by time period:
    * - 'past': Consultations that have ended
    * - 'upcoming': Future consultations
    * - 'thisMonth': Consultations in current month
    * - No filter: All consultations
-   * 
+   *
    * Includes full employee details for each consultation.
-   * 
+   *
    * @param user - Authenticated coach from JWT token
    * @param filter - Optional filter: 'past' | 'upcoming' | 'thisMonth'
    * @returns Array of consultations with employee details and slot info
@@ -110,7 +119,7 @@ export class CoachController {
 
   /**
    * Get Consultation Statistics
-   * 
+   *
    * Provides comprehensive statistics about coach's consultations including:
    * - Total consultations count
    * - Past and upcoming counts
@@ -118,9 +127,9 @@ export class CoachController {
    * - Confirmed and cancelled counts
    * - Average rating (if available)
    * - Total minutes conducted
-   * 
+   *
    * Useful for coach dashboard and performance tracking.
-   * 
+   *
    * @param user - Authenticated coach from JWT token
    * @returns Statistics object with all consultation metrics
    * @route GET /api/v1/coach/consultations/stats
@@ -133,19 +142,19 @@ export class CoachController {
 
   /**
    * Cancel Consultation (Coach)
-   * 
+   *
    * CRITICAL: Allows coach to cancel upcoming consultation
-   * 
+   *
    * Cancels a scheduled consultation and frees up the time slot.
-   * 
+   *
    * Business Rules:
    * - Can only cancel CONFIRMED consultations
    * - Cannot cancel past or ongoing consultations
    * - Slot automatically becomes AVAILABLE after cancellation
    * - Both employee and coach receive cancellation emails
-   * 
+   *
    * Rate Limited: 20 cancellations per hour to prevent abuse
-   * 
+   *
    * @param user - Authenticated coach
    * @param id - UUID of the consultation to cancel
    * @param dto - Optional cancellation reason
@@ -173,15 +182,15 @@ export class CoachController {
 
   /**
    * Complete Consultation (Coach)
-   * 
+   *
    * Marks a consultation as completed after the session has ended.
-   * 
+   *
    * Business Rules:
    * - Can only complete CONFIRMED consultations
    * - Consultation must have ended (cannot complete future sessions)
    * - Cannot complete cancelled consultations
    * - Only the coach who conducted the session can mark it as completed
-   * 
+   *
    * @param user - Authenticated coach
    * @param id - UUID of the consultation to complete
    * @returns Completion confirmation with updated status
@@ -200,3 +209,4 @@ export class CoachController {
       id,
     );
   }
+}

@@ -71,12 +71,12 @@ const worker = new Worker<EmployeeUploadJob>(
 
       // Parse CSV file
       console.log(`[JOB-${job.id}] 📊 Parsing CSV file...`);
-      const rows = parse(buffer, {
+      const rows: EmployeeRow[] = parse(buffer, {
         columns: true, // Use first row as header
         skip_empty_lines: true,
         trim: true,
         bom: true, // Handle UTF-8 BOM
-      }) as EmployeeRow[];
+      });
 
       console.log(`[JOB-${job.id}] ✓ Parsed ${rows.length} rows from CSV`);
 

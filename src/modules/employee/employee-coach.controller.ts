@@ -78,4 +78,73 @@ export class EmployeeCoachController {
 
     return await this.employeeCoachService.getSlotsGroupedByCoach(date);
   }
+
+  /**
+   * Get Coach Availability for Date Range (Optimized for Calendar View)
+   *
+   * Returns a map of dates to availability status for a given month.
+   * This endpoint is highly optimized for calendar rendering, fetching
+   * all dates in a month with a single database query.
+   *
+   * Only returns dates that have available slots, making it efficient
+   * for highlighting available dates in the calendar UI.
+   *
+   * @param startDate - Start date in YYYY-MM-DD format (required)
+   * @param endDate - End date in YYYY-MM-DD format (required)
+   * @param coachId - Optional coach ID to filter by specific coach
+   * @returns Object mapping dates to availability info
+   * @route GET /api/v1/employee/coaches/slots/range?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&coachId=uuid
+   * @access Protected - Employee only
+   * @throttle 30 requests per 10 seconds
+   *
+   * @example Response:
+   * {
+   *   "2025-12-22": { "hasSlots": true, "slotCount": 5 },
+   *   "2025-12-23": { "hasSlots": true, "slotCount": 3 },
+   *   "2025-12-25": { "hasSlots": false, "slotCount": 0 }
+   * }
+   */
+  @Get('slots/range')
+  @SkipThrottle()
+  @Throttle({ default: { limit: 30, ttl: 10000 } })
+  async getSlotAvailabilityForRange(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('coachId') coachId?: string,
+  ) {
+    if (!startDate || !endDate) {
+      throw new BadRequestException(
+        'Both startDate and endDate query parameters are required (format: YYYY-MM-DD)',
+      );
+    }
+
+    // Validate date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+      throw new BadRequestException(
+        'Invalid date format. Expected: YYYY-MM-DD',
+      );
+    }
+
+    // Validate date range (max 60 days)
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const daysDiff = Math.ceil(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (daysDiff > 60) {
+      throw new BadRequestException('Date range cannot exceed 60 days');
+    }
+
+    if (daysDiff < 0) {
+      throw new BadRequestException('startDate must be before endDate');
+    }
+
+    return await this.employeeCoachService.getSlotAvailabilityForDateRange(
+      startDate,
+      endDate,
+      coachId,
+    );
+  }
 }

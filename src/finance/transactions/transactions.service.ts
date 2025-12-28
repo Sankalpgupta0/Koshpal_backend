@@ -26,14 +26,55 @@ export class TransactionsService {
   ) {}
 
   async create(_user: ValidatedUser, dto: CreateTransactionDto) {
+    // Validate amount
+    if (dto.amount <= 0) {
+      throw new BadRequestException(
+        'Transaction amount must be greater than zero',
+      );
+    }
+    if (dto.amount > 99999999) {
+      throw new BadRequestException(
+        'Transaction amount exceeds maximum allowed value',
+      );
+    }
+
+    // Validate transaction date
+    const transactionDate = new Date(dto.transactionDate);
+    if (isNaN(transactionDate.getTime())) {
+      throw new BadRequestException('Invalid transaction date');
+    }
+    if (transactionDate > new Date()) {
+      throw new BadRequestException('Transaction date cannot be in the future');
+    }
+    if (transactionDate < new Date('2000-01-01')) {
+      throw new BadRequestException('Transaction date is too far in the past');
+    }
+
+    // Check for duplicate transaction (idempotency)
+    const existingTransaction = await this.prisma.transaction.findFirst({
+      where: {
+        userId: _user.userId,
+        amount: dto.amount,
+        transactionDate: transactionDate,
+        merchant: dto.merchant,
+        type: dto.type,
+      },
+    });
+
+    if (existingTransaction) {
+      throw new BadRequestException(
+        'Duplicate transaction detected. This transaction already exists.',
+      );
+    }
+
     /**
      * SMART ACCOUNT MATCHING/CREATION LOGIC
-     * 
+     *
      * Why accountId is optional:
      * - Transactions from SMS/mobile arrive before accounts are manually created
      * - Transaction data is the source of truth, not account linkage
      * - Prevents data loss when employee has zero accounts
-     * 
+     *
      * Strategy:
      * 1. If accountId provided → validate and use it
      * 2. Else → try to find matching account by metadata (maskedAccountNo, bank, provider)
@@ -54,10 +95,12 @@ export class TransactionsService {
       });
 
       if (!account) {
-        throw new ForbiddenException('Invalid account - does not belong to user');
+        throw new ForbiddenException(
+          'Invalid account - does not belong to user',
+        );
       }
       accountId = account.id;
-    } 
+    }
     // Case 2: No accountId provided - try to match existing account
     else if (dto.maskedAccountNo || dto.bank || dto.provider) {
       const matchedAccount = await this.prisma.account.findFirst({
@@ -91,7 +134,7 @@ export class TransactionsService {
           } catch (error) {
             // If account creation fails (e.g., unique constraint), continue without account
             // Transaction creation must not fail
-            console.warn('Auto-account creation failed, proceeding without account:', error);
+            // Log error but don't expose to client
           }
         }
       }
@@ -111,7 +154,7 @@ export class TransactionsService {
       merchant: dto.merchant,
       bank: dto.bank,
       maskedAccountNo: dto.maskedAccountNo,
-      transactionDate: new Date(dto.transactionDate),
+      transactionDate: transactionDate,
     };
 
     // If accountId exists, connect the account relation
@@ -138,12 +181,12 @@ export class TransactionsService {
 
     /**
      * BULK CREATE WITH OPTIONAL ACCOUNTS
-     * 
+     *
      * Handle mixed scenarios:
      * - Some transactions may have accountId
      * - Some may have metadata for matching
      * - Some may have neither (still valid!)
-     * 
+     *
      * Strategy: Process each transaction independently
      */
 
@@ -187,13 +230,16 @@ export class TransactionsService {
         // Use provided accountId if valid
         if (txn.accountId) {
           accountId = txn.accountId;
-        } 
+        }
         // Try to match existing account by metadata
         else if (txn.maskedAccountNo || txn.bank || txn.provider) {
           const matchedAccount = userAccounts.find((acc) => {
-            const matchMasked = !txn.maskedAccountNo || acc.maskedAccountNo === txn.maskedAccountNo;
+            const matchMasked =
+              !txn.maskedAccountNo ||
+              acc.maskedAccountNo === txn.maskedAccountNo;
             const matchBank = !txn.bank || acc.bank === txn.bank;
-            const matchProvider = !txn.provider || acc.provider === txn.provider;
+            const matchProvider =
+              !txn.provider || acc.provider === txn.provider;
             return matchMasked && matchBank && matchProvider;
           });
 
@@ -262,9 +308,18 @@ export class TransactionsService {
 
   async findUserTransactions(
     _userId: string,
-    filters?: { accountId?: string; type?: string; category?: string; limit?: number; skip?: number },
+    filters?: {
+      accountId?: string;
+      type?: string;
+      category?: string;
+      limit?: number;
+      skip?: number;
+    },
   ) {
-    const where: any = {};
+    const where: any = {
+      userId: _userId,
+      deletedAt: null,
+    };
 
     if (filters?.accountId) {
       where.accountId = filters.accountId;
@@ -297,6 +352,8 @@ export class TransactionsService {
     const transaction = await this.prisma.transaction.findFirst({
       where: {
         id: transactionId,
+        userId: _userId,
+        deletedAt: null,
       },
       include: {
         account: {
@@ -321,6 +378,8 @@ export class TransactionsService {
     const transaction = await this.prisma.transaction.findFirst({
       where: {
         id: transactionId,
+        userId: _userId,
+        deletedAt: null,
       },
     });
 
@@ -328,8 +387,17 @@ export class TransactionsService {
       throw new NotFoundException('Transaction not found');
     }
 
-    await this.prisma.transaction.delete({
+    // Soft delete the transaction
+    await this.prisma.transaction.update({
       where: { id: transactionId },
+      data: { deletedAt: new Date() },
+    });
+
+    // Queue insight recalculation for the affected month
+    await this.queue.add('monthly-summary', {
+      userId: _userId,
+      companyId: transaction.companyId,
+      transactionDate: transaction.transactionDate.toISOString(),
     });
 
     return { message: 'Transaction deleted successfully' };

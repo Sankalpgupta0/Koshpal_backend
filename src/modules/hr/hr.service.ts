@@ -621,7 +621,10 @@ export class HrService {
       data.total++;
 
       // Check if employee is participating (has financial accounts)
-      if (emp.employeeProfile?.accounts && emp.employeeProfile.accounts.length > 0) {
+      if (
+        emp.employeeProfile?.accounts &&
+        emp.employeeProfile.accounts.length > 0
+      ) {
         data.participating++;
       }
     });
@@ -638,7 +641,9 @@ export class HrService {
       };
     });
 
-    return departments.sort((a, b) => b.participationRate - a.participationRate);
+    return departments.sort(
+      (a, b) => b.participationRate - a.participationRate,
+    );
   }
 
   async getDashboardAlerts(companyId: string) {
@@ -650,7 +655,8 @@ export class HrService {
     }> = [];
 
     // Check for low participation by department
-    const deptParticipation = await this.getParticipationByDepartment(companyId);
+    const deptParticipation =
+      await this.getParticipationByDepartment(companyId);
     deptParticipation.forEach((dept) => {
       if (dept.participationRate < 30 && dept.total > 5) {
         alerts.push({

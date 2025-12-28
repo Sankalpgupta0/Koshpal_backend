@@ -101,9 +101,9 @@ export class AdminService {
         hrProfile: {
           create: {
             companyId: dto.companyId,
-            fullName: dto.fullName as string,
-            phone: (dto.phone as string | undefined) ?? undefined,
-            designation: (dto.designation as string | undefined) ?? undefined,
+            fullName: dto.fullName,
+            phone: dto.phone ?? undefined,
+            designation: dto.designation ?? undefined,
           },
         },
       },

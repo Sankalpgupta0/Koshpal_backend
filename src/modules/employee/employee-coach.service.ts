@@ -105,4 +105,79 @@ export class EmployeeCoachService {
     // Slots are already sorted by startTime due to orderBy in query
     return Array.from(coachMap.values());
   }
+
+  /**
+   * Get Slot Availability for Date Range
+   *
+   * Retrieves availability information for a range of dates.
+   * Returns a map of dates with availability status and slot counts.
+   * Optimized for calendar rendering - fetches entire month in one query.
+   *
+   * Algorithm:
+   * 1. Parse date range to start/end timestamps
+   * 2. Query all AVAILABLE slots within date range
+   * 3. Group by date and count slots
+   * 4. Return date-to-availability map
+   *
+   * @param startDateStr - Start date in YYYY-MM-DD format
+   * @param endDateStr - End date in YYYY-MM-DD format
+   * @param coachId - Optional coach ID to filter by specific coach
+   * @returns Object mapping dates to availability info
+   *
+   * @performance Single database query - O(n) complexity
+   */
+  async getSlotAvailabilityForDateRange(
+    startDateStr: string,
+    endDateStr: string,
+    coachId?: string,
+  ) {
+    const startDate = new Date(startDateStr);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(endDateStr);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Build where clause
+    const where: any = {
+      date: {
+        gte: startDate,
+        lte: endDate,
+      },
+      status: SlotStatus.AVAILABLE,
+      coach: {
+        user: {
+          isActive: true,
+        },
+      },
+    };
+
+    // Add coach filter if provided
+    if (coachId) {
+      where.coachId = coachId;
+    }
+
+    // Single optimized query: fetch all available slots in date range
+    const slots = await this.prisma.coachSlot.findMany({
+      where,
+      select: {
+        date: true,
+      },
+    });
+
+    // Group by date and count
+    const dateMap = new Map<string, { hasSlots: boolean; slotCount: number }>();
+
+    for (const slot of slots) {
+      const dateStr = slot.date.toISOString().split('T')[0];
+
+      if (!dateMap.has(dateStr)) {
+        dateMap.set(dateStr, { hasSlots: true, slotCount: 0 });
+      }
+
+      dateMap.get(dateStr)!.slotCount++;
+    }
+
+    // Convert Map to Object for response
+    return Object.fromEntries(dateMap);
+  }
 }

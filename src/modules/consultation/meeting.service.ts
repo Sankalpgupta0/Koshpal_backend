@@ -28,7 +28,9 @@ export class MeetingService {
         !process.env.GOOGLE_CLIENT_SECRET ||
         !process.env.GOOGLE_REFRESH_TOKEN
       ) {
-        this.logger.warn('⚠️ Google Calendar not configured. Using placeholder link.');
+        this.logger.warn(
+          '⚠️ Google Calendar not configured. Using placeholder link.',
+        );
         return {
           meetingLink: this.createPlaceholderMeeting(),
           calendarEventId: `placeholder-${randomUUID()}`,
@@ -76,10 +78,7 @@ export class MeetingService {
             timeZone: 'Asia/Kolkata',
           },
 
-          attendees: [
-            { email: employeeEmail },
-            { email: coachEmail },
-          ],
+          attendees: [{ email: employeeEmail }, { email: coachEmail }],
 
           conferenceData: {
             createRequest: {
@@ -94,8 +93,8 @@ export class MeetingService {
             useDefault: false,
             overrides: [
               { method: 'email', minutes: 24 * 60 }, // 1 day
-              { method: 'popup', minutes: 60 },     // 1 hour
-              { method: 'popup', minutes: 10 },     // 10 minutes
+              { method: 'popup', minutes: 60 }, // 1 hour
+              { method: 'popup', minutes: 10 }, // 10 minutes
             ],
           },
         },
@@ -122,7 +121,11 @@ export class MeetingService {
       this.logger.error('❌ Failed to create Google Meet');
 
       this.logger.error(
-        JSON.stringify(error?.response?.data || error?.message || error, null, 2),
+        JSON.stringify(
+          error?.response?.data || error?.message || error,
+          null,
+          2,
+        ),
       );
 
       this.logger.error('');

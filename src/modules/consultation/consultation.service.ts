@@ -241,7 +241,7 @@ export class ConsultationService {
         const month = String(slot.date.getUTCMonth() + 1).padStart(2, '0');
         const day = String(slot.date.getUTCDate() + 1).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
-        
+
         await this.emailQueue.add('send-booking-confirmation', {
           coachEmail: slot.coach.user.email,
           employeeEmail: employee.email,
@@ -284,7 +284,12 @@ export class ConsultationService {
     );
   }
 
-  async getEmployeeConsultations(employeeId: string, filter?: string) {
+  async getEmployeeConsultations(
+    employeeId: string,
+    filter?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
@@ -307,29 +312,44 @@ export class ConsultationService {
     // Build where clause for slot filtering
     let slotWhere: Prisma.CoachSlotWhereInput = {};
 
-    switch (filter) {
-      case 'past':
-        slotWhere = { endTime: { lt: now } };
-        break;
-      case 'upcoming':
-        slotWhere = { startTime: { gte: now } };
-        break;
-      case 'thisWeek':
-        slotWhere = {
-          date: {
-            gte: startOfWeek,
-            lte: endOfWeek,
-          },
-        };
-        break;
-      case 'thisMonth':
-        slotWhere = {
-          date: {
-            gte: startOfMonth,
-            lte: endOfMonth,
-          },
-        };
-        break;
+    // If startDate and endDate are provided, use them instead of filter
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Include the entire end date
+
+      slotWhere = {
+        date: {
+          gte: start,
+          lte: end,
+        },
+      };
+    } else {
+      // Use filter-based logic
+      switch (filter) {
+        case 'past':
+          slotWhere = { endTime: { lt: now } };
+          break;
+        case 'upcoming':
+          slotWhere = { startTime: { gte: now } };
+          break;
+        case 'thisWeek':
+          slotWhere = {
+            date: {
+              gte: startOfWeek,
+              lte: endOfWeek,
+            },
+          };
+          break;
+        case 'thisMonth':
+          slotWhere = {
+            date: {
+              gte: startOfMonth,
+              lte: endOfMonth,
+            },
+          };
+          break;
+      }
     }
 
     const bookings = await this.prisma.consultationBooking.findMany({
@@ -449,7 +469,7 @@ export class ConsultationService {
 
   async getLatestConsultation(employeeId: string) {
     const now = new Date();
-    
+
     // First, try to get the nearest upcoming consultation
     const upcomingBooking = await this.prisma.consultationBooking.findFirst({
       where: {
@@ -574,10 +594,7 @@ export class ConsultationService {
    * @returns Full consultation details with coach and slot information
    * @throws NotFoundException if consultation doesn't exist or doesn't belong to user
    */
-  async getConsultationDetails(
-    employeeUserId: string,
-    consultationId: string,
-  ) {
+  async getConsultationDetails(employeeUserId: string, consultationId: string) {
     // Get employee profile
     const employee = await this.prisma.employeeProfile.findUnique({
       where: { userId: employeeUserId },
@@ -649,20 +666,20 @@ export class ConsultationService {
 
   /**
    * Cancel Consultation (Employee)
-   * 
+   *
    * CRITICAL: Allows employee to cancel upcoming consultation
-   * 
+   *
    * Validation Rules:
    * - Consultation must exist and belong to the employee
    * - Consultation must be CONFIRMED (not already cancelled)
    * - Consultation must be in the future (cannot cancel past sessions)
-   * 
+   *
    * Actions on successful cancellation:
    * 1. Update booking status to CANCELLED
    * 2. Store cancellation reason and who cancelled
    * 3. Free up the slot (set status back to AVAILABLE)
    * 4. Send cancellation emails to both employee and coach
-   * 
+   *
    * @param employeeId - UUID of the employee cancelling
    * @param consultationId - UUID of the consultation booking
    * @param reason - Optional cancellation reason
@@ -765,20 +782,20 @@ export class ConsultationService {
 
   /**
    * Cancel Consultation (Coach)
-   * 
+   *
    * CRITICAL: Allows coach to cancel upcoming consultation
-   * 
+   *
    * Validation Rules:
    * - Consultation must exist and belong to the coach's slot
    * - Consultation must be CONFIRMED (not already cancelled)
    * - Consultation must be in the future (cannot cancel past sessions)
-   * 
+   *
    * Actions on successful cancellation:
    * 1. Update booking status to CANCELLED
    * 2. Store cancellation reason and who cancelled
    * 3. Free up the slot (set status back to AVAILABLE)
    * 4. Send cancellation emails to both employee and coach
-   * 
+   *
    * @param coachId - UUID of the coach cancelling
    * @param consultationId - UUID of the consultation booking
    * @param reason - Optional cancellation reason
@@ -881,28 +898,25 @@ export class ConsultationService {
 
   /**
    * Complete Consultation (Coach)
-   * 
+   *
    * Marks a consultation as completed after the session has ended.
-   * 
+   *
    * Validation Rules:
    * - Consultation must exist and belong to the coach
    * - Consultation must be CONFIRMED (not cancelled)
    * - Consultation must be in the past (cannot complete future sessions)
-   * 
+   *
    * Actions on successful completion:
    * 1. Update booking status to COMPLETED
    * 2. Keep slot status as BOOKED (historical record)
-   * 
+   *
    * @param coachId - UUID of the coach completing the session
    * @param consultationId - UUID of the consultation booking
    * @returns Completion confirmation
    * @throws NotFoundException if consultation doesn't exist or doesn't belong to coach
    * @throws BadRequestException if consultation is cancelled or hasn't happened yet
    */
-  async completeConsultationByCoach(
-    coachId: string,
-    consultationId: string,
-  ) {
+  async completeConsultationByCoach(coachId: string, consultationId: string) {
     return this.prisma.$transaction(async (tx) => {
       // Find the consultation with all related data
       const booking = await tx.consultationBooking.findFirst({
@@ -922,18 +936,22 @@ export class ConsultationService {
       }
 
       if (booking.status === BookingStatus.CANCELLED) {
-        throw new BadRequestException('Cannot complete a cancelled consultation');
+        throw new BadRequestException(
+          'Cannot complete a cancelled consultation',
+        );
       }
 
       if (booking.status === BookingStatus.COMPLETED) {
-        throw new BadRequestException('Consultation is already marked as completed');
+        throw new BadRequestException(
+          'Consultation is already marked as completed',
+        );
       }
 
       // Check if consultation has ended
       const now = new Date();
       if (booking.slot.endTime > now) {
         throw new BadRequestException(
-          'Cannot complete consultation that hasn\'t ended yet',
+          "Cannot complete consultation that hasn't ended yet",
         );
       }
 
@@ -956,3 +974,4 @@ export class ConsultationService {
       };
     });
   }
+}

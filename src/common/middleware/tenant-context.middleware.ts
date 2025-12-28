@@ -12,11 +12,11 @@ export const tenantStorage = new AsyncLocalStorage<TenantContext>();
 
 /**
  * Tenant Context Middleware
- * 
+ *
  * Extracts user context from JWT and stores it in AsyncLocalStorage.
  * This context is then used by Prisma middleware to automatically
  * filter queries by companyId, preventing cross-tenant data leaks.
- * 
+ *
  * CRITICAL: This middleware must run AFTER JWT authentication
  */
 @Injectable()

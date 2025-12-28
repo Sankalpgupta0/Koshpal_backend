@@ -83,10 +83,10 @@ export class AdminController {
   // Coach Management
   /**
    * Get All Coaches
-   * 
+   *
    * Returns list of all coaches with their profiles and statistics.
    * Includes active and inactive coaches.
-   * 
+   *
    * @returns Array of coaches with profile details
    * @route GET /api/v1/admin/coaches
    * @access Protected - Admin only
@@ -98,12 +98,12 @@ export class AdminController {
 
   /**
    * Get Single Coach
-   * 
+   *
    * Returns detailed information about a specific coach including:
    * - User account status
    * - Coach profile
    * - Statistics (slots created, consultations conducted)
-   * 
+   *
    * @param id - Coach user ID
    * @returns Coach details with statistics
    * @throws NotFoundException if coach doesn't exist
@@ -117,18 +117,18 @@ export class AdminController {
 
   /**
    * Deactivate Coach
-   * 
+   *
    * CRITICAL: Allows admin to deactivate coach accounts
-   * 
+   *
    * Sets isActive = false for coach user account.
    * Prevents coach from:
    * - Logging in (blocked by ActiveUserGuard)
    * - Creating new slots
    * - Accessing any protected endpoints
-   * 
+   *
    * Existing consultations are NOT cancelled automatically.
    * Admin should handle consultation cancellations separately if needed.
-   * 
+   *
    * @param id - Coach user ID
    * @param dto - Optional deactivation reason
    * @returns Updated coach user with isActive = false
@@ -144,10 +144,10 @@ export class AdminController {
 
   /**
    * Reactivate Coach
-   * 
+   *
    * Reactivates a previously deactivated coach account.
    * Sets isActive = true, allowing coach to log in and access system.
-   * 
+   *
    * @param id - Coach user ID
    * @returns Updated coach user with isActive = true
    * @throws NotFoundException if coach doesn't exist

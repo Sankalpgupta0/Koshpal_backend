@@ -3,7 +3,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 
 /**
  * Employee Service
- * 
+ *
  * Handles employee-specific business logic including profile management
  */
 @Injectable()
@@ -12,7 +12,7 @@ export class EmployeeService {
 
   /**
    * Get comprehensive employee profile with all related data
-   * 
+   *
    * Returns complete employee information including:
    * - Basic user data (email, role, status)
    * - Full employee profile (demographics, contact info)
@@ -20,7 +20,7 @@ export class EmployeeService {
    * - Account summary statistics
    * - Goal progress summary
    * - Consultation history summary
-   * 
+   *
    * @param userId - User UUID
    * @returns Complete employee profile with aggregated data
    * @throws NotFoundException if employee profile doesn't exist

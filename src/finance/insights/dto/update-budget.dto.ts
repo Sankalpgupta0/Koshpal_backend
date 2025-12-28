@@ -12,5 +12,6 @@ export class UpdateBudgetDto {
 
   @IsNumber()
   @Min(0)
+  @Max(10000000) // Maximum budget of 10 million
   budget: number;
 }

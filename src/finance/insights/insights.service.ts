@@ -6,7 +6,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
 interface CategoryBreakdown {
@@ -25,7 +25,9 @@ export class InsightsService {
    * Can filter by year and month
    */
   async getMonthlySummaries(_userId: string, year?: number, month?: number) {
-    const where: any = {};
+    const where: any = {
+      userId: _userId,
+    };
 
     if (year !== undefined) {
       where.year = year;
@@ -57,7 +59,9 @@ export class InsightsService {
    */
   async getLatestMonthlySummary(_userId: string) {
     const summary = await this.prisma.monthlySummary.findFirst({
-      where: {},
+      where: {
+        userId: _userId,
+      },
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
     });
 
@@ -83,7 +87,10 @@ export class InsightsService {
    */
   async getYearlySummary(_userId: string, year: number) {
     const summaries = await this.prisma.monthlySummary.findMany({
-      where: { year },
+      where: {
+        year,
+        userId: _userId,
+      },
       orderBy: { month: 'asc' },
       take: 12, // Limit to 12 months max
     });
@@ -141,7 +148,9 @@ export class InsightsService {
    * Get detailed category breakdown
    */
   async getCategoryBreakdown(_userId: string, year?: number, month?: number) {
-    const where: any = {};
+    const where: any = {
+      userId: _userId,
+    };
     if (year !== undefined) where.year = year;
     if (month !== undefined) where.month = month;
 
@@ -201,7 +210,9 @@ export class InsightsService {
    */
   async getSpendingTrends(_userId: string, months: number = 6) {
     const summaries = await this.prisma.monthlySummary.findMany({
-      where: {},
+      where: {
+        userId: _userId,
+      },
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
       take: months,
     });

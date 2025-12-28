@@ -8,22 +8,22 @@ import { PrismaService } from '../../../prisma/prisma.service';
 
 /**
  * Active User Guard
- * 
+ *
  * CRITICAL: Security guard to block inactive users from accessing protected endpoints
- * 
+ *
  * This guard verifies that the authenticated user's account is active (isActive = true).
  * Inactive users are prevented from accessing any protected resources.
- * 
+ *
  * Usage:
  * - Apply globally in main.ts OR
  * - Apply to specific controllers/routes with @UseGuards(ActiveUserGuard)
  * - Should be placed after JwtAuthGuard in the guard chain
- * 
+ *
  * Why needed:
  * - Prevents deactivated employees from accessing system
  * - Immediate revocation of access without waiting for token expiry
  * - Compliance requirement for user lifecycle management
- * 
+ *
  * Note: This guard checks real-time status from database, not JWT claims
  */
 @Injectable()

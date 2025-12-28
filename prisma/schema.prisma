@@ -164,6 +164,7 @@ model Account {
   maskedAccountNo String?
   bank            String? // Added for better account matching
   createdAt       DateTime    @default(now())
+  deletedAt       DateTime? // Soft delete timestamp
 
   user                  User             @relation(fields: [userId], references: [id])
   transactions          Transaction[]
@@ -173,6 +174,7 @@ model Account {
   @@unique([userId, maskedAccountNo, provider], name: "unique_user_account")
   @@index([userId])
   @@index([companyId])
+  @@index([deletedAt])
 }
 
 model Transaction {
@@ -198,6 +200,7 @@ model Transaction {
 
   transactionDate DateTime
   createdAt       DateTime @default(now())
+  deletedAt       DateTime? // Soft delete timestamp
 
   user    User     @relation(fields: [userId], references: [id])
   // Optional relation: transaction can exist without account
@@ -206,6 +209,7 @@ model Transaction {
   @@index([userId, transactionDate])
   @@index([companyId])
   @@index([accountId])
+  @@index([deletedAt])
 }
 
 model MonthlySummary {

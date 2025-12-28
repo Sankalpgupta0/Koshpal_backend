@@ -10,5 +10,9 @@ export class CreateAccountDto {
 
   @IsOptional()
   @IsString()
+  bank?: string;
+
+  @IsOptional()
+  @IsString()
   maskedAccountNo?: string;
 }

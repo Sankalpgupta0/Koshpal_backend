@@ -4,8 +4,10 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ActiveUserGuard } from './common/guards/active-user.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { CsrfMiddleware } from './common/middleware/csrf.middleware';
 import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -15,13 +17,21 @@ async function bootstrap() {
   // Security middleware
   app.use(helmet());
   app.use(compression());
+  app.use(cookieParser()); // Enable cookie parsing for httpOnly cookies
+
+  // CSRF Protection
+  const csrfMiddleware = new CsrfMiddleware();
+  app.use((req, res, next) => csrfMiddleware.use(req, res, next));
 
   // CORS configuration
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173', 'http://localhost:3000'],
+    origin: process.env.CORS_ORIGIN?.split(',') || [
+      'http://localhost:5173',
+      'http://localhost:3000',
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-CSRF-Token'],
     exposedHeaders: ['Authorization'],
   });
 

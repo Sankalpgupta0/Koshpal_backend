@@ -11,7 +11,7 @@ import { ValidatedUser } from '../../common/types/user.types';
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 /* eslint-disable @typescript-eslint/require-await */
 
 @Injectable()
@@ -22,13 +22,18 @@ export class AccountsService {
     return this.prisma.account.create({
       data: {
         ...dto,
+        userId: user.userId,
+        companyId: user.companyId,
       } as any,
     });
   }
 
   async findUserAccounts(_userId: string) {
     return this.prisma.account.findMany({
-      where: {},
+      where: {
+        userId: _userId,
+        deletedAt: null,
+      },
       include: {
         _count: {
           select: { transactions: true },
@@ -41,6 +46,8 @@ export class AccountsService {
     const account = await this.prisma.account.findFirst({
       where: {
         id: accountId,
+        userId: _userId,
+        deletedAt: null,
       },
       include: {
         _count: {
@@ -61,6 +68,8 @@ export class AccountsService {
     const account = await this.prisma.account.findFirst({
       where: {
         id: accountId,
+        userId: _userId,
+        deletedAt: null,
       },
       include: {
         _count: {
@@ -80,8 +89,10 @@ export class AccountsService {
       );
     }
 
-    await this.prisma.account.delete({
+    // Soft delete the account
+    await this.prisma.account.update({
       where: { id: accountId },
+      data: { deletedAt: new Date() },
     });
 
     return { message: 'Account deleted successfully' };

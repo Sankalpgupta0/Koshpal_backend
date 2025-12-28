@@ -3,14 +3,14 @@ import { tenantStorage } from './tenant-context.middleware';
 
 /**
  * Prisma Tenant Isolation Middleware
- * 
+ *
  * Automatically injects companyId filter into all Prisma queries
  * for multi-tenant models. This prevents accidental cross-company
  * data leaks at the database query level.
- * 
+ *
  * SECURITY CRITICAL: This is the last line of defense against
  * cross-tenant data access.
- * 
+ *
  * Models with tenant isolation:
  * - User (companyId)
  * - Transaction (companyId)
@@ -19,7 +19,7 @@ import { tenantStorage } from './tenant-context.middleware';
  * - EmployeeProfile (companyId)
  * - HRProfile (companyId)
  * - EmployeeUploadBatch (companyId)
- * 
+ *
  * Models without tenant isolation:
  * - Company (admin-only access)
  * - AdminProfile (no company association)
@@ -74,15 +74,28 @@ export function enableTenantIsolation(prisma: PrismaClient) {
           const companyId = context.companyId;
 
           // Inject companyId into queries based on operation
-          if (operation === 'findUnique' || operation === 'findFirst' || operation === 'findMany' || operation === 'count') {
+          if (
+            operation === 'findUnique' ||
+            operation === 'findFirst' ||
+            operation === 'findMany' ||
+            operation === 'count'
+          ) {
             args.where = { ...args.where, companyId };
-          } else if (operation === 'update' || operation === 'updateMany' || operation === 'delete' || operation === 'deleteMany') {
+          } else if (
+            operation === 'update' ||
+            operation === 'updateMany' ||
+            operation === 'delete' ||
+            operation === 'deleteMany'
+          ) {
             args.where = { ...args.where, companyId };
           } else if (operation === 'create') {
             args.data = { ...args.data, companyId };
           } else if (operation === 'createMany') {
             if (Array.isArray(args.data)) {
-              args.data = args.data.map((record: any) => ({ ...record, companyId }));
+              args.data = args.data.map((record: any) => ({
+                ...record,
+                companyId,
+              }));
             } else {
               args.data = { ...args.data, companyId };
             }

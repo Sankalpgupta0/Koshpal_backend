@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import { Worker } from 'bullmq';
-import { sendConsultationBookingEmails, sendConsultationCancellationEmails } from '../mail/mail.service';
+import {
+  sendConsultationBookingEmails,
+  sendConsultationCancellationEmails,
+} from '../mail/mail.service';
 
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
@@ -43,13 +46,17 @@ const worker = new Worker(
     try {
       if (jobType === 'send-consultation-email') {
         const data = job.data as ConsultationEmailData;
-        console.log("sankalp", data);
-        console.log(`[JOB-${job.id}] 📧 Sending consultation booking emails...`);
+        console.log('sankalp', data);
+        console.log(
+          `[JOB-${job.id}] 📧 Sending consultation booking emails...`,
+        );
         await sendConsultationBookingEmails(data);
         console.log(`[JOB-${job.id}] ✅ Booking emails sent successfully`);
       } else if (jobType === 'send-cancellation-email') {
         const data = job.data as CancellationEmailData;
-        console.log(`[JOB-${job.id}] 📧 Sending consultation cancellation emails...`);
+        console.log(
+          `[JOB-${job.id}] 📧 Sending consultation cancellation emails...`,
+        );
         await sendConsultationCancellationEmails(data);
         console.log(`[JOB-${job.id}] ✅ Cancellation emails sent successfully`);
       } else {

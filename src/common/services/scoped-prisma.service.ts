@@ -88,19 +88,22 @@ export class ScopedPrismaService {
       },
       create: (args: Prisma.AccountCreateArgs) => {
         const context = this.ensureContext();
-        
+
         // Remove userId if it exists in data (we'll use the relation instead)
         if ('userId' in (args.data as any)) {
           delete (args.data as any).userId;
         }
-        
+
         // Set the user relation using connect instead of scalar userId
         (args.data as any).user = {
-          connect: { id: context.userId }
+          connect: { id: context.userId },
         };
         (args.data as any).companyId = context.companyId;
-        
+
         return this.prisma.account.create(args);
+      },
+      update: (args: Prisma.AccountUpdateArgs) => {
+        return this.prisma.account.update(args);
       },
       delete: (args: Prisma.AccountDeleteArgs) => {
         return this.prisma.account.delete(args);
@@ -161,11 +164,21 @@ export class ScopedPrismaService {
 
         // Set the user relation using connect instead of scalar userId
         (args.data as any).user = {
-          connect: { id: context.userId }
+          connect: { id: context.userId },
         };
         (args.data as any).companyId = context.companyId;
-        
+
         return this.prisma.transaction.create(args);
+      },
+      update: (args: Prisma.TransactionUpdateArgs) => {
+        const context = this.ensureContext();
+
+        // HR cannot update transaction data
+        if (context.role === Role.HR) {
+          throw new Error('HR role does not have access to transaction data');
+        }
+
+        return this.prisma.transaction.update(args);
       },
       delete: (args: Prisma.TransactionDeleteArgs) => {
         const context = this.ensureContext();
@@ -227,35 +240,45 @@ export class ScopedPrismaService {
       },
       create: (args: Prisma.MonthlySummaryCreateArgs) => {
         const context = this.ensureContext();
-        
+
         // Remove userId if it exists in data
         if ('userId' in (args.data as any)) {
           delete (args.data as any).userId;
         }
-        
+
         // Set the user relation using connect
         (args.data as any).user = {
-          connect: { id: context.userId }
+          connect: { id: context.userId },
         };
         (args.data as any).companyId = context.companyId;
-        
+
         return this.prisma.monthlySummary.create(args);
       },
       upsert: (args: Prisma.MonthlySummaryUpsertArgs) => {
         const context = this.ensureContext();
-        
+
         // Remove userId if it exists in create data
         if ('userId' in (args.create as any)) {
           delete (args.create as any).userId;
         }
-        
+
         // Set the user relation using connect
         (args.create as any).user = {
-          connect: { id: context.userId }
+          connect: { id: context.userId },
         };
         (args.create as any).companyId = context.companyId;
-        
+
         return this.prisma.monthlySummary.upsert(args);
+      },
+      update: (args: Prisma.MonthlySummaryUpdateArgs) => {
+        const context = this.ensureContext();
+
+        // HR cannot update monthly summary data
+        if (context.role === Role.HR) {
+          throw new Error('HR role does not have access to financial insights');
+        }
+
+        return this.prisma.monthlySummary.update(args);
       },
       delete: (args: Prisma.MonthlySummaryDeleteArgs) => {
         return this.prisma.monthlySummary.delete(args);

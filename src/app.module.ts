@@ -58,8 +58,6 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Apply tenant context middleware to all routes
     // This must run AFTER JWT authentication middleware
-    consumer
-      .apply(TenantContextMiddleware)
-      .forRoutes('*');
+    consumer.apply(TenantContextMiddleware).forRoutes('*');
   }
 }

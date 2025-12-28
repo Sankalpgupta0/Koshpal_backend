@@ -31,22 +31,22 @@ export class HrController {
 
   /**
    * Upload Employee Data (CSV)
-   * 
+   *
    * CRITICAL: Standardized to CSV format only
-   * 
+   *
    * Validates and queues employee data file for background processing.
-   * 
+   *
    * File Requirements:
    * - Format: CSV only (.csv extension)
    * - Size: Maximum 5MB
    * - One upload per company at a time
-   * 
+   *
    * Processing:
    * - Async background job via BullMQ
    * - Creates employee accounts with generated passwords
    * - Sends credential emails to each employee
    * - Returns batch ID for status tracking
-   * 
+   *
    * @param file - CSV file with employee data
    * @param user - Authenticated HR user
    * @returns Batch ID and confirmation message
@@ -146,7 +146,8 @@ export class HrController {
   @Patch('profile')
   async updateProfile(
     @CurrentUser() user: CurrentUserDto,
-    @Body() updateData: { fullName?: string; phone?: string; designation?: string },
+    @Body()
+    updateData: { fullName?: string; phone?: string; designation?: string },
   ) {
     return this.hrService.updateHrProfile(user.userId, updateData);
   }

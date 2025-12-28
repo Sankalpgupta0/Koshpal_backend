@@ -44,10 +44,10 @@ export class ConsultationController {
 
   /**
    * Get All Coaches
-   * 
+   *
    * Retrieves a list of all active coaches with their complete profiles
    * including expertise, bio, ratings, and contact information.
-   * 
+   *
    * @returns Array of coach profiles with ratings and expertise
    * @route GET /api/v1/employee/coaches
    * @access Protected - Employee only
@@ -59,11 +59,11 @@ export class ConsultationController {
 
   /**
    * Get Coach Available Slots
-   * 
+   *
    * Retrieves all available time slots for a specific coach.
    * Can be filtered by date to see slots for a particular day.
    * Only returns slots with AVAILABLE status.
-   * 
+   *
    * @param coachId - UUID of the coach
    * @param date - Optional date filter in YYYY-MM-DD format
    * @returns Array of available time slots
@@ -124,23 +124,27 @@ export class ConsultationController {
   async getMyConsultations(
     @CurrentUser() user: ValidatedUser,
     @Query('filter') filter?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
     return this.consultationService.getEmployeeConsultations(
       user.userId,
       filter,
+      startDate,
+      endDate,
     );
   }
 
   /**
    * Get Consultation Statistics
-   * 
+   *
    * Provides comprehensive statistics about employee's consultations including:
    * - Total consultations count
    * - Past and upcoming counts
    * - This week and this month counts
    * - Total minutes booked
    * - Confirmed and cancelled counts
-   * 
+   *
    * @param user - Authenticated user from JWT token
    * @returns Statistics object with all consultation metrics
    * @route GET /api/v1/employee/consultations/stats
@@ -148,17 +152,15 @@ export class ConsultationController {
    */
   @Get('consultations/stats')
   async getMyConsultationStats(@CurrentUser() user: ValidatedUser) {
-    return this.consultationService.getEmployeeConsultationStats(
-      user.userId,
-    );
+    return this.consultationService.getEmployeeConsultationStats(user.userId);
   }
 
   /**
    * Get Latest Consultation
-   * 
+   *
    * Retrieves the most recently booked consultation for the employee.
    * Useful for showing upcoming session information on dashboard.
-   * 
+   *
    * @param user - Authenticated user from JWT token
    * @returns Latest consultation with full details, or null if no consultations exist
    * @route GET /api/v1/employee/consultations/latest
@@ -171,11 +173,11 @@ export class ConsultationController {
 
   /**
    * Get Consultation Details
-   * 
+   *
    * Retrieves detailed information about a specific consultation by ID.
    * Includes coach profile, slot timing, meeting link, status, and notes.
    * Only returns consultation if it belongs to the requesting employee.
-   * 
+   *
    * @param user - Authenticated user from JWT token
    * @param id - UUID of the consultation booking
    * @returns Consultation details with full coach profile and slot information
@@ -193,19 +195,19 @@ export class ConsultationController {
 
   /**
    * Cancel Consultation (Employee)
-   * 
+   *
    * CRITICAL: Allows employee to cancel upcoming consultation
-   * 
+   *
    * Cancels a scheduled consultation and frees up the coach's time slot.
-   * 
+   *
    * Business Rules:
    * - Can only cancel CONFIRMED consultations
    * - Cannot cancel past or ongoing consultations
    * - Slot automatically becomes AVAILABLE after cancellation
    * - Both employee and coach receive cancellation emails
-   * 
+   *
    * Rate Limited: 20 cancellations per hour to prevent abuse
-   * 
+   *
    * @param user - Authenticated employee
    * @param id - UUID of the consultation to cancel
    * @param dto - Optional cancellation reason
@@ -231,4 +233,3 @@ export class ConsultationController {
     );
   }
 }
-
