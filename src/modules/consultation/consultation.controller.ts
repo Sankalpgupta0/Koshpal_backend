@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -15,6 +16,7 @@ import { Role } from '../../common/enums/role.enum';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ConsultationService } from './consultation.service';
 import { BookConsultationDto } from './dto/book-consultation.dto';
+import { CancelConsultationDto } from './dto/cancel-consultation.dto';
 import type { ValidatedUser } from '../../common/types/user.types';
 
 /**
@@ -188,4 +190,45 @@ export class ConsultationController {
   ) {
     return this.consultationService.getConsultationDetails(user.userId, id);
   }
+
+  /**
+   * Cancel Consultation (Employee)
+   * 
+   * CRITICAL: Allows employee to cancel upcoming consultation
+   * 
+   * Cancels a scheduled consultation and frees up the coach's time slot.
+   * 
+   * Business Rules:
+   * - Can only cancel CONFIRMED consultations
+   * - Cannot cancel past or ongoing consultations
+   * - Slot automatically becomes AVAILABLE after cancellation
+   * - Both employee and coach receive cancellation emails
+   * 
+   * Rate Limited: 20 cancellations per hour to prevent abuse
+   * 
+   * @param user - Authenticated employee
+   * @param id - UUID of the consultation to cancel
+   * @param dto - Optional cancellation reason
+   * @returns Cancellation confirmation
+   * @throws NotFoundException if consultation doesn't exist or doesn't belong to user
+   * @throws BadRequestException if consultation is already cancelled or in the past
+   * @route PATCH /api/v1/employee/consultations/:id/cancel
+   * @access Protected - Employee only
+   * @throttle 20 requests per hour
+   */
+  @Patch('consultations/:id/cancel')
+  @SkipThrottle({ default: false })
+  @Throttle({ default: { limit: 20, ttl: 3600000 } }) // 20 cancellations per hour
+  async cancelConsultation(
+    @CurrentUser() user: ValidatedUser,
+    @Param('id') id: string,
+    @Body() dto: CancelConsultationDto,
+  ) {
+    return this.consultationService.cancelConsultationByEmployee(
+      user.userId,
+      id,
+      dto.reason,
+    );
+  }
 }
+

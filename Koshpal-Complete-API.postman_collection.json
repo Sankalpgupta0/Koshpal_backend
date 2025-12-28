@@ -1,10 +1,10 @@
 {
   "info": {
     "name": "Koshpal Backend - Complete API Collection",
-    "description": "Complete API collection with 175+ endpoints covering all features with comprehensive test scenarios:\n\n🔐 AUTHENTICATION (25 endpoints)\n- Login (Admin/Employee/HR/Coach)\n- Session Management (NEW)\n- Refresh Token with revocation (ENHANCED)\n- Password Change\n- Active Sessions Viewing\n- Logout from all devices\n\n🏢 ADMIN PORTAL\n- Company Management\n- HR Management  \n- Platform Statistics\n\n👥 HR PORTAL\n- Employee Bulk Upload with BullMQ\n- Upload Status Tracking\n- Employee Management\n\n👤 EMPLOYEE PORTAL\n- Profile Management\n- Financial Goals CRUD\n- Account & Transaction Management\n- Monthly Insights & Budget\n\n🎯 COACH PORTAL\n- Slot Creation & Management\n- Consultation Viewing\n- Coach Statistics\n\n📅 CONSULTATIONS (ENHANCED)\n- Coach Listing & Filtering\n- Slot Availability (with race condition fix)\n- Booking (with row-level locking)\n- Booking History\n\n💰 FINANCE MODULE (✨ ENHANCED)\n- Accounts\n- Transactions with filters\n- ✨ NEW: Optional Account Transactions (Zero-Account Support)\n- ✨ NEW: Smart Account Matching from Metadata\n- ✨ NEW: Auto-Account Creation from SMS/Mobile Transactions\n- Insights & Analytics\n- Budget Management\n\n✨ NEW TRANSACTION FEATURES:\n• Transactions without accounts (accountId optional)\n• Smart account matching by bank metadata\n• Auto-account creation from transaction data\n• Mixed bulk transactions (with/without accounts)\n• Never fail SMS/mobile transaction ingestion\n\nAll endpoints include:\n✓ Success scenarios\n✓ Error scenarios (401, 400, 404, etc.)\n✓ Validation tests\n✓ Authorization tests\n✓ Auto token management",
+    "description": "Complete API collection with 192 endpoints covering all features with comprehensive test scenarios:\n\n🔐 AUTHENTICATION (27 endpoints)\n- Login (Admin/Employee/HR/Coach)\n- Session Management\n- Refresh Token with revocation\n- Password Change\n- Forgot Password Flow (NEW)\n- Reset Password with Token Validation (NEW)\n- Active Sessions Viewing\n- Logout from all devices\n\n🏢 ADMIN PORTAL (15 endpoints)\n- Company Management (5 endpoints)\n- HR Management (4 endpoints)\n- Coach Management (5 endpoints - NEW)\n- Platform Statistics (1 endpoint)\n\n👥 HR PORTAL (16 endpoints)\n- Employee Bulk Upload with BullMQ\n- Upload Status Tracking\n- Employee Management\n- Dashboard Analytics (NEW)\n- Department Statistics (NEW)\n- Financial Health Overview (NEW)\n- Participation Metrics (NEW)\n- Alerts & Notifications (NEW)\n\n👤 EMPLOYEE PORTAL (17 endpoints)\n- Profile Management (2 endpoints)\n- Financial Goals CRUD (4 endpoints)\n- Account Management (4 endpoints)\n- Transaction Management (4 endpoints)\n- Monthly Insights & Budget (3 endpoints)\n\n🎯 COACH PORTAL (10 endpoints)\n- Slot Creation & Management (3 endpoints)\n- Consultation Viewing (4 endpoints)\n- Coach Statistics (1 endpoint)\n- Cancel Consultation (2 endpoints - NEW)\n\n📅 EMPLOYEE CONSULTATIONS (18 endpoints)\n- Coach Listing & Filtering (3 endpoints)\n- Slot Availability (3 endpoints)\n- Aggregated Coach Slots (3 endpoints - NEW)\n- Booking with row-level locking (4 endpoints)\n- Consultation History & Stats (3 endpoints)\n- Get Consultation Details (2 endpoints - NEW)\n- Cancel Consultation (3 endpoints - NEW)\n\n💰 FINANCE MODULE (✨ ENHANCED - 53 endpoints)\n- Accounts (10 endpoints)\n- Transactions with filters (26 endpoints)\n- ✨ NEW: Optional Account Transactions (Zero-Account Support)\n- ✨ NEW: Smart Account Matching from Metadata\n- ✨ NEW: Auto-Account Creation from SMS/Mobile Transactions\n- Insights & Analytics (17 endpoints)\n- Budget Management\n\n✨ NEW TRANSACTION FEATURES:\n• Transactions without accounts (accountId optional)\n• Smart account matching by bank metadata\n• Auto-account creation from transaction data\n• Mixed bulk transactions (with/without accounts)\n• Never fail SMS/mobile transaction ingestion\n\n🧪 TESTING SECTIONS (33 endpoints)\n- Authorization Testing (19 endpoints)\n- Integration Tests (1 endpoint)\n- Coaches & Consultations Tests (13 endpoints)\n\n🏥 HEALTH CHECKS (3 endpoints)\n- Application Health\n- Database Health\n- Redis Health\n\nAll endpoints include:\n✓ Success scenarios\n✓ Error scenarios (401, 400, 404, etc.)\n✓ Validation tests\n✓ Authorization tests\n✓ Auto token management\n\n🔄 LATEST UPDATES (v3.2.0):\n• Added forgot/reset password flow (5 endpoints)\n• Added coach management to admin portal (5 endpoints)\n• Added HR dashboard analytics (7 endpoints)\n• Added aggregated coach slots optimization (3 endpoints)\n• Added consultation cancellation flows (5 endpoints)\n• Added consultation details retrieval (2 endpoints)\n• Enhanced error handling and validation tests\n• Total endpoints increased from 175 to 192",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "3.1.0",
-    "_postman_id": "koshpal-backend-api-v3.1",
+    "version": "3.2.0",
+    "_postman_id": "koshpal-backend-api-v3.2",
     "_exporter_id": "koshpal-2025"
   },
   "auth": {
@@ -1138,9 +1138,244 @@
             "description": "Try to change password without providing new password"
           },
           "response": []
+        },
+        {
+          "name": "Forgot Password - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Should have success message', function() {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@koshpal.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Request password reset link. Always returns success to prevent email enumeration. Check email for reset link."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password - Invalid Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 200 (prevents enumeration)', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nonexistent@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Even for non-existent emails, returns success message for security (prevents email enumeration)"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Should revoke all sessions', function() {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.message).to.include('sessions');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"RESET_TOKEN_FROM_EMAIL\",\n  \"newPassword\": \"NewSecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Reset password using token from email. Replace RESET_TOKEN_FROM_EMAIL with actual token. All sessions are revoked after successful reset."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password - Invalid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 401', function() {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"invalid-token-12345\",\n  \"newPassword\": \"NewSecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Try to reset password with invalid/expired token"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password - Weak Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"VALID_TOKEN\",\n  \"newPassword\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Try to reset with weak password (less than 8 characters)"
+          },
+          "response": []
         }
       ],
-      "description": "Authentication endpoints including login, session management, and password changes. All endpoints tested with success and failure scenarios."
+      "description": "Authentication endpoints including login, session management, password changes, and password reset flow. All endpoints tested with success and failure scenarios."
     },
     {
       "name": "Admin Portal",
@@ -1383,6 +1618,231 @@
                     "status"
                   ]
                 }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Coaches",
+          "item": [
+            {
+              "name": "Get All Coaches",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Should return 200', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const coaches = pm.response.json();",
+                      "    if (coaches.length > 0) {",
+                      "        pm.collectionVariables.set('coachId', coaches[0].id);",
+                      "        console.log('✓ Coach ID saved:', coaches[0].id);",
+                      "    }",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/coaches",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "coaches"
+                  ]
+                },
+                "description": "Get list of all coaches with their profiles and statistics. Returns both active and inactive coaches."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Coach Details",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Should return 200', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const coach = pm.response.json();",
+                      "    pm.test('Should have coach profile', function() {",
+                      "        pm.expect(coach).to.have.property('coachProfile');",
+                      "        pm.expect(coach).to.have.property('statistics');",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/coaches/{{coachId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "coaches",
+                    "{{coachId}}"
+                  ]
+                },
+                "description": "Get detailed information about a specific coach including user account, profile, and consultation statistics."
+              },
+              "response": []
+            },
+            {
+              "name": "Deactivate Coach",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Should return 200', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const response = pm.response.json();",
+                      "    pm.test('Coach should be inactive', function() {",
+                      "        pm.expect(response.isActive).to.be.false;",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Performance issues\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/coaches/{{coachId}}/deactivate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "coaches",
+                    "{{coachId}}",
+                    "deactivate"
+                  ]
+                },
+                "description": "Deactivate a coach account. Coach will not be able to log in or create new slots. Existing consultations are NOT automatically cancelled."
+              },
+              "response": []
+            },
+            {
+              "name": "Reactivate Coach",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Should return 200', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const response = pm.response.json();",
+                      "    pm.test('Coach should be active', function() {",
+                      "        pm.expect(response.isActive).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/coaches/{{coachId}}/reactivate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "coaches",
+                    "{{coachId}}",
+                    "reactivate"
+                  ]
+                },
+                "description": "Reactivate a previously deactivated coach account. Coach can log in and access the system again."
+              },
+              "response": []
+            },
+            {
+              "name": "Deactivate Coach - Not Found",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Should return 404', function() {",
+                      "    pm.response.to.have.status(404);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Test\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/coaches/00000000-0000-0000-0000-000000000000/deactivate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "coaches",
+                    "00000000-0000-0000-0000-000000000000",
+                    "deactivate"
+                  ]
+                },
+                "description": "Try to deactivate non-existent coach"
               },
               "response": []
             }
@@ -1639,9 +2099,171 @@
             "description": "Aggregated financial insights for all employees in company"
           },
           "response": []
+        },
+        {
+          "name": "Get Departments List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/employees/departments/list",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "employees",
+                "departments",
+                "list"
+              ]
+            },
+            "description": "Get list of all unique departments in the company"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/dashboard/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "dashboard",
+                "stats"
+              ]
+            },
+            "description": "Get key statistics for HR dashboard including employee counts, financial health, and program participation"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Financial Health Distribution",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/dashboard/financial-health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "dashboard",
+                "financial-health"
+              ]
+            },
+            "description": "Get distribution of employees by financial health status (healthy, moderate, at-risk)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Participation by Department",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/dashboard/participation-by-department",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "dashboard",
+                "participation-by-department"
+              ]
+            },
+            "description": "Get program participation statistics broken down by department"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/dashboard/alerts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "dashboard",
+                "alerts"
+              ]
+            },
+            "description": "Get important alerts and notifications for HR dashboard"
+          },
+          "response": []
+        },
+        {
+          "name": "Get HR Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "profile"
+              ]
+            },
+            "description": "Get HR's own profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Update HR Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Smith\",\n  \"phone\": \"+1234567899\",\n  \"designation\": \"Senior HR Manager\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hr/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hr",
+                "profile"
+              ]
+            },
+            "description": "Update HR's profile information"
+          },
+          "response": []
         }
       ],
-      "description": "HR module for employee bulk upload and management"
+      "description": "HR module for employee bulk upload, management, and company-wide analytics"
     },
     {
       "name": "Employee Portal",
@@ -2320,6 +2942,119 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Cancel Consultation (Coach)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Consultation cancelled by coach', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData.status).to.equal('CANCELLED_BY_COACH');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Personal emergency - need to reschedule\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/consultations/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "consultations",
+                ":id",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Consultation ID to cancel"
+                }
+              ]
+            },
+            "description": "Cancel a consultation as coach. Can only cancel consultations assigned to this coach. Must be SCHEDULED status."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Consultation (Coach) - Not Own Consultation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403 or 404', function() {",
+                  "    pm.expect([403, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('Error when cancelling another coach\\'s consultation', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Test cancellation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/consultations/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "consultations",
+                ":id",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{otherCoachConsultationId}}",
+                  "description": "ID of consultation belonging to different coach"
+                }
+              ]
+            },
+            "description": "Test error when coach tries to cancel consultation not assigned to them"
+          },
+          "response": []
         }
       ],
       "description": "Coach slot management - Create and view availability slots"
@@ -2394,6 +3129,134 @@
               ]
             },
             "description": "Get available slots for a specific coach. Only returns AVAILABLE status slots. Optional date filter."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Aggregated Coach Slots",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const coaches = pm.response.json();",
+                  "    pm.test('Should return array of coaches with slots', function() {",
+                  "        pm.expect(coaches).to.be.an('array');",
+                  "        if (coaches.length > 0) {",
+                  "            pm.expect(coaches[0]).to.have.property('coachId');",
+                  "            pm.expect(coaches[0]).to.have.property('coachName');",
+                  "            pm.expect(coaches[0]).to.have.property('slots');",
+                  "            pm.expect(coaches[0].slots).to.be.an('array');",
+                  "        }",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/coaches/slots?date=2025-12-30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "coaches",
+                "slots"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2025-12-30",
+                  "description": "Date in YYYY-MM-DD format (required)"
+                }
+              ]
+            },
+            "description": "OPTIMIZED: Get all active coaches with their available slots for a given date in a single request. Prevents throttling issues when loading coach availability screens. Uses single database query with proper indexing."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Aggregated Coach Slots - Invalid Date",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/coaches/slots?date=invalid-date",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "coaches",
+                "slots"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "invalid-date"
+                }
+              ]
+            },
+            "description": "Test with invalid date format"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Aggregated Coach Slots - Missing Date",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Should return 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/coaches/slots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "coaches",
+                "slots"
+              ]
+            },
+            "description": "Test without date parameter (required)"
           },
           "response": []
         },
@@ -2621,6 +3484,264 @@
               ]
             },
             "description": "Get the most recently booked consultation for logged-in employee. Returns null if no consultations exist."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Consultation Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Consultation details returned', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('consultationDate');",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData).to.have.property('coach');",
+                  "    pm.expect(jsonData.coach).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Consultation ID"
+                }
+              ]
+            },
+            "description": "Get detailed information about a specific consultation"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Consultation Details - Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function() {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Error message for consultation not found', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('not found');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                "999999"
+              ]
+            },
+            "description": "Test 404 error for non-existent consultation"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Consultation (Employee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Consultation cancelled successfully', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData.status).to.equal('CANCELLED_BY_EMPLOYEE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Schedule conflict - unable to attend\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                ":id",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Consultation ID to cancel"
+                }
+              ]
+            },
+            "description": "Cancel a consultation as employee. Rate limit: 10 cancellations per hour. Must be SCHEDULED status. Cannot cancel within 2 hours of consultation time."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Consultation - Already Cancelled",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error for already cancelled consultation', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('already cancelled');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Test cancellation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                ":id",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{cancelledConsultationId}}",
+                  "description": "ID of already cancelled consultation"
+                }
+              ]
+            },
+            "description": "Test error when trying to cancel already cancelled consultation"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Consultation - Too Late",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error for late cancellation', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('2 hours');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Emergency\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/employee/consultations/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "consultations",
+                ":id",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{upcomingConsultationId}}",
+                  "description": "ID of consultation less than 2 hours away"
+                }
+              ]
+            },
+            "description": "Test error when trying to cancel within 2 hours of consultation time"
           },
           "response": []
         }

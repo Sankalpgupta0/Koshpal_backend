@@ -646,5 +646,313 @@ export class ConsultationService {
       },
     };
   }
-}
 
+  /**
+   * Cancel Consultation (Employee)
+   * 
+   * CRITICAL: Allows employee to cancel upcoming consultation
+   * 
+   * Validation Rules:
+   * - Consultation must exist and belong to the employee
+   * - Consultation must be CONFIRMED (not already cancelled)
+   * - Consultation must be in the future (cannot cancel past sessions)
+   * 
+   * Actions on successful cancellation:
+   * 1. Update booking status to CANCELLED
+   * 2. Store cancellation reason and who cancelled
+   * 3. Free up the slot (set status back to AVAILABLE)
+   * 4. Send cancellation emails to both employee and coach
+   * 
+   * @param employeeId - UUID of the employee cancelling
+   * @param consultationId - UUID of the consultation booking
+   * @param reason - Optional cancellation reason
+   * @returns Cancellation confirmation
+   * @throws NotFoundException if consultation doesn't exist or doesn't belong to employee
+   * @throws BadRequestException if consultation is already cancelled or in the past
+   */
+  async cancelConsultationByEmployee(
+    employeeId: string,
+    consultationId: string,
+    reason?: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      // Find the consultation with all related data
+      const booking = await tx.consultationBooking.findFirst({
+        where: {
+          id: consultationId,
+          employeeId,
+        },
+        include: {
+          slot: {
+            include: {
+              coach: {
+                include: {
+                  user: {
+                    select: {
+                      email: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!booking) {
+        throw new NotFoundException(
+          'Consultation not found or does not belong to you',
+        );
+      }
+
+      if (booking.status === BookingStatus.CANCELLED) {
+        throw new BadRequestException('Consultation is already cancelled');
+      }
+
+      // Check if consultation is in the future
+      const now = new Date();
+      if (booking.slot.startTime <= now) {
+        throw new BadRequestException(
+          'Cannot cancel past or ongoing consultations',
+        );
+      }
+
+      // Update booking status and free the slot
+      const updatedBooking = await tx.consultationBooking.update({
+        where: { id: consultationId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancellationReason: reason,
+          cancelledBy: 'EMPLOYEE',
+          cancelledAt: new Date(),
+        },
+      });
+
+      await tx.coachSlot.update({
+        where: { id: booking.slotId },
+        data: {
+          status: SlotStatus.AVAILABLE,
+        },
+      });
+
+      // Get employee email
+      const employee = await tx.user.findUnique({
+        where: { id: employeeId },
+        select: { email: true },
+      });
+
+      // Queue cancellation emails
+      await this.emailQueue.add('send-cancellation-email', {
+        employeeEmail: employee?.email,
+        coachEmail: booking.slot.coach.user.email,
+        date: booking.slot.date.toISOString().split('T')[0],
+        startTime: booking.slot.startTime,
+        cancelledBy: 'EMPLOYEE',
+        reason,
+      });
+
+      this.logger.log(
+        `Consultation ${consultationId} cancelled by employee ${employeeId}`,
+      );
+
+      return {
+        message: 'Consultation cancelled successfully',
+        consultationId: updatedBooking.id,
+        status: updatedBooking.status,
+      };
+    });
+  }
+
+  /**
+   * Cancel Consultation (Coach)
+   * 
+   * CRITICAL: Allows coach to cancel upcoming consultation
+   * 
+   * Validation Rules:
+   * - Consultation must exist and belong to the coach's slot
+   * - Consultation must be CONFIRMED (not already cancelled)
+   * - Consultation must be in the future (cannot cancel past sessions)
+   * 
+   * Actions on successful cancellation:
+   * 1. Update booking status to CANCELLED
+   * 2. Store cancellation reason and who cancelled
+   * 3. Free up the slot (set status back to AVAILABLE)
+   * 4. Send cancellation emails to both employee and coach
+   * 
+   * @param coachId - UUID of the coach cancelling
+   * @param consultationId - UUID of the consultation booking
+   * @param reason - Optional cancellation reason
+   * @returns Cancellation confirmation
+   * @throws NotFoundException if consultation doesn't exist or doesn't belong to coach
+   * @throws BadRequestException if consultation is already cancelled or in the past
+   */
+  async cancelConsultationByCoach(
+    coachId: string,
+    consultationId: string,
+    reason?: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      // Find the consultation with all related data
+      const booking = await tx.consultationBooking.findFirst({
+        where: {
+          id: consultationId,
+          coachId,
+        },
+        include: {
+          slot: {
+            include: {
+              coach: {
+                include: {
+                  user: {
+                    select: {
+                      email: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!booking) {
+        throw new NotFoundException(
+          'Consultation not found or does not belong to you',
+        );
+      }
+
+      if (booking.status === BookingStatus.CANCELLED) {
+        throw new BadRequestException('Consultation is already cancelled');
+      }
+
+      // Check if consultation is in the future
+      const now = new Date();
+      if (booking.slot.startTime <= now) {
+        throw new BadRequestException(
+          'Cannot cancel past or ongoing consultations',
+        );
+      }
+
+      // Update booking status and free the slot
+      const updatedBooking = await tx.consultationBooking.update({
+        where: { id: consultationId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancellationReason: reason,
+          cancelledBy: 'COACH',
+          cancelledAt: new Date(),
+        },
+      });
+
+      await tx.coachSlot.update({
+        where: { id: booking.slotId },
+        data: {
+          status: SlotStatus.AVAILABLE,
+        },
+      });
+
+      // Get employee email
+      const employee = await tx.user.findUnique({
+        where: { id: booking.employeeId },
+        select: { email: true },
+      });
+
+      // Queue cancellation emails
+      await this.emailQueue.add('send-cancellation-email', {
+        employeeEmail: employee?.email,
+        coachEmail: booking.slot.coach.user.email,
+        date: booking.slot.date.toISOString().split('T')[0],
+        startTime: booking.slot.startTime,
+        cancelledBy: 'COACH',
+        reason,
+      });
+
+      this.logger.log(
+        `Consultation ${consultationId} cancelled by coach ${coachId}`,
+      );
+
+      return {
+        message: 'Consultation cancelled successfully',
+        consultationId: updatedBooking.id,
+        status: updatedBooking.status,
+      };
+    });
+  }
+
+  /**
+   * Complete Consultation (Coach)
+   * 
+   * Marks a consultation as completed after the session has ended.
+   * 
+   * Validation Rules:
+   * - Consultation must exist and belong to the coach
+   * - Consultation must be CONFIRMED (not cancelled)
+   * - Consultation must be in the past (cannot complete future sessions)
+   * 
+   * Actions on successful completion:
+   * 1. Update booking status to COMPLETED
+   * 2. Keep slot status as BOOKED (historical record)
+   * 
+   * @param coachId - UUID of the coach completing the session
+   * @param consultationId - UUID of the consultation booking
+   * @returns Completion confirmation
+   * @throws NotFoundException if consultation doesn't exist or doesn't belong to coach
+   * @throws BadRequestException if consultation is cancelled or hasn't happened yet
+   */
+  async completeConsultationByCoach(
+    coachId: string,
+    consultationId: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      // Find the consultation with all related data
+      const booking = await tx.consultationBooking.findFirst({
+        where: {
+          id: consultationId,
+          coachId,
+        },
+        include: {
+          slot: true,
+        },
+      });
+
+      if (!booking) {
+        throw new NotFoundException(
+          'Consultation not found or does not belong to you',
+        );
+      }
+
+      if (booking.status === BookingStatus.CANCELLED) {
+        throw new BadRequestException('Cannot complete a cancelled consultation');
+      }
+
+      if (booking.status === BookingStatus.COMPLETED) {
+        throw new BadRequestException('Consultation is already marked as completed');
+      }
+
+      // Check if consultation has ended
+      const now = new Date();
+      if (booking.slot.endTime > now) {
+        throw new BadRequestException(
+          'Cannot complete consultation that hasn\'t ended yet',
+        );
+      }
+
+      // Update booking status to COMPLETED
+      const updatedBooking = await tx.consultationBooking.update({
+        where: { id: consultationId },
+        data: {
+          status: BookingStatus.COMPLETED,
+        },
+      });
+
+      this.logger.log(
+        `Consultation ${consultationId} marked as completed by coach ${coachId}`,
+      );
+
+      return {
+        message: 'Consultation marked as completed successfully',
+        consultationId: updatedBooking.id,
+        status: updatedBooking.status,
+      };
+    });
+  }

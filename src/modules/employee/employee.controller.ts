@@ -22,6 +22,7 @@ import { TransactionsService } from '../../finance/transactions/transactions.ser
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/require-await */
 import { InsightsService } from '../../finance/insights/insights.service';
+import { EmployeeService } from './employee.service';
 import { CreateAccountDto } from '../../finance/accounts/dto/create-account.dto';
 import { CreateTransactionDto } from '../../finance/transactions/dto/create-transaction.dto';
 
@@ -37,18 +38,36 @@ interface CurrentUserDto {
 @UseInterceptors(ScopedPrismaInterceptor)
 export class EmployeeController {
   constructor(
+    private readonly employeeService: EmployeeService,
     private readonly accountsService: AccountsService,
     private readonly transactionsService: TransactionsService,
     private readonly insightsService: InsightsService,
   ) {}
 
+  /**
+   * Get Employee Profile (Enhanced)
+   * 
+   * CRITICAL: Returns comprehensive employee profile with full data
+   * 
+   * Returns complete information including:
+   * - User details (email, role, status, last login)
+   * - Full employee profile (demographics, contact, work info)
+   * - Company information
+   * - Financial statistics (accounts, balance)
+   * - Goal statistics (active, completed, progress)
+   * - Consultation history (total, upcoming, completed)
+   * 
+   * This replaces the minimal profile endpoint with production-ready data.
+   * 
+   * @param user - Authenticated employee
+   * @returns Comprehensive profile with all related data and statistics
+   * @throws NotFoundException if employee profile doesn't exist
+   * @route GET /api/v1/employee/me
+   * @access Protected - Employee only
+   */
   @Get('me')
   async getProfile(@CurrentUser() user: CurrentUserDto) {
-    return {
-      id: user.userId,
-      email: user.email,
-      role: user.role,
-    };
+    return this.employeeService.getFullProfile(user.userId);
   }
 
   // Account Management

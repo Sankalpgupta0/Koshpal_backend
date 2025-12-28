@@ -29,8 +29,46 @@ interface CurrentUserDto {
 export class HrController {
   constructor(private hrService: HrService) {}
 
+  /**
+   * Upload Employee Data (CSV)
+   * 
+   * CRITICAL: Standardized to CSV format only
+   * 
+   * Validates and queues employee data file for background processing.
+   * 
+   * File Requirements:
+   * - Format: CSV only (.csv extension)
+   * - Size: Maximum 5MB
+   * - One upload per company at a time
+   * 
+   * Processing:
+   * - Async background job via BullMQ
+   * - Creates employee accounts with generated passwords
+   * - Sends credential emails to each employee
+   * - Returns batch ID for status tracking
+   * 
+   * @param file - CSV file with employee data
+   * @param user - Authenticated HR user
+   * @returns Batch ID and confirmation message
+   * @throws BadRequestException if file invalid or upload already in progress
+   * @route POST /api/v1/hr/employees/upload
+   * @access Protected - HR only
+   */
   @Post('employees/upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      fileFilter: (req, file, cb) => {
+        if (!file.originalname.toLowerCase().endsWith('.csv')) {
+          return cb(
+            new Error('Invalid file type. Only CSV files are allowed.'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
   async uploadEmployees(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: CurrentUserDto,

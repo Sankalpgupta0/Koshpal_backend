@@ -179,6 +179,233 @@ export class AdminService {
     return hr;
   }
 
+  // Coach Management
+  /**
+   * Get all coaches with profile and statistics
+   */
+  async getCoaches() {
+    const coaches = await this.prisma.user.findMany({
+      where: { role: Role.COACH },
+      select: {
+        id: true,
+        email: true,
+        isActive: true,
+        createdAt: true,
+        lastLoginAt: true,
+        coachProfile: {
+          select: {
+            fullName: true,
+            expertise: true,
+            bio: true,
+            rating: true,
+            successRate: true,
+            clientsHelped: true,
+            location: true,
+            languages: true,
+            profilePhoto: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Get additional statistics for each coach
+    const coachesWithStats = await Promise.all(
+      coaches.map(async (coach) => {
+        const [totalSlots, totalConsultations, upcomingConsultations] =
+          await Promise.all([
+            this.prisma.coachSlot.count({
+              where: { coachId: coach.id },
+            }),
+            this.prisma.consultationBooking.count({
+              where: {
+                slot: {
+                  coachId: coach.id,
+                },
+              },
+            }),
+            this.prisma.consultationBooking.count({
+              where: {
+                slot: {
+                  coachId: coach.id,
+                  startTime: {
+                    gte: new Date(),
+                  },
+                },
+                status: 'CONFIRMED',
+              },
+            }),
+          ]);
+
+        return {
+          ...coach,
+          statistics: {
+            totalSlots,
+            totalConsultations,
+            upcomingConsultations,
+          },
+        };
+      }),
+    );
+
+    return coachesWithStats;
+  }
+
+  /**
+   * Get single coach with detailed information
+   */
+  async getCoach(id: string) {
+    const coach = await this.prisma.user.findUnique({
+      where: { id, role: Role.COACH },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        lastLoginAt: true,
+        coachProfile: true,
+      },
+    });
+
+    if (!coach) {
+      throw new NotFoundException('Coach not found');
+    }
+
+    // Get statistics
+    const [totalSlots, totalConsultations, upcomingConsultations] =
+      await Promise.all([
+        this.prisma.coachSlot.count({
+          where: { coachId: coach.id },
+        }),
+        this.prisma.consultationBooking.count({
+          where: {
+            slot: {
+              coachId: coach.id,
+            },
+          },
+        }),
+        this.prisma.consultationBooking.count({
+          where: {
+            slot: {
+              coachId: coach.id,
+              startTime: {
+                gte: new Date(),
+              },
+            },
+            status: 'CONFIRMED',
+          },
+        }),
+      ]);
+
+    return {
+      ...coach,
+      statistics: {
+        totalSlots,
+        totalConsultations,
+        upcomingConsultations,
+      },
+    };
+  }
+
+  /**
+   * Deactivate a coach account
+   * CRITICAL: Prevents coach from accessing system
+   */
+  async deactivateCoach(id: string, reason?: string) {
+    const coach = await this.prisma.user.findUnique({
+      where: { id, role: Role.COACH },
+      select: {
+        id: true,
+        isActive: true,
+        coachProfile: {
+          select: {
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    if (!coach) {
+      throw new NotFoundException('Coach not found');
+    }
+
+    if (!coach.isActive) {
+      throw new BadRequestException('Coach is already inactive');
+    }
+
+    // Deactivate the coach
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true,
+        coachProfile: true,
+      },
+    });
+
+    console.log(
+      `[ADMIN] Coach deactivated: ${coach.coachProfile?.fullName} (${id})${reason ? ` - Reason: ${reason}` : ''}`,
+    );
+
+    return {
+      ...updated,
+      message: 'Coach deactivated successfully',
+      reason,
+    };
+  }
+
+  /**
+   * Reactivate a coach account
+   */
+  async reactivateCoach(id: string) {
+    const coach = await this.prisma.user.findUnique({
+      where: { id, role: Role.COACH },
+      select: {
+        id: true,
+        isActive: true,
+        coachProfile: {
+          select: {
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    if (!coach) {
+      throw new NotFoundException('Coach not found');
+    }
+
+    if (coach.isActive) {
+      throw new BadRequestException('Coach is already active');
+    }
+
+    // Reactivate the coach
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { isActive: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true,
+        coachProfile: true,
+      },
+    });
+
+    console.log(
+      `[ADMIN] Coach reactivated: ${coach.coachProfile?.fullName} (${id})`,
+    );
+
+    return {
+      ...updated,
+      message: 'Coach reactivated successfully',
+    };
+  }
+
   // Platform Stats
   async getStats() {
     const [totalCompanies, activeCompanies, totalHrs, totalEmployees] =

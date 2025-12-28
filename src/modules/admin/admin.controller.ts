@@ -19,6 +19,7 @@ import {
   CreateHrDto,
   UpdateHrStatusDto,
 } from './dto/admin.dto';
+import { DeactivateCoachDto } from './dto/deactivate-coach.dto';
 
 @Controller('api/v1/admin')
 @Roles(Role.ADMIN)
@@ -77,6 +78,86 @@ export class AdminController {
   @Patch('hrs/:id/status')
   updateHrStatus(@Param('id') id: string, @Body() dto: UpdateHrStatusDto) {
     return this.adminService.updateHrStatus(id, dto);
+  }
+
+  // Coach Management
+  /**
+   * Get All Coaches
+   * 
+   * Returns list of all coaches with their profiles and statistics.
+   * Includes active and inactive coaches.
+   * 
+   * @returns Array of coaches with profile details
+   * @route GET /api/v1/admin/coaches
+   * @access Protected - Admin only
+   */
+  @Get('coaches')
+  getCoaches() {
+    return this.adminService.getCoaches();
+  }
+
+  /**
+   * Get Single Coach
+   * 
+   * Returns detailed information about a specific coach including:
+   * - User account status
+   * - Coach profile
+   * - Statistics (slots created, consultations conducted)
+   * 
+   * @param id - Coach user ID
+   * @returns Coach details with statistics
+   * @throws NotFoundException if coach doesn't exist
+   * @route GET /api/v1/admin/coaches/:id
+   * @access Protected - Admin only
+   */
+  @Get('coaches/:id')
+  getCoach(@Param('id') id: string) {
+    return this.adminService.getCoach(id);
+  }
+
+  /**
+   * Deactivate Coach
+   * 
+   * CRITICAL: Allows admin to deactivate coach accounts
+   * 
+   * Sets isActive = false for coach user account.
+   * Prevents coach from:
+   * - Logging in (blocked by ActiveUserGuard)
+   * - Creating new slots
+   * - Accessing any protected endpoints
+   * 
+   * Existing consultations are NOT cancelled automatically.
+   * Admin should handle consultation cancellations separately if needed.
+   * 
+   * @param id - Coach user ID
+   * @param dto - Optional deactivation reason
+   * @returns Updated coach user with isActive = false
+   * @throws NotFoundException if coach doesn't exist
+   * @throws BadRequestException if coach already inactive
+   * @route PATCH /api/v1/admin/coaches/:id/deactivate
+   * @access Protected - Admin only
+   */
+  @Patch('coaches/:id/deactivate')
+  deactivateCoach(@Param('id') id: string, @Body() dto: DeactivateCoachDto) {
+    return this.adminService.deactivateCoach(id, dto.reason);
+  }
+
+  /**
+   * Reactivate Coach
+   * 
+   * Reactivates a previously deactivated coach account.
+   * Sets isActive = true, allowing coach to log in and access system.
+   * 
+   * @param id - Coach user ID
+   * @returns Updated coach user with isActive = true
+   * @throws NotFoundException if coach doesn't exist
+   * @throws BadRequestException if coach already active
+   * @route PATCH /api/v1/admin/coaches/:id/reactivate
+   * @access Protected - Admin only
+   */
+  @Patch('coaches/:id/reactivate')
+  reactivateCoach(@Param('id') id: string) {
+    return this.adminService.reactivateCoach(id);
   }
 
   // Platform Stats

@@ -14,5 +14,6 @@ import { PrismaModule } from '../../../prisma/prisma.module';
   ],
   controllers: [ConsultationController],
   providers: [ConsultationService, MeetingService],
+  exports: [ConsultationService], // Export for use in CoachModule
 })
 export class ConsultationModule {}

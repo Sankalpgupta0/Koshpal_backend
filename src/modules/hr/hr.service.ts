@@ -45,11 +45,14 @@ export class HrService {
       `[HR-SERVICE] File: ${file.originalname} (${(file.size / 1024).toFixed(2)} KB)`,
     );
 
-    if (!file.originalname.toLowerCase().endsWith('.xlsx')) {
+    // CRITICAL: Standardized to CSV only (production requirement)
+    if (!file.originalname.toLowerCase().endsWith('.csv')) {
       console.warn(
         `[HR-SERVICE] ❌ Upload rejected: Invalid file type - ${file.originalname}`,
       );
-      throw new BadRequestException('Only .xlsx files are allowed');
+      throw new BadRequestException(
+        'Only CSV files are allowed. Please convert your file to CSV format.',
+      );
     }
 
     // 5MB limit (important for Redis)

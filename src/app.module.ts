@@ -27,7 +27,7 @@ import { TenantContextMiddleware } from './common/middleware/tenant-context.midd
       {
         name: 'default',
         ttl: 60000, // 60 seconds
-        limit: 20000, // 2000 requests per minute
+        limit: 2000, // 2000 requests per minute
       },
       {
         name: 'strict',

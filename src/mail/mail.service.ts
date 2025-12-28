@@ -275,3 +275,174 @@ export async function sendConsultationBookingEmails(data: {
     `[MAIL] Consultation booking emails sent to ${employeeEmail} and ${coachEmail}`,
   );
 }
+
+/**
+ * Send password reset email with secure token
+ * @param email - User email address
+ * @param fullName - User full name
+ * @param resetToken - Password reset token
+ */
+export async function sendPasswordResetEmail(
+  email: string,
+  fullName: string,
+  resetToken: string,
+): Promise<void> {
+  if (!email || !fullName || !resetToken) {
+    throw new Error('Email, fullName, and resetToken are required');
+  }
+
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+  await sendEmail({
+    to: email,
+    subject: 'Password Reset Request - Koshpal',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; }
+          .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+          .button { 
+            display: inline-block;
+            background-color: #4F46E5; 
+            color: white; 
+            padding: 14px 28px; 
+            text-decoration: none; 
+            border-radius: 6px;
+            margin: 20px 0;
+          }
+          .warning { 
+            background-color: #FEF3C7; 
+            border-left: 4px solid #F59E0B; 
+            padding: 15px; 
+            margin: 20px 0;
+          }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #777; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>Password Reset Request</h2>
+          </div>
+          <div class="content">
+            <p>Hello <strong>${fullName}</strong>,</p>
+            <p>We received a request to reset your password for your Koshpal account.</p>
+            <p>Click the button below to reset your password:</p>
+            <div style="text-align: center;">
+              <a href="${resetLink}" class="button">Reset Password</a>
+            </div>
+            <p style="font-size: 14px; color: #666;">Or copy this link into your browser:</p>
+            <p style="word-break: break-all; font-size: 12px; color: #666;">${resetLink}</p>
+            <div class="warning">
+              <p style="margin: 0;"><strong>⚠️ Important Security Information:</strong></p>
+              <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                <li>This link will expire in <strong>15 minutes</strong></li>
+                <li>This link can only be used <strong>once</strong></li>
+                <li>If you didn't request this, please ignore this email</li>
+                <li>Your password will remain unchanged</li>
+              </ul>
+            </div>
+            <p>For security reasons, please do not share this link with anyone.</p>
+            <p>If you have any concerns, please contact your HR department immediately.</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated email. Please do not reply.</p>
+            <p>&copy; ${new Date().getFullYear()} Koshpal. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  });
+
+  console.log(`[MAIL] Password reset email sent to ${email}`);
+}
+
+/**
+ * Send consultation cancellation emails to both employee and coach
+ * @param data - Cancellation data
+ */
+export async function sendConsultationCancellationEmails(data: {
+  employeeEmail: string;
+  coachEmail: string;
+  date: string;
+  startTime: string | Date;
+  cancelledBy: 'EMPLOYEE' | 'COACH';
+  reason?: string;
+}): Promise<void> {
+  const { employeeEmail, coachEmail, date, startTime, cancelledBy, reason } = data;
+
+  const startDateTime = new Date(startTime);
+  const [year, month, day] = date.split('-').map(Number);
+  const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const tempDate = new Date(dateString + 'T12:00:00');
+  
+  const formattedDate = tempDate.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const formattedStartTime = startDateTime.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Kolkata',
+  });
+
+  const reasonText = reason ? `<p><strong>Reason:</strong> ${reason}</p>` : '';
+
+  // Send email to employee
+  await sendEmail({
+    to: employeeEmail,
+    subject: '❌ Consultation Cancelled - Koshpal',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #EF4444;">Consultation Cancelled</h2>
+        <p>Hi there,</p>
+        <p>Your consultation session has been cancelled by the ${cancelledBy === 'EMPLOYEE' ? 'you' : 'coach'}.</p>
+        
+        <div style="background-color: #FEE2E2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #EF4444;">
+          <h3 style="margin-top: 0;">📅 Cancelled Session</h3>
+          <p><strong>Date:</strong> ${formattedDate}</p>
+          <p><strong>Time:</strong> ${formattedStartTime} (IST)</p>
+          ${reasonText}
+        </div>
+
+        <p>You can book another session at your convenience from the consultation portal.</p>
+        <p>Best regards,<br/>Koshpal Team</p>
+      </div>
+    `,
+  });
+
+  // Send email to coach
+  await sendEmail({
+    to: coachEmail,
+    subject: '❌ Consultation Cancelled - Koshpal',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #EF4444;">Consultation Cancelled</h2>
+        <p>Hello Coach,</p>
+        <p>A consultation session has been cancelled by the ${cancelledBy === 'COACH' ? 'you' : 'employee'}.</p>
+        
+        <div style="background-color: #FEE2E2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #EF4444;">
+          <h3 style="margin-top: 0;">📅 Cancelled Session</h3>
+          <p><strong>Employee:</strong> ${employeeEmail}</p>
+          <p><strong>Date:</strong> ${formattedDate}</p>
+          <p><strong>Time:</strong> ${formattedStartTime} (IST)</p>
+          ${reasonText}
+        </div>
+
+        <p>The time slot is now available for new bookings.</p>
+        <p>Best regards,<br/>Koshpal Team</p>
+      </div>
+    `,
+  });
+
+  console.log(`[MAIL] Consultation cancellation emails sent to ${employeeEmail} and ${coachEmail}`);
+}
+

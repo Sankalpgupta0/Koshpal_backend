@@ -1,7 +1,8 @@
 import { ValidationPipe } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { ActiveUserGuard } from './common/guards/active-user.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -37,8 +38,12 @@ async function bootstrap() {
   // Global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Enable Prisma shutdown hooks
+  // Global active user guard (blocks inactive users)
+  const reflector = app.get(Reflector);
   const prismaService = app.get(PrismaService);
+  app.useGlobalGuards(new ActiveUserGuard(prismaService));
+
+  // Enable Prisma shutdown hooks
   await prismaService.enableShutdownHooks(app);
 
   // Graceful shutdown

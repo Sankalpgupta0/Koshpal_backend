@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
-import * as XLSX from 'xlsx';
+import { parse } from 'csv-parse/sync';
 import * as bcrypt from 'bcrypt';
 import { Role, UploadStatus } from '@prisma/client';
 import { generateRandomPassword } from '../utils/password.util';
@@ -30,7 +30,7 @@ interface EmployeeUploadJob {
 }
 
 /**
- * Shape of each Excel row
+ * Shape of each CSV row
  */
 interface EmployeeRow {
   email?: string;
@@ -69,23 +69,19 @@ const worker = new Worker<EmployeeUploadJob>(
       const buffer = Buffer.from(fileBase64, 'base64');
       console.log(`[JOB-${job.id}] ✓ File decoded (${buffer.length} bytes)`);
 
-      // Read workbook
-      console.log(`[JOB-${job.id}] 📊 Parsing Excel file...`);
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
+      // Parse CSV file
+      console.log(`[JOB-${job.id}] 📊 Parsing CSV file...`);
+      const rows = parse(buffer, {
+        columns: true, // Use first row as header
+        skip_empty_lines: true,
+        trim: true,
+        bom: true, // Handle UTF-8 BOM
+      }) as EmployeeRow[];
 
-      const rows = XLSX.utils.sheet_to_json<EmployeeRow>(sheet, {
-        defval: null,
-        raw: false,
-      });
-
-      console.log(
-        `[JOB-${job.id}] ✓ Parsed ${rows.length} rows from sheet "${sheetName}"`,
-      );
+      console.log(`[JOB-${job.id}] ✓ Parsed ${rows.length} rows from CSV`);
 
       if (rows.length === 0) {
-        throw new Error('Excel file is empty or has no valid data');
+        throw new Error('CSV file is empty or has no valid data');
       }
 
       console.log(

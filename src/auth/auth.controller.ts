@@ -4,6 +4,7 @@ import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto, ChangePasswordDto } from './dto/auth.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { ValidatedUser } from '../common/types/user.types';
@@ -166,18 +167,70 @@ export class AuthController {
     @CurrentUser() user: ValidatedUser,
     @Body() dto: ChangePasswordDto,
   ) {
-    const result = await this.authService.changePassword(
+    return this.authService.changePassword(
       user.userId,
       dto.currentPassword,
       dto.newPassword,
     );
-    
-    // SECURITY: Revoke all sessions after password change
-    await this.authService.revokeAllSessions(user.userId);
-    
-    return { 
-      ...result, 
-      message: 'Password changed successfully. All sessions have been revoked. Please log in again.' 
-    };
+  }
+
+  /**
+   * Forgot Password
+   * 
+   * SECURITY CRITICAL: Request password reset link
+   * 
+   * Generates a secure, single-use token with 15-minute expiry.
+   * Sends reset link via email to the registered email address.
+   * 
+   * Rate limited to 5 attempts per 15 minutes per IP to prevent:
+   * - Email enumeration attacks
+   * - Spam/abuse
+   * - Brute force attempts
+   * 
+   * Always returns success message to prevent email enumeration.
+   * 
+   * @param dto - Email address for password reset
+   * @returns Success message (same response whether email exists or not)
+   * @route POST /api/v1/auth/forgot-password
+   * @access Public
+   * @rateLimit 5 requests per 15 minutes
+   */
+  @Post('forgot-password')
+  @Throttle({ strict: { limit: 5, ttl: 900000 } }) // 5 attempts per 15 minutes
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  /**
+   * Reset Password
+   * 
+   * SECURITY CRITICAL: Reset password using token from email
+   * 
+   * Validates reset token and updates password if valid.
+   * Token requirements:
+   * - Must exist in database
+   * - Must not be used
+   * - Must not be expired (15 min expiry)
+   * - Single-use only
+   * 
+   * After successful reset:
+   * - Password is updated (bcrypt hashed)
+   * - Token is marked as used
+   * - ALL sessions are revoked
+   * - User must log in again
+   * 
+   * @param dto - Reset token and new password
+   * @returns Success message
+   * @throws UnauthorizedException if token is invalid/expired
+   * @throws BadRequestException if password doesn't meet requirements
+   * @route POST /api/v1/auth/reset-password
+   * @access Public
+   * @rateLimit 10 requests per 15 minutes
+   */
+  @Post('reset-password')
+  @Throttle({ strict: { limit: 10, ttl: 900000 } }) // 10 attempts per 15 minutes
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 }
+

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Worker } from 'bullmq';
-import { sendConsultationBookingEmails } from '../mail/mail.service';
+import { sendConsultationBookingEmails, sendConsultationCancellationEmails } from '../mail/mail.service';
 
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
@@ -25,14 +25,36 @@ const worker = new Worker(
       meetingLink: string;
     }
 
-    const data = job.data as ConsultationEmailData;
-    console.log("sankalp", data);
+    interface CancellationEmailData {
+      coachEmail: string;
+      coachName: string;
+      employeeEmail: string;
+      employeeName: string;
+      date: string;
+      startTime: string | Date;
+      endTime: string | Date;
+      reason?: string;
+      cancelledBy: 'EMPLOYEE' | 'COACH';
+    }
 
-    console.log(`[JOB-${job.id}] 📧 Sending consultation booking emails...`);
+    const jobType = job.name;
+    console.log(`[JOB-${job.id}] 📧 Processing ${jobType} email...`);
 
     try {
-      await sendConsultationBookingEmails(data);
-      console.log(`[JOB-${job.id}] ✅ Emails sent successfully`);
+      if (jobType === 'send-consultation-email') {
+        const data = job.data as ConsultationEmailData;
+        console.log("sankalp", data);
+        console.log(`[JOB-${job.id}] 📧 Sending consultation booking emails...`);
+        await sendConsultationBookingEmails(data);
+        console.log(`[JOB-${job.id}] ✅ Booking emails sent successfully`);
+      } else if (jobType === 'send-cancellation-email') {
+        const data = job.data as CancellationEmailData;
+        console.log(`[JOB-${job.id}] 📧 Sending consultation cancellation emails...`);
+        await sendConsultationCancellationEmails(data);
+        console.log(`[JOB-${job.id}] ✅ Cancellation emails sent successfully`);
+      } else {
+        console.warn(`[JOB-${job.id}] ⚠️  Unknown job type: ${jobType}`);
+      }
     } catch (error) {
       console.error(`[JOB-${job.id}] ❌ Error sending emails:`, error);
       throw error;
