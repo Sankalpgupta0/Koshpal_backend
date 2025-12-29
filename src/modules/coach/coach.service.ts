@@ -1,6 +1,11 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateCoachSlotDto } from './dto/create-coach-slot.dto';
+import { CreateCoachSlotDto, SaveCoachSlotsDto } from './dto/create-coach-slot.dto';
 
 @Injectable()
 export class CoachService {
@@ -222,5 +227,292 @@ export class CoachService {
       upcoming,
       thisMonth,
     };
+  }
+
+  async saveWeeklyAvailability(coachId: string, dto: SaveCoachSlotsDto) {
+    // Get coach's timezone from profile
+    const coachProfile = await this.prisma.coachProfile.findUnique({
+      where: { userId: coachId },
+      select: { timezone: true },
+    });
+
+    if (!coachProfile) {
+      throw new NotFoundException('Coach profile not found');
+    }
+
+    const coachTimezone = coachProfile.timezone;
+
+    // Step 1: Delete future AVAILABLE slots (keep BOOKED ones)
+    await this.prisma.coachSlot.deleteMany({
+      where: {
+        coachId,
+        status: 'AVAILABLE',
+        startTime: { gt: new Date() },
+      },
+    });
+
+    // Step 2: Generate slots for each week
+    const slots: Array<{
+      coachId: string;
+      date: Date;
+      startTime: Date;
+      endTime: Date;
+      status: 'AVAILABLE';
+    }> = [];
+    const now = new Date();
+
+    for (let week = 0; week < dto.weeksToGenerate; week++) {
+      for (const [weekday, timeRanges] of Object.entries(dto.weeklySchedule)) {
+        if (!timeRanges || timeRanges.length === 0) continue;
+
+        for (const timeRange of timeRanges) {
+          // Calculate the date for this weekday in the target week
+          const targetDate = this.getDateForWeekday(weekday, week);
+
+          // Skip if date is in the past
+          if (targetDate < now) continue;
+
+          // Build timestamps with timezone
+          const startTime = this.buildDateTime(
+            targetDate,
+            timeRange.start,
+            coachTimezone,
+          );
+          const endTime = this.buildDateTime(
+            targetDate,
+            timeRange.end,
+            coachTimezone,
+          );
+
+          // Validate duration
+          const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+          if (duration !== dto.slotDurationMinutes) {
+            throw new BadRequestException(
+              `Slot duration must be exactly ${dto.slotDurationMinutes} minutes`,
+            );
+          }
+
+          // Check for overlaps
+          const existingSlot = await this.prisma.coachSlot.findFirst({
+            where: {
+              coachId,
+              date: targetDate,
+              OR: [
+                {
+                  AND: [
+                    { startTime: { lte: startTime } },
+                    { endTime: { gt: startTime } },
+                  ],
+                },
+                {
+                  AND: [
+                    { startTime: { lt: endTime } },
+                    { endTime: { gte: endTime } },
+                  ],
+                },
+                {
+                  AND: [
+                    { startTime: { gte: startTime } },
+                    { endTime: { lte: endTime } },
+                  ],
+                },
+              ],
+            },
+          });
+
+          if (existingSlot) {
+            throw new BadRequestException(
+              `Overlapping slot detected for ${weekday} at ${timeRange.start}-${timeRange.end}`,
+            );
+          }
+
+          slots.push({
+            coachId,
+            date: targetDate,
+            startTime,
+            endTime,
+            status: 'AVAILABLE' as const,
+          });
+        }
+      }
+    }
+
+    // Step 3: Bulk insert new slots
+    const created = await this.prisma.coachSlot.createMany({
+      data: slots,
+    });
+
+    return {
+      message: 'Weekly availability saved successfully',
+      slotsGenerated: created.count,
+      weeksGenerated: dto.weeksToGenerate,
+    };
+  }
+
+  async getWeeklySchedule(coachId: string, weeksCount: number = 1) {
+    const now = new Date();
+    const endDate = new Date(now);
+    endDate.setDate(now.getDate() + (weeksCount * 7));
+
+    // Get all slots for the period
+    const slots = await this.prisma.coachSlot.findMany({
+      where: {
+        coachId,
+        date: {
+          gte: now,
+          lte: endDate,
+        },
+      },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+    });
+
+    // Group by weekday
+    const weeklySchedule = {
+      MONDAY: [],
+      TUESDAY: [],
+      WEDNESDAY: [],
+      THURSDAY: [],
+      FRIDAY: [],
+      SATURDAY: [],
+      SUNDAY: [],
+    };
+
+    slots.forEach((slot) => {
+      const weekday = this.getWeekdayName(slot.date.getDay());
+      const startTime = slot.startTime.toISOString().substring(11, 16); // HH:MM
+      const endTime = slot.endTime.toISOString().substring(11, 16); // HH:MM
+
+      weeklySchedule[weekday].push({
+        id: slot.id,
+        start: startTime,
+        end: endTime,
+        status: slot.status,
+        date: slot.date.toISOString().split('T')[0], // YYYY-MM-DD
+      });
+    });
+
+    return weeklySchedule;
+  }
+
+  async deleteSlot(coachId: string, slotId: string) {
+    // Check if slot exists and belongs to coach
+    const slot = await this.prisma.coachSlot.findFirst({
+      where: {
+        id: slotId,
+        coachId,
+      },
+    });
+
+    if (!slot) {
+      throw new NotFoundException('Slot not found');
+    }
+
+    // Cannot delete booked slots
+    if (slot.status === 'BOOKED') {
+      throw new ForbiddenException('Cannot delete a booked slot');
+    }
+
+    // Cannot delete past slots
+    if (slot.startTime < new Date()) {
+      throw new BadRequestException('Cannot delete past slots');
+    }
+
+    await this.prisma.coachSlot.delete({
+      where: { id: slotId },
+    });
+
+    return {
+      message: 'Slot deleted successfully',
+      slotId,
+    };
+  }
+
+  private getDateForWeekday(weekday: string, weekOffset: number): Date {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Map weekday names to numbers (0 = Sunday, 1 = Monday, etc.)
+    const weekdayMap = {
+      SUNDAY: 0,
+      MONDAY: 1,
+      TUESDAY: 2,
+      WEDNESDAY: 3,
+      THURSDAY: 4,
+      FRIDAY: 5,
+      SATURDAY: 6,
+    };
+
+    const targetWeekday = weekdayMap[weekday.toUpperCase()];
+    if (targetWeekday === undefined) {
+      throw new BadRequestException(`Invalid weekday: ${weekday}`);
+    }
+
+    const currentWeekday = today.getDay();
+    let daysToAdd = targetWeekday - currentWeekday;
+
+    if (daysToAdd <= 0) {
+      daysToAdd += 7; // Next week
+    }
+
+    daysToAdd += weekOffset * 7; // Add week offset
+
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + daysToAdd);
+
+    return targetDate;
+  }
+
+  private buildDateTime(date: Date, time: string, _timezone: string): Date {
+    // Create date string in YYYY-MM-DDTHH:mm format
+    const dateStr = date.toISOString().split('T')[0];
+    const dateTimeStr = `${dateStr}T${time}:00`;
+
+    // Parse with timezone consideration
+    const dateTime = new Date(dateTimeStr);
+
+    // For now, we'll assume the time is in the coach's timezone
+    // In production, you might want to use a library like moment-timezone
+    // to properly handle timezone conversions
+
+    return dateTime;
+  }
+
+  private getWeekdayName(dayIndex: number): string {
+    const weekdays = [
+      'SUNDAY',
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY',
+    ];
+    return weekdays[dayIndex];
+  }
+
+  async getCoachProfile(coachId: string) {
+    const profile = await this.prisma.coachProfile.findUnique({
+      where: { userId: coachId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Coach profile not found');
+    }
+
+    return profile;
+  }
+
+  async updateCoachTimezone(coachId: string, timezone: string) {
+    // Validate timezone format (basic validation)
+    if (!timezone || typeof timezone !== 'string' || timezone.length < 3) {
+      throw new BadRequestException('Invalid timezone format');
+    }
+
+    const updatedProfile = await this.prisma.coachProfile.update({
+      where: { userId: coachId },
+      data: { timezone },
+    });
+
+    return updatedProfile;
   }
 }

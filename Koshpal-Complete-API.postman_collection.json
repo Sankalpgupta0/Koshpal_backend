@@ -1,10 +1,10 @@
 {
   "info": {
     "name": "Koshpal Backend - Complete API Collection",
-    "description": "Complete API collection with 192 endpoints covering all features with comprehensive test scenarios:\n\n🔐 AUTHENTICATION (27 endpoints)\n- Login (Admin/Employee/HR/Coach)\n- Session Management\n- Refresh Token with revocation\n- Password Change\n- Forgot Password Flow (NEW)\n- Reset Password with Token Validation (NEW)\n- Active Sessions Viewing\n- Logout from all devices\n\n🏢 ADMIN PORTAL (15 endpoints)\n- Company Management (5 endpoints)\n- HR Management (4 endpoints)\n- Coach Management (5 endpoints - NEW)\n- Platform Statistics (1 endpoint)\n\n👥 HR PORTAL (16 endpoints)\n- Employee Bulk Upload with BullMQ\n- Upload Status Tracking\n- Employee Management\n- Dashboard Analytics (NEW)\n- Department Statistics (NEW)\n- Financial Health Overview (NEW)\n- Participation Metrics (NEW)\n- Alerts & Notifications (NEW)\n\n👤 EMPLOYEE PORTAL (17 endpoints)\n- Profile Management (2 endpoints)\n- Financial Goals CRUD (4 endpoints)\n- Account Management (4 endpoints)\n- Transaction Management (4 endpoints)\n- Monthly Insights & Budget (3 endpoints)\n\n🎯 COACH PORTAL (10 endpoints)\n- Slot Creation & Management (3 endpoints)\n- Consultation Viewing (4 endpoints)\n- Coach Statistics (1 endpoint)\n- Cancel Consultation (2 endpoints - NEW)\n\n📅 EMPLOYEE CONSULTATIONS (18 endpoints)\n- Coach Listing & Filtering (3 endpoints)\n- Slot Availability (3 endpoints)\n- Aggregated Coach Slots (3 endpoints - NEW)\n- Booking with row-level locking (4 endpoints)\n- Consultation History & Stats (3 endpoints)\n- Get Consultation Details (2 endpoints - NEW)\n- Cancel Consultation (3 endpoints - NEW)\n\n💰 FINANCE MODULE (✨ ENHANCED - 53 endpoints)\n- Accounts (10 endpoints)\n- Transactions with filters (26 endpoints)\n- ✨ NEW: Optional Account Transactions (Zero-Account Support)\n- ✨ NEW: Smart Account Matching from Metadata\n- ✨ NEW: Auto-Account Creation from SMS/Mobile Transactions\n- Insights & Analytics (17 endpoints)\n- Budget Management\n\n✨ NEW TRANSACTION FEATURES:\n• Transactions without accounts (accountId optional)\n• Smart account matching by bank metadata\n• Auto-account creation from transaction data\n• Mixed bulk transactions (with/without accounts)\n• Never fail SMS/mobile transaction ingestion\n\n🧪 TESTING SECTIONS (33 endpoints)\n- Authorization Testing (19 endpoints)\n- Integration Tests (1 endpoint)\n- Coaches & Consultations Tests (13 endpoints)\n\n🏥 HEALTH CHECKS (3 endpoints)\n- Application Health\n- Database Health\n- Redis Health\n\nAll endpoints include:\n✓ Success scenarios\n✓ Error scenarios (401, 400, 404, etc.)\n✓ Validation tests\n✓ Authorization tests\n✓ Auto token management\n\n🔄 LATEST UPDATES (v3.2.0):\n• Added forgot/reset password flow (5 endpoints)\n• Added coach management to admin portal (5 endpoints)\n• Added HR dashboard analytics (7 endpoints)\n• Added aggregated coach slots optimization (3 endpoints)\n• Added consultation cancellation flows (5 endpoints)\n• Added consultation details retrieval (2 endpoints)\n• Enhanced error handling and validation tests\n• Total endpoints increased from 175 to 192",
+    "description": "Complete API collection with 101 endpoints covering all features with comprehensive test scenarios:\n\n🔐 AUTHENTICATION (11 endpoints)\n- Login (Admin/Employee/HR/Coach)\n- Session Management\n- Refresh Token with revocation\n- Password Change\n- Forgot Password Flow\n- Reset Password with Token Validation\n- Active Sessions Viewing\n- Logout from all devices\n\n🏢 ADMIN PORTAL (14 endpoints)\n- Company Management (5 endpoints)\n- HR Management (4 endpoints)\n- Coach Management (5 endpoints)\n- Platform Statistics (1 endpoint)\n\n👥 HR PORTAL (13 endpoints)\n- Employee Bulk Upload with BullMQ\n- Upload Status Tracking\n- Employee Management\n- Dashboard Analytics (7 endpoints)\n- Profile Management (2 endpoints)\n\n👤 EMPLOYEE PORTAL (17 endpoints)\n- Profile Management (1 endpoint)\n- Financial Goals CRUD (4 endpoints)\n- Account Management (4 endpoints)\n- Transaction Management (4 endpoints)\n- Monthly Insights & Budget (4 endpoints)\n\n🎯 COACH PORTAL (16 endpoints)\n- Slot Creation & Management (6 endpoints)\n- Weekly Schedule Management (3 endpoints)\n- Consultation Management (4 endpoints)\n- Profile Management (2 endpoints)\n- Consultation Completion (1 endpoint)\n\n📅 EMPLOYEE CONSULTATIONS (8 endpoints)\n- Coach Listing & Filtering (1 endpoint)\n- Slot Availability (2 endpoints)\n- Aggregated Coach Slots (1 endpoint)\n- Booking with row-level locking (1 endpoint)\n- Consultation History & Stats (3 endpoints)\n\n💰 FINANCE MODULE (17 endpoints)\n- Accounts (4 endpoints)\n- Transactions with filters (5 endpoints)\n- Bulk Transaction Operations (1 endpoint)\n- Insights & Analytics (7 endpoints)\n\n🏥 HEALTH CHECKS (3 endpoints)\n- Application Health\n- Database Health\n- Redis Health\n\nAll endpoints include:\n✓ Success scenarios\n✓ Error scenarios (401, 400, 404, etc.)\n✓ Validation tests\n✓ Authorization tests\n✓ Auto token management\n\n🔄 LATEST UPDATES (v3.3.0):\n• Added complete coach profile management (2 endpoints)\n• Added coach weekly schedule management (3 endpoints)\n• Added consultation completion functionality (1 endpoint)\n• Added coach slot deletion capability (1 endpoint)\n• Updated endpoint count to reflect actual API coverage\n• Total endpoints: 101 (all actual API endpoints covered)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "3.2.0",
-    "_postman_id": "koshpal-backend-api-v3.2",
+    "version": "3.3.0",
+    "_postman_id": "koshpal-backend-api-v3.3",
     "_exporter_id": "koshpal-2025"
   },
   "auth": {
@@ -3058,6 +3058,244 @@
         }
       ],
       "description": "Coach slot management - Create and view availability slots"
+    },
+    {
+      "name": "Coach Weekly Schedule",
+      "item": [
+        {
+          "name": "Save Weekly Availability",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Weekly availability saved', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData).to.have.property('slotsCreated');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timezone\": \"Asia/Kolkata\",\n  \"weeklySchedule\": {\n    \"monday\": [\n      {\"startTime\": \"09:00\", \"endTime\": \"10:00\"},\n      {\"startTime\": \"14:00\", \"endTime\": \"15:00\"}\n    ],\n    \"tuesday\": [\n      {\"startTime\": \"10:00\", \"endTime\": \"11:00\"},\n      {\"startTime\": \"15:00\", \"endTime\": \"16:00\"}\n    ],\n    \"wednesday\": [\n      {\"startTime\": \"09:00\", \"endTime\": \"10:00\"}\n    ],\n    \"thursday\": [\n      {\"startTime\": \"14:00\", \"endTime\": \"15:00\"}\n    ],\n    \"friday\": [\n      {\"startTime\": \"10:00\", \"endTime\": \"11:00\"}\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/slots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "slots"
+              ]
+            },
+            "description": "Save coach's weekly availability schedule. Generates slots for future weeks based on the weekly pattern. Deletes existing future AVAILABLE slots before regenerating."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Weekly Schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/slots/weekly?weeks=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "slots",
+                "weekly"
+              ],
+              "query": [
+                {
+                  "key": "weeks",
+                  "value": "2",
+                  "description": "Number of weeks to include (default: 1)"
+                }
+              ]
+            },
+            "description": "Get coach's availability grouped by weekday for UI display. Returns slots for current week and optionally future weeks."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Slot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Slot deleted successfully', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/slots/{{slotId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "slots",
+                "{{slotId}}"
+              ]
+            },
+            "description": "Delete a specific availability slot. Only AVAILABLE slots can be deleted. BOOKED slots cannot be removed."
+          },
+          "response": []
+        }
+      ],
+      "description": "Coach weekly schedule management"
+    },
+    {
+      "name": "Coach Profile",
+      "item": [
+        {
+          "name": "Get Coach Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "profile"
+              ]
+            },
+            "description": "Get coach's profile information including timezone setting."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Coach Timezone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Timezone updated', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('timezone');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timezone\": \"America/New_York\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/profile/timezone",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "profile",
+                "timezone"
+              ]
+            },
+            "description": "Update coach's timezone setting for availability scheduling."
+          },
+          "response": []
+        }
+      ],
+      "description": "Coach profile management"
+    },
+    {
+      "name": "Coach Consultation Management",
+      "item": [
+        {
+          "name": "Complete Consultation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Consultation completed', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.equal('COMPLETED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coach/consultations/:id/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coach",
+                "consultations",
+                ":id",
+                "complete"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{consultationId}}",
+                  "description": "Consultation ID to complete"
+                }
+              ]
+            },
+            "description": "Mark a consultation as completed after the session has ended. Only the coach who conducted the session can mark it as completed."
+          },
+          "response": []
+        }
+      ],
+      "description": "Coach consultation completion management"
     },
     {
       "name": "Employee Consultations",

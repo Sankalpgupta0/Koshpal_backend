@@ -26,8 +26,10 @@ async function bootstrap() {
   // CORS configuration
   app.enableCors({
     origin: process.env.CORS_ORIGIN?.split(',') || [
-      'http://localhost:5173',
-      'http://localhost:3000',
+      'http://localhost:5173', // Employee portal (default Vite port)
+      'http://localhost:5174', // HR portal
+      'http://localhost:5175', // Coach portal
+      'http://localhost:3000', // Backend itself
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

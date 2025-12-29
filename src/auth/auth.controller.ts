@@ -39,6 +39,32 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   /**
+   * Helper method to determine cookie domain based on request origin
+   * This ensures each portal gets its own isolated cookies
+   */
+  private getCookieDomain(req: Request): string | undefined {
+    const origin = req.headers.origin || req.headers.referer;
+
+    if (!origin) return undefined;
+
+    try {
+      const url = new URL(origin);
+
+      // For localhost subdomains, set domain to the specific subdomain
+      if (url.hostname.endsWith('.localhost')) {
+        return url.hostname;
+      }
+
+      // For production, you might want to set domain to your main domain
+      // return '.yourdomain.com';
+
+      return undefined; // Default behavior for other cases
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * Login
    *
    * SECURITY FIX: Now uses httpOnly cookies instead of localStorage
@@ -77,6 +103,7 @@ export class AuthController {
 
     // Set httpOnly cookies for tokens
     const isProduction = process.env.NODE_ENV === 'production';
+    const cookieDomain = this.getCookieDomain(req);
 
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
@@ -84,6 +111,7 @@ export class AuthController {
       sameSite: 'lax',
       maxAge: 15 * 60 * 1000, // 15 minutes
       path: '/',
+      domain: cookieDomain,
     });
 
     res.cookie('refreshToken', result.refreshToken, {
@@ -92,6 +120,7 @@ export class AuthController {
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
+      domain: cookieDomain,
     });
 
     // Return user data without tokens (tokens are in cookies)
@@ -145,12 +174,15 @@ export class AuthController {
 
     // Set new access token in cookie
     const isProduction = process.env.NODE_ENV === 'production';
+    const cookieDomain = this.getCookieDomain(req);
+    
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax',
       maxAge: 15 * 60 * 1000, // 15 minutes
       path: '/',
+      domain: cookieDomain,
     });
 
     return { message: 'Token refreshed successfully' };
@@ -182,9 +214,10 @@ export class AuthController {
       await this.authService.logout(user.userId, refreshToken);
     }
 
-    // Clear cookies
-    res.clearCookie('accessToken', { path: '/' });
-    res.clearCookie('refreshToken', { path: '/' });
+    // Clear cookies with correct domain
+    const cookieDomain = this.getCookieDomain(req);
+    res.clearCookie('accessToken', { path: '/', domain: cookieDomain });
+    res.clearCookie('refreshToken', { path: '/', domain: cookieDomain });
 
     return { message: 'Logged out successfully' };
   }

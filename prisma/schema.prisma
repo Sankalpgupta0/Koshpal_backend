@@ -145,6 +145,7 @@ model CoachProfile {
   location      String?
   languages     String[]
   profilePhoto  String?
+  timezone      String   @default("Asia/Kolkata") // IST - Indian Standard Time
 
   user  User        @relation(fields: [userId], references: [id])
   slots CoachSlot[]

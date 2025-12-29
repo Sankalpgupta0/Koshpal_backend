@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -16,7 +17,7 @@ import { Role } from '../../common/enums/role.enum';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CoachService } from './coach.service';
 import { ConsultationService } from '../consultation/consultation.service';
-import { CreateCoachSlotDto } from './dto/create-coach-slot.dto';
+import { CreateCoachSlotDto, SaveCoachSlotsDto } from './dto/create-coach-slot.dto';
 import { CancelConsultationDto } from '../consultation/dto/cancel-consultation.dto';
 import type { ValidatedUser } from '../../common/types/user.types';
 
@@ -51,7 +52,7 @@ export class CoachController {
    * @param user - Authenticated coach from JWT token
    * @param dto - Slot creation data with date and array of time slots
    * @returns Confirmation with created slots count and details
-   * @route POST /api/v1/coach/slots
+   * @route POST /api/v1/coach/slots/date
    * @access Protected - Coach only
    * @example
    * {
@@ -62,7 +63,7 @@ export class CoachController {
    *   ]
    * }
    */
-  @Post('slots')
+  @Post('slots/date')
   async createSlots(
     @CurrentUser() user: ValidatedUser,
     @Body() dto: CreateCoachSlotDto,
@@ -89,6 +90,68 @@ export class CoachController {
     @Query('date') date?: string,
   ) {
     return this.coachService.getSlots(user.userId, date);
+  }
+
+  /**
+   * Save Weekly Availability
+   *
+   * Saves coach's weekly availability schedule and generates slots for future weeks.
+   * Deletes existing future AVAILABLE slots and regenerates based on weekly pattern.
+   * Keeps BOOKED slots untouched.
+   *
+   * @param user - Authenticated coach from JWT token
+   * @param dto - Weekly schedule data with timezone and slot configuration
+   * @returns Confirmation with generated slots count
+   * @route POST /api/v1/coach/slots
+   * @access Protected - Coach only
+   */
+  @Post('slots')
+  async saveWeeklyAvailability(
+    @CurrentUser() user: ValidatedUser,
+    @Body() dto: SaveCoachSlotsDto,
+  ) {
+    return this.coachService.saveWeeklyAvailability(user.userId, dto);
+  }
+
+  /**
+   * Get Weekly Schedule
+   *
+   * Retrieves coach's availability grouped by weekday for UI display.
+   * Returns slots for the current week and optionally future weeks.
+   *
+   * @param user - Authenticated coach from JWT token
+   * @param weeks - Number of weeks to include (default: 1)
+   * @returns Weekly schedule grouped by weekday
+   * @route GET /api/v1/coach/slots/weekly
+   * @access Protected - Coach only
+   */
+  @Get('slots/weekly')
+  async getWeeklySchedule(
+    @CurrentUser() user: ValidatedUser,
+    @Query('weeks') weeks?: string,
+  ) {
+    const weeksCount = weeks ? parseInt(weeks, 10) : 1;
+    return this.coachService.getWeeklySchedule(user.userId, weeksCount);
+  }
+
+  /**
+   * Delete Slot
+   *
+   * Deletes a specific availability slot.
+   * Only AVAILABLE slots can be deleted. BOOKED slots cannot be removed.
+   *
+   * @param user - Authenticated coach from JWT token
+   * @param slotId - UUID of the slot to delete
+   * @returns Deletion confirmation
+   * @route DELETE /api/v1/coach/slots/:slotId
+   * @access Protected - Coach only
+   */
+  @Delete('slots/:slotId')
+  async deleteSlot(
+    @CurrentUser() user: ValidatedUser,
+    @Param('slotId') slotId: string,
+  ) {
+    return this.coachService.deleteSlot(user.userId, slotId);
   }
 
   /**
@@ -208,5 +271,39 @@ export class CoachController {
       user.userId,
       id,
     );
+  }
+
+  /**
+   * Get Coach Profile
+   *
+   * Retrieves the coach's profile information including timezone setting.
+   *
+   * @param user - Authenticated coach from JWT token
+   * @returns Coach profile with timezone
+   * @route GET /api/v1/coach/profile
+   * @access Protected - Coach only
+   */
+  @Get('profile')
+  async getProfile(@CurrentUser() user: ValidatedUser) {
+    return this.coachService.getCoachProfile(user.userId);
+  }
+
+  /**
+   * Update Coach Timezone
+   *
+   * Updates the coach's timezone setting for availability scheduling.
+   *
+   * @param user - Authenticated coach from JWT token
+   * @param timezone - IANA timezone identifier (e.g., "Asia/Kolkata" for IST)
+   * @returns Updated coach profile
+   * @route PATCH /api/v1/coach/profile/timezone
+   * @access Protected - Coach only
+   */
+  @Patch('profile/timezone')
+  async updateTimezone(
+    @CurrentUser() user: ValidatedUser,
+    @Body('timezone') timezone: string,
+  ) {
+    return this.coachService.updateCoachTimezone(user.userId, timezone);
   }
 }

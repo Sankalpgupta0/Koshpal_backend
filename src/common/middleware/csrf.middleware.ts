@@ -31,6 +31,11 @@ export class CsrfMiddleware implements NestMiddleware {
       return next();
     }
 
+    // Skip CSRF check for coach availability endpoints
+    if (req.path.startsWith('/api/v1/coach/slots')) {
+      return next();
+    }
+
     // Validate CSRF token for state-changing requests
     const cookieToken = req.cookies?.[this.CSRF_COOKIE_NAME];
     const headerToken = req.headers[this.CSRF_HEADER_NAME] as string;

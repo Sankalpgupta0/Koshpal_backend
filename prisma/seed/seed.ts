@@ -6,437 +6,528 @@ import {
   TransactionType,
   TransactionSource,
   SlotStatus,
+  BookingStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { Decimal } from '@prisma/client/runtime/library';
 
 const prisma = new PrismaClient();
 
+// Helper function to hash passwords
+async function hashPassword(password: string): Promise<string> {
+  return await bcrypt.hash(password, 10);
+}
+
+// Helper function to get future dates
+function getFutureDate(daysFromNow: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+  return date;
+}
+
+// Helper function to get date with specific time
+function getDateWithTime(date: Date, hours: number, minutes: number = 0): Date {
+  const newDate = new Date(date);
+  newDate.setHours(hours, minutes, 0, 0);
+  return newDate;
+}
+
 async function main() {
-  console.log('🌱 Seeding database with Koshpal test data...\n');
+  console.log('🌱 Seeding database with Koshpal production-like test data...\n');
 
-  const passwordHash = await bcrypt.hash('password123', 10);
+  try {
+    // Wrap everything in a transaction for atomicity
+    await prisma.$transaction(async (tx) => {
+      // ========================================
+      // 1️⃣ COMPANY
+      // ========================================
+      console.log('📦 Creating/updating company...');
 
-  // ========================================
-  // 1️⃣ COMPANY
-  // ========================================
-  console.log('📦 Creating company...');
-  
-  const company = await prisma.company.create({
-    data: {
-      name: 'Koshpal Inc',
-      domain: 'koshpal.com',
-      employeeLimit: 1000,
-      status: CompanyStatus.ACTIVE,
-    },
-  });
-
-  console.log(`✅ Created company: ${company.name}\n`);
-
-  // ========================================
-  // 2️⃣ ADMIN USER
-  // ========================================
-  console.log('👤 Creating admin user...');
-  
-  const admin = await prisma.user.create({
-    data: {
-      email: 'admin@koshpal.com',
-      passwordHash,
-      role: Role.ADMIN,
-      isActive: true,
-      lastLoginAt: new Date(),
-      adminProfile: {
-        create: {
-          fullName: 'Koshpal Admin',
+      const company = await tx.company.upsert({
+        where: { domain: 'abc.com' },
+        update: {
+          name: 'ABC Technologies Pvt Ltd',
+          employeeLimit: 1000,
+          status: CompanyStatus.ACTIVE,
         },
-      },
-    },
-  });
-
-  console.log(`✅ Created admin: ${admin.email}\n`);
-
-  // ========================================
-  // 3️⃣ COACH USER
-  // ========================================
-  console.log('🎓 Creating coach user...');
-  
-  const coach = await prisma.user.create({
-    data: {
-      email: 'koshpal@koshpal.com',
-      passwordHash,
-      role: Role.COACH,
-      isActive: true,
-      lastLoginAt: new Date(),
-      coachProfile: {
         create: {
-          fullName: 'Koshpal Coach',
-          expertise: ['Financial Planning', 'Investment Planning', 'Debt Management', 'Tax Planning', 'Retirement Planning'],
-          bio: 'Expert financial coach with 10+ years experience in helping employees achieve their financial goals. Specialized in personalized financial planning and wealth management.',
-          rating: new Decimal('4.9'),
-          successRate: 95,
-          clientsHelped: 250,
-          location: 'Mumbai',
-          languages: ['English', 'Hindi'],
-          profilePhoto: '/coaches/koshpal-coach.jpg',
-        },
-      },
-    },
-  });
-
-  console.log(`✅ Created coach: ${coach.email}\n`);
-
-  // ========================================
-  // 4️⃣ COACH AVAILABILITY SLOTS
-  // ========================================
-  console.log('📅 Creating coach availability slots...');
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const timeSlots = [
-    { start: 9, end: 10 },
-    { start: 10, end: 11 },
-    { start: 11, end: 12 },
-    { start: 14, end: 15 },
-    { start: 15, end: 16 },
-    { start: 16, end: 17 },
-  ];
-
-  const slots: any[] = [];
-  
-  // Create slots for next 14 days
-  for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
-    const slotDate = new Date(today);
-    slotDate.setDate(today.getDate() + dayOffset);
-    
-    for (const timeSlot of timeSlots) {
-      const startTime = new Date(slotDate);
-      startTime.setHours(timeSlot.start, 0, 0, 0);
-      
-      const endTime = new Date(slotDate);
-      endTime.setHours(timeSlot.end, 0, 0, 0);
-      
-      const slot = await prisma.coachSlot.create({
-        data: {
-          coachId: coach.id,
-          date: slotDate,
-          startTime,
-          endTime,
-          status: SlotStatus.AVAILABLE,
+          name: 'ABC Technologies Pvt Ltd',
+          domain: 'abc.com',
+          employeeLimit: 1000,
+          status: CompanyStatus.ACTIVE,
         },
       });
-      
-      slots.push(slot);
-    }
-  }
 
-  console.log(`✅ Created ${slots.length} coach slots\n`);
+      console.log(`✅ Company ready: ${company.name} (${company.domain})\n`);
 
-  // ========================================
-  // 5️⃣ EMPLOYEE USER
-  // ========================================
-  console.log('👥 Creating employee user...');
-  
-  const employee = await prisma.user.create({
-    data: {
-      companyId: company.id,
-      email: 'guptasankalp2004@gmail.com',
-      passwordHash,
-      role: Role.EMPLOYEE,
-      isActive: true,
-      lastLoginAt: new Date(),
-      employeeProfile: {
+      // ========================================
+      // 2️⃣ USERS
+      // ========================================
+      console.log('👥 Creating/updating users...');
+
+      // Admin User
+      const adminPasswordHash = await hashPassword('password123');
+      const admin = await tx.user.upsert({
+        where: { email: 'admin@koshpal.com' },
+        update: {
+          passwordHash: adminPasswordHash,
+          role: Role.ADMIN,
+          isActive: true,
+          companyId: company.id,
+        },
         create: {
+          email: 'admin@koshpal.com',
+          passwordHash: adminPasswordHash,
+          role: Role.ADMIN,
+          isActive: true,
+          companyId: company.id,
+        },
+      });
+
+      // HR User
+      const hrPasswordHash = await hashPassword('password123');
+      const hr = await tx.user.upsert({
+        where: { email: 'hr@abc.com' },
+        update: {
+          passwordHash: hrPasswordHash,
+          role: Role.HR,
+          isActive: true,
+          companyId: company.id,
+        },
+        create: {
+          email: 'hr@abc.com',
+          passwordHash: hrPasswordHash,
+          role: Role.HR,
+          isActive: true,
+          companyId: company.id,
+        },
+      });
+
+      // Coach User
+      const coachPasswordHash = await hashPassword('password123');
+      const coach = await tx.user.upsert({
+        where: { email: 'coach@koshpal.com' },
+        update: {
+          passwordHash: coachPasswordHash,
+          role: Role.COACH,
+          isActive: true,
+        },
+        create: {
+          email: 'coach@koshpal.com',
+          passwordHash: coachPasswordHash,
+          role: Role.COACH,
+          isActive: true,
+        },
+      });
+
+      // Employee User
+      const employeePasswordHash = await hashPassword('password123');
+      const employee = await tx.user.upsert({
+        where: { email: 'employee@abc.com' },
+        update: {
+          passwordHash: employeePasswordHash,
+          role: Role.EMPLOYEE,
+          isActive: true,
+          companyId: company.id,
+        },
+        create: {
+          email: 'employee@abc.com',
+          passwordHash: employeePasswordHash,
+          role: Role.EMPLOYEE,
+          isActive: true,
+          companyId: company.id,
+        },
+      });
+
+      console.log(`✅ Users created:`);
+      console.log(`   - Admin: ${admin.email}`);
+      console.log(`   - HR: ${hr.email}`);
+      console.log(`   - Coach: ${coach.email}`);
+      console.log(`   - Employee: ${employee.email}\n`);
+
+      // ========================================
+      // 3️⃣ ROLE-SPECIFIC PROFILES
+      // ========================================
+      console.log('📋 Creating/updating profiles...');
+
+      // Admin Profile
+      await tx.adminProfile.upsert({
+        where: { userId: admin.id },
+        update: { fullName: 'System Administrator' },
+        create: {
+          userId: admin.id,
+          fullName: 'System Administrator',
+        },
+      });
+
+      // HR Profile
+      await tx.hRProfile.upsert({
+        where: { userId: hr.id },
+        update: {
+          companyId: company.id,
+          fullName: 'HR Manager',
+          phone: '+91-9876543210',
+          designation: 'Human Resources Manager',
+        },
+        create: {
+          userId: hr.id,
+          companyId: company.id,
+          fullName: 'HR Manager',
+          phone: '+91-9876543210',
+          designation: 'Human Resources Manager',
+        },
+      });
+
+      // Employee Profile
+      await tx.employeeProfile.upsert({
+        where: { userId: employee.id },
+        update: {
           companyId: company.id,
           employeeCode: 'EMP001',
-          fullName: 'Sankalp Gupta',
-          phone: '+91-9876543210',
+          fullName: 'John Smith',
+          phone: '+91-9876543211',
           department: 'Engineering',
-          dateOfJoining: new Date('2023-01-15'),
+          dateOfJoining: new Date('2024-01-15'),
         },
-      },
-    },
-  });
+        create: {
+          userId: employee.id,
+          companyId: company.id,
+          employeeCode: 'EMP001',
+          fullName: 'John Smith',
+          phone: '+91-9876543211',
+          department: 'Engineering',
+          dateOfJoining: new Date('2024-01-15'),
+        },
+      });
 
-  console.log(`✅ Created employee: ${employee.email}\n`);
+      // Coach Profile
+      await tx.coachProfile.upsert({
+        where: { userId: coach.id },
+        update: {
+          fullName: 'Sarah Johnson',
+          expertise: ['Personal Finance', 'Investment Planning', 'Debt Management'],
+          bio: 'Certified financial coach with 5+ years of experience helping professionals achieve financial freedom.',
+          rating: new Decimal('4.8'),
+          successRate: 95,
+          clientsHelped: 150,
+          location: 'Mumbai, India',
+          languages: ['English', 'Hindi'],
+          timezone: 'Asia/Kolkata',
+        },
+        create: {
+          userId: coach.id,
+          fullName: 'Sarah Johnson',
+          expertise: ['Personal Finance', 'Investment Planning', 'Debt Management'],
+          bio: 'Certified financial coach with 5+ years of experience helping professionals achieve financial freedom.',
+          rating: new Decimal('4.8'),
+          successRate: 95,
+          clientsHelped: 150,
+          location: 'Mumbai, India',
+          languages: ['English', 'Hindi'],
+          timezone: 'Asia/Kolkata',
+        },
+      });
 
-  // ========================================
-  // 6️⃣ EMPLOYEE ACCOUNTS
-  // ========================================
-  console.log('💳 Creating employee accounts...');
-  
-  const accounts = await Promise.all([
-    prisma.account.create({
-      data: {
-        userId: employee.id,
-        employeeUserId: employee.id,
-        companyId: company.id,
-        type: AccountType.BANK,
-        provider: 'HDFC Bank',
-        maskedAccountNo: '****5432',
-        bank: 'HDFC',
-      },
-    }),
-    prisma.account.create({
-      data: {
-        userId: employee.id,
-        employeeUserId: employee.id,
-        companyId: company.id,
-        type: AccountType.WALLET,
-        provider: 'Paytm',
-        maskedAccountNo: '****8901',
-        bank: 'Paytm Payments Bank',
-      },
-    }),
-    prisma.account.create({
-      data: {
-        userId: employee.id,
-        employeeUserId: employee.id,
-        companyId: company.id,
-        type: AccountType.CREDIT_CARD,
-        provider: 'ICICI Bank',
-        maskedAccountNo: '****1111',
-        bank: 'ICICI',
-      },
-    }),
-    prisma.account.create({
-      data: {
-        userId: employee.id,
-        employeeUserId: employee.id,
-        companyId: company.id,
-        type: AccountType.CASH,
-        provider: 'Cash',
-        maskedAccountNo: 'N/A',
-        bank: 'N/A',
-      },
-    }),
-  ]);
+      console.log(`✅ Profiles created for all users\n`);
 
-  console.log(`✅ Created ${accounts.length} accounts\n`);
+      // ========================================
+      // 4️⃣ EMPLOYEE ACCOUNTS
+      // ========================================
+      console.log('🏦 Creating employee bank accounts...');
 
-  // ========================================
-  // 7️⃣ TRANSACTIONS
-  // ========================================
-  console.log('💸 Creating transactions...');
-  
-  const transactions: any[] = [];
-  const now = new Date();
-  
-  // Income transactions
-  const incomeTransactions = [
-    { date: -30, amount: 120000, description: 'Salary - December 2025', category: 'Salary', account: accounts[0] },
-    { date: -60, amount: 120000, description: 'Salary - November 2025', category: 'Salary', account: accounts[0] },
-    { date: -15, amount: 5000, description: 'Freelance Project Payment', category: 'Freelance', account: accounts[0] },
-  ];
-  
-  for (const txn of incomeTransactions) {
-    const txnDate = new Date(now);
-    txnDate.setDate(now.getDate() + txn.date);
-    
-    const transaction = await prisma.transaction.create({
-      data: {
-        userId: employee.id,
-        companyId: company.id,
-        accountId: txn.account.id,
-        amount: new Decimal(txn.amount),
-        type: TransactionType.INCOME,
-        category: txn.category,
-        subCategory: 'Income',
-        description: txn.description,
-        transactionDate: txnDate,
-        source: TransactionSource.MANUAL,
-        bank: txn.account.bank,
-        maskedAccountNo: txn.account.maskedAccountNo,
-      },
+      const savingsAccount = await tx.account.upsert({
+        where: {
+          unique_user_account: {
+            userId: employee.id,
+            maskedAccountNo: 'XXXX4321',
+            provider: 'HDFC',
+          },
+        },
+        update: {
+          companyId: company.id,
+          type: AccountType.BANK,
+          bank: 'HDFC Bank',
+          employeeUserId: employee.id,
+        },
+        create: {
+          userId: employee.id,
+          companyId: company.id,
+          type: AccountType.BANK,
+          provider: 'HDFC',
+          bank: 'HDFC Bank',
+          maskedAccountNo: 'XXXX4321',
+          employeeUserId: employee.id,
+        },
+      });
+
+      const creditAccount = await tx.account.upsert({
+        where: {
+          unique_user_account: {
+            userId: employee.id,
+            maskedAccountNo: 'XXXX8765',
+            provider: 'HDFC',
+          },
+        },
+        update: {
+          companyId: company.id,
+          type: AccountType.CREDIT_CARD,
+          bank: 'HDFC Bank',
+          employeeUserId: employee.id,
+        },
+        create: {
+          userId: employee.id,
+          companyId: company.id,
+          type: AccountType.CREDIT_CARD,
+          provider: 'HDFC',
+          bank: 'HDFC Bank',
+          maskedAccountNo: 'XXXX8765',
+          employeeUserId: employee.id,
+        },
+      });
+
+      console.log(`✅ Accounts created:`);
+      console.log(`   - Savings: ${savingsAccount.maskedAccountNo} (${savingsAccount.bank})`);
+      console.log(`   - Credit: ${creditAccount.maskedAccountNo} (${creditAccount.bank})\n`);
+
+      // ========================================
+      // 5️⃣ TRANSACTIONS
+      // ========================================
+      console.log('💰 Creating transactions...');
+
+      const transactions = [
+        // Savings Account Transactions
+        {
+          userId: employee.id,
+          companyId: company.id,
+          accountId: savingsAccount.id,
+          amount: new Decimal('75000.00'),
+          type: TransactionType.INCOME,
+          category: 'Salary',
+          subCategory: 'Monthly Salary',
+          source: TransactionSource.BANK,
+          description: 'Monthly salary credit',
+          transactionDate: new Date('2024-12-01'),
+        },
+        {
+          userId: employee.id,
+          companyId: company.id,
+          accountId: savingsAccount.id,
+          amount: new Decimal('-2500.00'),
+          type: TransactionType.EXPENSE,
+          category: 'Shopping',
+          subCategory: 'Online Shopping',
+          source: TransactionSource.BANK,
+          description: 'Amazon purchase',
+          transactionDate: new Date('2024-12-05'),
+        },
+        {
+          userId: employee.id,
+          companyId: company.id,
+          accountId: savingsAccount.id,
+          amount: new Decimal('-1200.00'),
+          type: TransactionType.EXPENSE,
+          category: 'Food',
+          subCategory: 'Restaurant',
+          source: TransactionSource.BANK,
+          description: 'Dinner at restaurant',
+          transactionDate: new Date('2024-12-10'),
+        },
+        {
+          userId: employee.id,
+          companyId: company.id,
+          accountId: savingsAccount.id,
+          amount: new Decimal('-3500.00'),
+          type: TransactionType.EXPENSE,
+          category: 'Utilities',
+          subCategory: 'Electricity Bill',
+          source: TransactionSource.BANK,
+          description: 'Monthly electricity bill',
+          transactionDate: new Date('2024-12-15'),
+        },
+        {
+          userId: employee.id,
+          companyId: company.id,
+          accountId: savingsAccount.id,
+          amount: new Decimal('5000.00'),
+          type: TransactionType.INCOME,
+          category: 'Salary',
+          subCategory: 'Bonus',
+          source: TransactionSource.BANK,
+          description: 'Performance bonus',
+          transactionDate: new Date('2024-12-20'),
+        },
+
+        // Credit Card Transactions
+        {
+          userId: employee.id,
+          companyId: company.id,
+          accountId: creditAccount.id,
+          amount: new Decimal('-8500.00'),
+          type: TransactionType.EXPENSE,
+          category: 'Shopping',
+          subCategory: 'Electronics',
+          source: TransactionSource.BANK,
+          description: 'Laptop purchase',
+          transactionDate: new Date('2024-12-03'),
+        },
+        {
+          userId: employee.id,
+          companyId: company.id,
+          accountId: creditAccount.id,
+          amount: new Decimal('-3200.00'),
+          type: TransactionType.EXPENSE,
+          category: 'Food',
+          subCategory: 'Grocery',
+          source: TransactionSource.BANK,
+          description: 'Monthly grocery shopping',
+          transactionDate: new Date('2024-12-08'),
+        },
+        {
+          userId: employee.id,
+          companyId: company.id,
+          accountId: creditAccount.id,
+          amount: new Decimal('-1800.00'),
+          type: TransactionType.EXPENSE,
+          category: 'Utilities',
+          subCategory: 'Internet Bill',
+          source: TransactionSource.BANK,
+          description: 'Monthly internet bill',
+          transactionDate: new Date('2024-12-12'),
+        },
+        {
+          userId: employee.id,
+          companyId: company.id,
+          accountId: creditAccount.id,
+          amount: new Decimal('-4500.00'),
+          type: TransactionType.EXPENSE,
+          category: 'Shopping',
+          subCategory: 'Clothing',
+          source: TransactionSource.BANK,
+          description: 'Winter clothing',
+          transactionDate: new Date('2024-12-18'),
+        },
+        {
+          userId: employee.id,
+          companyId: company.id,
+          accountId: creditAccount.id,
+          amount: new Decimal('8500.00'),
+          type: TransactionType.INCOME,
+          category: 'Salary',
+          subCategory: 'Reimbursement',
+          source: TransactionSource.BANK,
+          description: 'Laptop reimbursement',
+          transactionDate: new Date('2024-12-25'),
+        },
+      ];
+
+      for (const transaction of transactions) {
+        await tx.transaction.upsert({
+          where: {
+            id: `${transaction.userId}-${transaction.accountId}-${transaction.transactionDate.toISOString()}-${transaction.amount}`,
+          },
+          update: transaction,
+          create: {
+            ...transaction,
+            id: `${transaction.userId}-${transaction.accountId}-${transaction.transactionDate.toISOString()}-${transaction.amount}`,
+          },
+        });
+      }
+
+      console.log(`✅ Created ${transactions.length} transactions across 2 accounts\n`);
+
+      // ========================================
+      // 6️⃣ COACH AVAILABILITY & BOOKING
+      // ========================================
+      console.log('📅 Creating coach availability slots...');
+
+      const slots: any[] = [];
+      const today = new Date();
+
+      // Create slots for next 5 days (9 AM to 5 PM, 1-hour slots)
+      for (let day = 1; day <= 5; day++) {
+        const slotDate = getFutureDate(day);
+        for (let hour = 9; hour < 17; hour++) {
+          const startTime = getDateWithTime(slotDate, hour);
+          const endTime = getDateWithTime(slotDate, hour + 1);
+
+          const slot = await tx.coachSlot.create({
+            data: {
+              coachId: coach.id,
+              date: slotDate,
+              startTime: startTime,
+              endTime: endTime,
+              status: SlotStatus.AVAILABLE,
+            },
+          });
+          slots.push(slot);
+        }
+      }
+
+      console.log(`✅ Created ${slots.length} availability slots for coach\n`);
+
+      // Create one consultation booking
+      console.log('📋 Creating consultation booking...');
+
+      const bookingSlot = slots.find(slot => slot.status === SlotStatus.AVAILABLE);
+      if (bookingSlot) {
+        // Update slot status to BOOKED
+        await tx.coachSlot.update({
+          where: { id: bookingSlot.id },
+          data: { status: SlotStatus.BOOKED },
+        });
+
+        // Create booking
+        await tx.consultationBooking.upsert({
+          where: { slotId: bookingSlot.id },
+          update: {
+            coachId: coach.id,
+            employeeId: employee.id,
+            meetingLink: 'https://meet.google.com/abc-defg-hij',
+            notes: 'Initial financial consultation session',
+            status: BookingStatus.CONFIRMED,
+          },
+          create: {
+            slotId: bookingSlot.id,
+            coachId: coach.id,
+            employeeId: employee.id,
+            meetingLink: 'https://meet.google.com/abc-defg-hij',
+            notes: 'Initial financial consultation session',
+            status: BookingStatus.CONFIRMED,
+          },
+        });
+
+        console.log(`✅ Created consultation booking:`);
+        console.log(`   - Coach: ${coach.email}`);
+        console.log(`   - Employee: ${employee.email}`);
+        console.log(`   - Date: ${bookingSlot.startTime.toLocaleDateString()}`);
+        console.log(`   - Time: ${bookingSlot.startTime.toLocaleTimeString()} - ${bookingSlot.endTime.toLocaleTimeString()}`);
+        console.log(`   - Meeting: https://meet.google.com/abc-defg-hij\n`);
+      }
+
+      console.log('🎉 Database seeding completed successfully!');
+      console.log('\n📊 Summary:');
+      console.log(`   • Company: ${company.name}`);
+      console.log(`   • Users: 4 (Admin, HR, Coach, Employee)`);
+      console.log(`   • Accounts: 2 (Savings + Credit)`);
+      console.log(`   • Transactions: ${transactions.length}`);
+      console.log(`   • Coach Slots: ${slots.length}`);
+      console.log(`   • Bookings: 1`);
+      console.log('\n🔐 Login Credentials:');
+      console.log(`   Admin: admin@koshpal.com / password123`);
+      console.log(`   HR: hr@abc.com / password123`);
+      console.log(`   Coach: coach@koshpal.com / password123`);
+      console.log(`   Employee: employee@abc.com / password123`);
     });
-    transactions.push(transaction);
+
+  } catch (error) {
+    console.error('❌ Error during seeding:', error);
+    throw error;
   }
-  
-  // Expense transactions
-  const expenseTransactions = [
-    { date: -2, amount: 1200, description: 'Zomato Food Order', category: 'Food & Dining', subCategory: 'Food Delivery', account: accounts[1] },
-    { date: -3, amount: 500, description: 'Metro Card Recharge', category: 'Transportation', subCategory: 'Metro', account: accounts[1] },
-    { date: -5, amount: 3500, description: 'Big Bazaar Groceries', category: 'Shopping', subCategory: 'Groceries', account: accounts[0] },
-    { date: -7, amount: 850, description: 'Electricity Bill', category: 'Bills & Utilities', subCategory: 'Electricity', account: accounts[0] },
-    { date: -8, amount: 1500, description: 'Netflix & Spotify', category: 'Entertainment', subCategory: 'Subscriptions', account: accounts[2] },
-    { date: -10, amount: 2400, description: 'Nike Shoes', category: 'Shopping', subCategory: 'Clothing', account: accounts[2] },
-    { date: -12, amount: 600, description: 'Starbucks Coffee', category: 'Food & Dining', subCategory: 'Cafe', account: accounts[3] },
-    { date: -14, amount: 800, description: 'Medical Consultation', category: 'Healthcare', subCategory: 'Medical', account: accounts[0] },
-    { date: -18, amount: 4500, description: 'Gym Membership - Annual', category: 'Personal Care', subCategory: 'Gym', account: accounts[2] },
-    { date: -20, amount: 2200, description: 'Amazon Shopping', category: 'Shopping', subCategory: 'Electronics', account: accounts[2] },
-    { date: -22, amount: 1800, description: 'Restaurant Dinner', category: 'Food & Dining', subCategory: 'Restaurants', account: accounts[0] },
-    { date: -25, amount: 750, description: 'Uber Rides', category: 'Transportation', subCategory: 'Uber', account: accounts[1] },
-    { date: -28, amount: 1100, description: 'Internet Bill', category: 'Bills & Utilities', subCategory: 'Internet', account: accounts[0] },
-  ];
-  
-  for (const txn of expenseTransactions) {
-    const txnDate = new Date(now);
-    txnDate.setDate(now.getDate() + txn.date);
-    
-    const transaction = await prisma.transaction.create({
-      data: {
-        userId: employee.id,
-        companyId: company.id,
-        accountId: txn.account.id,
-        amount: new Decimal(txn.amount),
-        type: TransactionType.EXPENSE,
-        category: txn.category,
-        subCategory: txn.subCategory,
-        description: txn.description,
-        transactionDate: txnDate,
-        source: TransactionSource.MANUAL,
-        bank: txn.account.bank,
-        maskedAccountNo: txn.account.maskedAccountNo,
-      },
-    });
-    transactions.push(transaction);
-  }
-
-  console.log(`✅ Created ${transactions.length} transactions\n`);
-
-  // ========================================
-  // 8️⃣ FINANCIAL GOALS
-  // ========================================
-  console.log('🎯 Creating financial goals...');
-  
-  const targetDate1 = new Date();
-  targetDate1.setFullYear(targetDate1.getFullYear() + 1);
-  
-  const targetDate2 = new Date();
-  targetDate2.setFullYear(targetDate2.getFullYear() + 3);
-  
-  const targetDate3 = new Date();
-  targetDate3.setFullYear(targetDate3.getFullYear() + 5);
-  
-  const goals = await Promise.all([
-    prisma.financialGoal.create({
-      data: {
-        userId: employee.id,
-        goalName: 'Emergency Fund',
-        icon: '🏦',
-        goalAmount: new Decimal('360000'),
-        saving: new Decimal('85000'),
-        goalDate: targetDate1,
-      },
-    }),
-    prisma.financialGoal.create({
-      data: {
-        userId: employee.id,
-        goalName: 'New Car Purchase',
-        icon: '🚗',
-        goalAmount: new Decimal('800000'),
-        saving: new Decimal('150000'),
-        goalDate: targetDate2,
-      },
-    }),
-    prisma.financialGoal.create({
-      data: {
-        userId: employee.id,
-        goalName: 'Home Down Payment',
-        icon: '🏠',
-        goalAmount: new Decimal('2000000'),
-        saving: new Decimal('200000'),
-        goalDate: targetDate3,
-      },
-    }),
-  ]);
-
-  console.log(`✅ Created ${goals.length} financial goals\n`);
-
-  // ========================================
-  // 9️⃣ MONTHLY SUMMARIES
-  // ========================================
-  console.log('📊 Creating monthly summaries...');
-  
-  const dec2025Start = new Date(2025, 11, 1); // December 1, 2025
-  const dec2025End = new Date(2025, 11, 31, 23, 59, 59); // December 31, 2025
-  const nov2025Start = new Date(2025, 10, 1); // November 1, 2025
-  const nov2025End = new Date(2025, 10, 30, 23, 59, 59); // November 30, 2025
-  
-  const monthlySummaries = await Promise.all([
-    prisma.monthlySummary.create({
-      data: {
-        userId: employee.id,
-        companyId: company.id,
-        month: 12,
-        year: 2025,
-        periodStart: dec2025Start,
-        periodEnd: dec2025End,
-        totalIncome: new Decimal('125000'),
-        totalExpense: new Decimal('22700'),
-        savings: new Decimal('102300'),
-        budget: new Decimal('50000'),
-        categoryBreakdown: {
-          'Food & Dining': 3600,
-          'Transportation': 1250,
-          'Shopping': 5900,
-          'Bills & Utilities': 1950,
-          'Entertainment': 1500,
-          'Healthcare': 800,
-          'Personal Care': 4500,
-        },
-      },
-    }),
-    prisma.monthlySummary.create({
-      data: {
-        userId: employee.id,
-        companyId: company.id,
-        month: 11,
-        year: 2025,
-        periodStart: nov2025Start,
-        periodEnd: nov2025End,
-        totalIncome: new Decimal('120000'),
-        totalExpense: new Decimal('45000'),
-        savings: new Decimal('75000'),
-        budget: new Decimal('50000'),
-        categoryBreakdown: {
-          'Food & Dining': 12000,
-          'Transportation': 5000,
-          'Shopping': 15000,
-          'Bills & Utilities': 8000,
-          'Entertainment': 3000,
-          'Healthcare': 2000,
-        },
-      },
-    }),
-  ]);
-
-  console.log(`✅ Created ${monthlySummaries.length} monthly summaries\n`);
-
-  // ========================================
-  // SUMMARY
-  // ========================================
-  console.log('\n✅ ===============================');
-  console.log('🎉 Database seeded successfully!');
-  console.log('===============================\n');
-  
-  console.log('📝 Login Credentials:');
-  console.log('👤 Admin:');
-  console.log('   Email: admin@koshpal.com');
-  console.log('   Password: password123');
-  console.log('');
-  console.log('🎓 Coach:');
-  console.log('   Email: koshpal@koshpal.com');
-  console.log('   Password: password123');
-  console.log('');
-  console.log('👥 Employee:');
-  console.log('   Email: guptasankalp2004@gmail.com');
-  console.log('   Password: password123');
-  console.log('');
-  console.log('📊 Seeded Data:');
-  console.log(`   • 1 Company`);
-  console.log(`   • 3 Users (1 Admin, 1 Coach, 1 Employee)`);
-  console.log(`   • ${slots.length} Coach Slots`);
-  console.log(`   • ${accounts.length} Accounts`);
-  console.log(`   • ${transactions.length} Transactions`);
-  console.log(`   • ${goals.length} Financial Goals`);
-  console.log(`   • ${monthlySummaries.length} Monthly Summaries`);
-  console.log('\n===============================\n');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error seeding database:', e);
+    console.error('❌ Seeding failed:', e);
     process.exit(1);
   })
   .finally(async () => {
