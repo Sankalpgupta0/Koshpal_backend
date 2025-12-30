@@ -143,6 +143,11 @@ export class CoachService {
             phone: true,
           },
         },
+        company: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
@@ -154,9 +159,12 @@ export class CoachService {
           email: emp.email,
           fullName: emp.employeeProfile?.fullName || emp.email,
           phone: emp.employeeProfile?.phone,
+          company: emp.company?.name || 'N/A',
         },
       ]),
     );
+
+    console.log('Employee data with company info:', employeeMap);
 
     return consultations.map((slot) => ({
       id: slot.id,
@@ -230,17 +238,8 @@ export class CoachService {
   }
 
   async saveWeeklyAvailability(coachId: string, dto: SaveCoachSlotsDto) {
-    // Get coach's timezone from profile
-    const coachProfile = await this.prisma.coachProfile.findUnique({
-      where: { userId: coachId },
-      select: { timezone: true },
-    });
-
-    if (!coachProfile) {
-      throw new NotFoundException('Coach profile not found');
-    }
-
-    const coachTimezone = coachProfile.timezone;
+    // Note: All times are now standardized to IST (Indian Standard Time)
+    // Coach timezone is no longer used for conversion
 
     // Step 1: Delete future AVAILABLE slots (keep BOOKED ones)
     await this.prisma.coachSlot.deleteMany({
@@ -272,16 +271,16 @@ export class CoachService {
           // Skip if date is in the past
           if (targetDate < now) continue;
 
-          // Build timestamps with timezone
+          // Build timestamps in IST
           const startTime = this.buildDateTime(
             targetDate,
             timeRange.start,
-            coachTimezone,
+            'Asia/Kolkata', // Always use IST
           );
           const endTime = this.buildDateTime(
             targetDate,
             timeRange.end,
-            coachTimezone,
+            'Asia/Kolkata', // Always use IST
           );
 
           // Validate duration
@@ -379,8 +378,14 @@ export class CoachService {
 
     slots.forEach((slot) => {
       const weekday = this.getWeekdayName(slot.date.getDay());
-      const startTime = slot.startTime.toISOString().substring(11, 16); // HH:MM
-      const endTime = slot.endTime.toISOString().substring(11, 16); // HH:MM
+
+      // Convert stored IST times to HH:MM format for display
+      // Since times are stored in IST, we need to format them as IST
+      const startTimeIST = new Date(slot.startTime.getTime() - (5.5 * 60 * 60 * 1000)); // Convert IST back to UTC for toISOString
+      const endTimeIST = new Date(slot.endTime.getTime() - (5.5 * 60 * 60 * 1000)); // Convert IST back to UTC for toISOString
+
+      const startTime = startTimeIST.toISOString().substring(11, 16); // HH:MM in IST
+      const endTime = endTimeIST.toISOString().substring(11, 16); // HH:MM in IST
 
       weeklySchedule[weekday].push({
         id: slot.id,
@@ -467,14 +472,15 @@ export class CoachService {
     const dateStr = date.toISOString().split('T')[0];
     const dateTimeStr = `${dateStr}T${time}:00`;
 
-    // Parse with timezone consideration
-    const dateTime = new Date(dateTimeStr);
+    // Always convert to IST (Indian Standard Time) regardless of coach timezone
+    const istTimezone = 'Asia/Kolkata';
+    const dateTime = new Date(dateTimeStr + '+00:00'); // Assume input is UTC
 
-    // For now, we'll assume the time is in the coach's timezone
-    // In production, you might want to use a library like moment-timezone
-    // to properly handle timezone conversions
+    // Convert to IST
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    const istDateTime = new Date(dateTime.getTime() + istOffset);
 
-    return dateTime;
+    return istDateTime;
   }
 
   private getWeekdayName(dayIndex: number): string {
