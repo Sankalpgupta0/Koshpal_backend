@@ -14,19 +14,42 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log'],
   });
 
-  // Security middleware
+  /**
+   * =====================================================
+   * 1️⃣ HANDLE CORS PREFLIGHT FIRST (CRITICAL)
+   * =====================================================
+   */
+  app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
+    }
+    next();
+  });
+
+  /**
+   * =====================================================
+   * 2️⃣ SECURITY & COMMON MIDDLEWARE
+   * =====================================================
+   */
   app.use(helmet());
   app.use(compression());
-  app.use(cookieParser()); // Enable cookie parsing for httpOnly cookies
+  app.use(cookieParser());
 
-  // CSRF Protection
-  const csrfMiddleware = new CsrfMiddleware();
-  app.use((req, res, next) => csrfMiddleware.use(req, res, next));
-
-  // CORS configuration
+  /**
+   * =====================================================
+   * 3️⃣ CORS CONFIGURATION (SUBDOMAIN SAFE)
+   * =====================================================
+   */
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') || [
-      'https://koshpal.com','https://employee.koshpal.com','https://hr.koshpal.com','https://coach.koshpal.com','https://api.koshpal.com','http://localhost:5173','http://localhost:5174','http://localhost:5175','http://localhost:3000', 
+    origin: [
+      'https://koshpal.com',
+      'https://employee.koshpal.com',
+      'https://hr.koshpal.com',
+      'https://coach.koshpal.com',
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -34,7 +57,30 @@ async function bootstrap() {
     exposedHeaders: ['Authorization'],
   });
 
-  // Global validation pipe
+  /**
+   * =====================================================
+   * 4️⃣ CSRF (DISABLED FOR API ROUTES)
+   * =====================================================
+   */
+  const csrfMiddleware = new CsrfMiddleware();
+  app.use((req, res, next) => {
+    // Skip CSRF for APIs & preflight
+    if (
+      req.method === 'OPTIONS' ||
+      req.method === 'GET' ||
+      req.originalUrl.startsWith('/api')
+    ) {
+      return next();
+    }
+
+    csrfMiddleware.use(req, res, next);
+  });
+
+  /**
+   * =====================================================
+   * 5️⃣ GLOBAL VALIDATION
+   * =====================================================
+   */
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -44,20 +90,38 @@ async function bootstrap() {
     }),
   );
 
-  // Global exception filter
+  /**
+   * =====================================================
+   * 6️⃣ GLOBAL EXCEPTION FILTER
+   * =====================================================
+   */
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Global active user guard (blocks inactive users)
-  const reflector = app.get(Reflector);
+  /**
+   * =====================================================
+   * 7️⃣ GLOBAL GUARD (OPTIONS SAFE)
+   * =====================================================
+   */
   const prismaService = app.get(PrismaService);
-  app.useGlobalGuards(new ActiveUserGuard(prismaService));
+  const reflector = app.get(Reflector);
 
-  // Enable Prisma shutdown hooks
+  app.useGlobalGuards(
+    new ActiveUserGuard(prismaService),
+  );
+
+  /**
+   * =====================================================
+   * 8️⃣ PRISMA SHUTDOWN
+   * =====================================================
+   */
   await prismaService.enableShutdownHooks(app);
-
-  // Graceful shutdown
   app.enableShutdownHooks();
 
+  /**
+   * =====================================================
+   * 9️⃣ START SERVER
+   * =====================================================
+   */
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
 

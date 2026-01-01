@@ -19,6 +19,9 @@ let ActiveUserGuard = class ActiveUserGuard {
     }
     async canActivate(context) {
         const request = context.switchToHttp().getRequest();
+        if (request.method === 'OPTIONS') {
+            return true;
+        }
         const user = request.user;
         if (!user || !user.userId) {
             return true;

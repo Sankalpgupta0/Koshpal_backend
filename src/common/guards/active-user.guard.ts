@@ -9,22 +9,12 @@ import { PrismaService } from '../../../prisma/prisma.service';
 /**
  * Active User Guard
  *
- * CRITICAL: Security guard to block inactive users from accessing protected endpoints
+ * Blocks inactive users from accessing protected endpoints.
  *
- * This guard verifies that the authenticated user's account is active (isActive = true).
- * Inactive users are prevented from accessing any protected resources.
- *
- * Usage:
- * - Apply globally in main.ts OR
- * - Apply to specific controllers/routes with @UseGuards(ActiveUserGuard)
- * - Should be placed after JwtAuthGuard in the guard chain
- *
- * Why needed:
- * - Prevents deactivated employees from accessing system
- * - Immediate revocation of access without waiting for token expiry
- * - Compliance requirement for user lifecycle management
- *
- * Note: This guard checks real-time status from database, not JWT claims
+ * IMPORTANT:
+ * - MUST allow OPTIONS requests (CORS preflight)
+ * - MUST allow public routes (no user attached)
+ * - MUST run AFTER JwtAuthGuard
  */
 @Injectable()
 export class ActiveUserGuard implements CanActivate {
@@ -32,15 +22,27 @@ export class ActiveUserGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
+
+    /**
+     * ✅ 1️⃣ ALWAYS allow CORS preflight
+     */
+    if (request.method === 'OPTIONS') {
+      return true;
+    }
+
     const user = request.user;
 
-    // If no user in request (public route), allow through
-    // JwtAuthGuard should handle authentication first
+    /**
+     * ✅ 2️⃣ Allow public routes
+     * (JwtAuthGuard should handle auth where required)
+     */
     if (!user || !user.userId) {
       return true;
     }
 
-    // Check if user is active in database
+    /**
+     * ✅ 3️⃣ Validate user activity from DB
+     */
     const dbUser = await this.prisma.user.findUnique({
       where: { id: user.userId },
       select: { isActive: true },

@@ -17,19 +17,39 @@ async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule, {
         logger: ['error', 'warn', 'log'],
     });
+    app.use((req, res, next) => {
+        if (req.method === 'OPTIONS') {
+            return res.sendStatus(204);
+        }
+        next();
+    });
     app.use((0, helmet_1.default)());
     app.use((0, compression_1.default)());
     app.use((0, cookie_parser_1.default)());
-    const csrfMiddleware = new csrf_middleware_1.CsrfMiddleware();
-    app.use((req, res, next) => csrfMiddleware.use(req, res, next));
     app.enableCors({
-        origin: process.env.CORS_ORIGIN?.split(',') || [
-            'https://koshpal.com', 'https://employee.koshpal.com', 'https://hr.koshpal.com', 'https://coach.koshpal.com', 'https://api.koshpal.com', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:3000',
+        origin: [
+            'https://koshpal.com',
+            'https://employee.koshpal.com',
+            'https://hr.koshpal.com',
+            'https://coach.koshpal.com',
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'http://localhost:5174',
+            'http://localhost:5175',
         ],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-CSRF-Token'],
         exposedHeaders: ['Authorization'],
+    });
+    const csrfMiddleware = new csrf_middleware_1.CsrfMiddleware();
+    app.use((req, res, next) => {
+        if (req.method === 'OPTIONS' ||
+            req.method === 'GET' ||
+            req.originalUrl.startsWith('/api')) {
+            return next();
+        }
+        csrfMiddleware.use(req, res, next);
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
@@ -38,8 +58,8 @@ async function bootstrap() {
         disableErrorMessages: process.env.NODE_ENV === 'production',
     }));
     app.useGlobalFilters(new http_exception_filter_1.HttpExceptionFilter());
-    const reflector = app.get(core_1.Reflector);
     const prismaService = app.get(prisma_service_1.PrismaService);
+    const reflector = app.get(core_1.Reflector);
     app.useGlobalGuards(new active_user_guard_1.ActiveUserGuard(prismaService));
     await prismaService.enableShutdownHooks(app);
     app.enableShutdownHooks();
