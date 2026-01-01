@@ -25,6 +25,22 @@ async function bootstrap() {
     app.use((0, helmet_1.default)());
     app.use((0, compression_1.default)());
     app.use((0, cookie_parser_1.default)());
+    app.enableCors({
+        origin: [
+            'https://koshpal.com',
+            'https://employee.koshpal.com',
+            'https://hr.koshpal.com',
+            'https://coach.koshpal.com',
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'http://localhost:5174',
+            'http://localhost:5175',
+        ],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+        exposedHeaders: ['Authorization'],
+    });
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,

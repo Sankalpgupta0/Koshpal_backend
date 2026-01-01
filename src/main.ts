@@ -36,12 +36,9 @@ async function bootstrap() {
 
   /**
    * =====================================================
-   * 3️⃣ CORS CONFIGURATION (DISABLED - HANDLED BY NGINX)
+   * 3️⃣ CORS CONFIGURATION (HANDLED BY NESTJS)
    * =====================================================
    */
-  // CORS is handled by nginx reverse proxy
-  // Uncomment below if nginx CORS is disabled
-  /*
   app.enableCors({
     origin: [
       'https://koshpal.com',
@@ -58,7 +55,6 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     exposedHeaders: ['Authorization'],
   });
-  */
 
   /**
    * =====================================================
