@@ -4,7 +4,6 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ActiveUserGuard } from './common/guards/active-user.guard';
 import { PrismaService } from '../prisma/prisma.service';
-import { CsrfMiddleware } from './common/middleware/csrf.middleware';
 import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -53,32 +52,13 @@ async function bootstrap() {
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-CSRF-Token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     exposedHeaders: ['Authorization'],
   });
 
   /**
    * =====================================================
-   * 4️⃣ CSRF (DISABLED FOR API ROUTES)
-   * =====================================================
-   */
-  const csrfMiddleware = new CsrfMiddleware();
-  app.use((req, res, next) => {
-    // Skip CSRF for APIs & preflight
-    if (
-      req.method === 'OPTIONS' ||
-      req.method === 'GET' ||
-      req.originalUrl.startsWith('/api')
-    ) {
-      return next();
-    }
-
-    csrfMiddleware.use(req, res, next);
-  });
-
-  /**
-   * =====================================================
-   * 5️⃣ GLOBAL VALIDATION
+   * 4️⃣ GLOBAL VALIDATION
    * =====================================================
    */
   app.useGlobalPipes(
@@ -92,14 +72,14 @@ async function bootstrap() {
 
   /**
    * =====================================================
-   * 6️⃣ GLOBAL EXCEPTION FILTER
+   * 5️⃣ GLOBAL EXCEPTION FILTER
    * =====================================================
    */
   app.useGlobalFilters(new HttpExceptionFilter());
 
   /**
    * =====================================================
-   * 7️⃣ GLOBAL GUARD (OPTIONS SAFE)
+   * 6️⃣ GLOBAL GUARD (OPTIONS SAFE)
    * =====================================================
    */
   const prismaService = app.get(PrismaService);
@@ -111,7 +91,7 @@ async function bootstrap() {
 
   /**
    * =====================================================
-   * 8️⃣ PRISMA SHUTDOWN
+   * 7️⃣ PRISMA SHUTDOWN
    * =====================================================
    */
   await prismaService.enableShutdownHooks(app);
@@ -119,7 +99,7 @@ async function bootstrap() {
 
   /**
    * =====================================================
-   * 9️⃣ START SERVER
+   * 8️⃣ START SERVER
    * =====================================================
    */
   const port = process.env.PORT ?? 3000;

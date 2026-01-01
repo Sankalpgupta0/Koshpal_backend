@@ -9,7 +9,6 @@ const app_module_1 = require("./app.module");
 const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 const active_user_guard_1 = require("./common/guards/active-user.guard");
 const prisma_service_1 = require("../prisma/prisma.service");
-const csrf_middleware_1 = require("./common/middleware/csrf.middleware");
 const helmet_1 = __importDefault(require("helmet"));
 const compression_1 = __importDefault(require("compression"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
@@ -39,17 +38,8 @@ async function bootstrap() {
         ],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-CSRF-Token'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
         exposedHeaders: ['Authorization'],
-    });
-    const csrfMiddleware = new csrf_middleware_1.CsrfMiddleware();
-    app.use((req, res, next) => {
-        if (req.method === 'OPTIONS' ||
-            req.method === 'GET' ||
-            req.originalUrl.startsWith('/api')) {
-            return next();
-        }
-        csrfMiddleware.use(req, res, next);
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
