@@ -1,0 +1,44 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FinanceModule = void 0;
+const common_1 = require("@nestjs/common");
+const bullmq_1 = require("@nestjs/bullmq");
+const accounts_controller_1 = require("./accounts/accounts.controller");
+const accounts_service_1 = require("./accounts/accounts.service");
+const transactions_controller_1 = require("./transactions/transactions.controller");
+const transactions_service_1 = require("./transactions/transactions.service");
+const insights_controller_1 = require("./insights/insights.controller");
+const insights_service_1 = require("./insights/insights.service");
+const scoped_prisma_service_1 = require("../common/services/scoped-prisma.service");
+let FinanceModule = class FinanceModule {
+};
+exports.FinanceModule = FinanceModule;
+exports.FinanceModule = FinanceModule = __decorate([
+    (0, common_1.Module)({
+        imports: [
+            bullmq_1.BullModule.registerQueue({
+                name: 'insight-queue',
+            }),
+        ],
+        controllers: [accounts_controller_1.AccountsController, transactions_controller_1.TransactionsController, insights_controller_1.InsightsController],
+        providers: [
+            accounts_service_1.AccountsService,
+            transactions_service_1.TransactionsService,
+            insights_service_1.InsightsService,
+            scoped_prisma_service_1.ScopedPrismaService,
+        ],
+        exports: [
+            accounts_service_1.AccountsService,
+            transactions_service_1.TransactionsService,
+            insights_service_1.InsightsService,
+            scoped_prisma_service_1.ScopedPrismaService,
+        ],
+    })
+], FinanceModule);
+//# sourceMappingURL=finance.module.js.map
