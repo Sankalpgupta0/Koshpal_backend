@@ -55,8 +55,10 @@ export class AuthController {
         return url.hostname;
       }
 
-      // For production, you might want to set domain to your main domain
-      // return '.yourdomain.com';
+      // For production koshpal.com domains, allow cross-subdomain cookie access
+      if (url.hostname.endsWith('.koshpal.com')) {
+        return '.koshpal.com';
+      }
 
       return undefined; // Default behavior for other cases
     } catch {

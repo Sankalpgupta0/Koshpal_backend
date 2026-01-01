@@ -35,6 +35,9 @@ let AuthController = class AuthController {
             if (url.hostname.endsWith('.localhost')) {
                 return url.hostname;
             }
+            if (url.hostname.endsWith('.koshpal.com')) {
+                return '.koshpal.com';
+            }
             return undefined;
         }
         catch {
