@@ -26,6 +26,11 @@ async function bootstrap() {
   // CORS configuration
   app.enableCors({
     origin: process.env.CORS_ORIGIN?.split(',') || [
+      'https://koshpal.com',
+      'https://employee.koshpal.com',
+      'https://hr.koshpal.com',
+      'https://coach.koshpal.com',
+      'https://api.koshpal.com',
       'http://localhost:5173', // Employee portal (default Vite port)
       'http://localhost:5174', // HR portal
       'http://localhost:5175', // Coach portal
