@@ -75,7 +75,7 @@ let CsrfMiddleware = class CsrfMiddleware {
             res.cookie(this.CSRF_COOKIE_NAME, token, {
                 httpOnly: false,
                 secure: isProduction,
-                sameSite: 'lax',
+                sameSite: 'none',
                 maxAge: 24 * 60 * 60 * 1000,
                 path: '/',
             });
