@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'koshpal-server',
-      script: 'dist/main.js',
+      script: 'dist/src/main.js',
       instances: 1,
       exec_mode: 'cluster',
       watch: false,
