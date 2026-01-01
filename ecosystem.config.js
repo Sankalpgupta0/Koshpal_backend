@@ -19,7 +19,7 @@ module.exports = {
     },
     {
       name: 'employee-upload-worker',
-      script: 'dist/workers/employee-upload.worker.js',
+      script: 'dist/src/workers/employee-upload.worker.js',
       instances: 1,
       exec_mode: 'fork',
       watch: false,
@@ -36,7 +36,7 @@ module.exports = {
     },
     {
       name: 'monthly-insights-worker',
-      script: 'dist/workers/monthly-insights.worker.js',
+      script: 'dist/src/workers/monthly-insights.worker.js',
       instances: 1,
       exec_mode: 'fork',
       watch: false,
@@ -53,7 +53,7 @@ module.exports = {
     },
     {
       name: 'consultation-mail-worker',
-      script: 'dist/workers/consultation-mail.worker.js',
+      script: 'dist/src/workers/consultation-mail.worker.js',
       instances: 1,
       exec_mode: 'fork',
       watch: false,
