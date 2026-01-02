@@ -15,19 +15,7 @@ async function bootstrap() {
 
   /**
    * =====================================================
-   * 1️⃣ HANDLE CORS PREFLIGHT FIRST (CRITICAL)
-   * =====================================================
-   */
-  app.use((req, res, next) => {
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(204);
-    }
-    next();
-  });
-
-  /**
-   * =====================================================
-   * 2️⃣ SECURITY & COMMON MIDDLEWARE
+   * 1️⃣ SECURITY & COMMON MIDDLEWARE
    * =====================================================
    */
   app.use(helmet());
@@ -36,7 +24,7 @@ async function bootstrap() {
 
   /**
    * =====================================================
-   * 3️⃣ CORS CONFIGURATION (HANDLED BY NESTJS)
+   * 2️⃣ CORS CONFIGURATION (HANDLED BY NESTJS)
    * =====================================================
    */
   app.enableCors({
