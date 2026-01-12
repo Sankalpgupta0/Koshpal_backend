@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { SlotStatus } from '@prisma/client';
+import { getSlotDateInIST } from '../../common/utils/timezone.util';
 
 /**
  * Employee Coach Service
  *
  * Business logic for aggregated coach availability queries.
  * Optimized to prevent N+1 queries and provide bulk data efficiently.
+ *
+ * CRITICAL: All slots now include a slotDate field (YYYY-MM-DD in Asia/Kolkata timezone)
+ * This field must be used by the frontend for date filtering and calendar matching.
  */
 @Injectable()
 export class EmployeeCoachService {
@@ -18,38 +22,43 @@ export class EmployeeCoachService {
    * Retrieves all available slots for all active coaches on a given date.
    * Uses a single optimized Prisma query with proper relations to avoid N+1 issues.
    *
+   * CRITICAL CHANGE: Each slot now includes a slotDate field (YYYY-MM-DD in IST).
+   * Frontend must use slotDate for filtering, not raw timestamps.
+   *
    * Algorithm:
    * 1. Parse date string to start/end of day timestamps
    * 2. Query all AVAILABLE slots with coach profile included
    * 3. Filter for active coaches only
    * 4. Group slots by coach
    * 5. Sort slots by start time within each coach group
+   * 6. Add slotDate field (IST) to each slot
    *
    * @param dateStr - Date string in YYYY-MM-DD format
-   * @returns Array of coaches with their available slots, grouped and sorted
+   * @returns Array of coaches with their available slots, grouped and sorted (includes slotDate)
    *
    * @performance Single database query with JOIN - O(n) complexity
    */
   async getSlotsGroupedByCoach(dateStr: string) {
-    // Convert date string to Date object at start of day (00:00:00)
-    const date = new Date(dateStr);
-    date.setHours(0, 0, 0, 0);
-
-    // Calculate end of day for range query
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    // CRITICAL FIX: Query by startTime UTC range that covers the entire IST day
+    // For IST date 2026-01-13, we need UTC times from:
+    // Jan 12 18:30 UTC (Jan 13 00:00 IST) to Jan 13 18:29 UTC (Jan 13 23:59 IST)
+    const [year, month, day] = dateStr.split('-').map(Number);
+    
+    // Calculate UTC range for the IST date
+    // IST midnight = UTC 18:30 previous day
+    const istMidnightInUTC = new Date(Date.UTC(year, month - 1, day - 1, 18, 30, 0, 0));
+    // IST 23:59:59 = UTC 18:29:59 same day
+    const istEndOfDayInUTC = new Date(Date.UTC(year, month - 1, day, 18, 29, 59, 999));
 
     // Single optimized query: fetch all available slots with coach data
-    // This prevents N+1 queries by using Prisma's include feature
+    // Query by startTime (reliable) not date field
     const slots = await this.prisma.coachSlot.findMany({
       where: {
-        date: date, // Matches start of day
-        status: SlotStatus.AVAILABLE, // Only unbooked slots
-        coach: {
-          user: {
-            isActive: true, // Only active coaches
-          },
+        startTime: {
+          gte: istMidnightInUTC,
+          lte: istEndOfDayInUTC,
         },
+        status: SlotStatus.AVAILABLE, // Only unbooked slots
       },
       include: {
         coach: {
@@ -76,11 +85,17 @@ export class EmployeeCoachService {
           slotId: string;
           startTime: string;
           endTime: string;
+          slotDate: string; // NEW: YYYY-MM-DD in IST
+          status: string;
         }>;
       }
     >();
 
+    // Group slots by coach (all should match the IST date already due to query range)
     for (const slot of slots) {
+      // Compute IST date for verification
+      const slotDateIST = getSlotDateInIST(slot.startTime);
+
       const coachId = slot.coach.userId;
 
       if (!coachMap.has(coachId)) {
@@ -93,11 +108,13 @@ export class EmployeeCoachService {
         });
       }
 
-      // Add slot to coach's slots array
+      // Add slot to coach's slots array with slotDate
       coachMap.get(coachId)!.slots.push({
         slotId: slot.id,
         startTime: slot.startTime.toISOString(),
         endTime: slot.endTime.toISOString(),
+        slotDate: slotDateIST,
+        status: slot.status,
       });
     }
 
@@ -131,24 +148,23 @@ export class EmployeeCoachService {
     endDateStr: string,
     coachId?: string,
   ) {
-    const startDate = new Date(startDateStr);
-    startDate.setHours(0, 0, 0, 0);
-
-    const endDate = new Date(endDateStr);
-    endDate.setHours(23, 59, 59, 999);
+    // CRITICAL FIX: Convert IST date range to UTC startTime range
+    // For IST dates, calculate the UTC timestamp boundaries
+    const [startYear, startMonth, startDay] = startDateStr.split('-').map(Number);
+    const [endYear, endMonth, endDay] = endDateStr.split('-').map(Number);
+    
+    // Start IST midnight = UTC 18:30 previous day
+    const startUTC = new Date(Date.UTC(startYear, startMonth - 1, startDay - 1, 18, 30, 0, 0));
+    // End IST 23:59:59 = UTC 18:29:59 same day
+    const endUTC = new Date(Date.UTC(endYear, endMonth - 1, endDay, 18, 29, 59, 999));
 
     // Build where clause
     const where: any = {
-      date: {
-        gte: startDate,
-        lte: endDate,
+      startTime: {
+        gte: startUTC,
+        lte: endUTC,
       },
       status: SlotStatus.AVAILABLE,
-      coach: {
-        user: {
-          isActive: true,
-        },
-      },
     };
 
     // Add coach filter if provided
@@ -160,15 +176,16 @@ export class EmployeeCoachService {
     const slots = await this.prisma.coachSlot.findMany({
       where,
       select: {
-        date: true,
+        startTime: true,
       },
     });
 
-    // Group by date and count
+    // Group by IST date and count
     const dateMap = new Map<string, { hasSlots: boolean; slotCount: number }>();
 
     for (const slot of slots) {
-      const dateStr = slot.date.toISOString().split('T')[0];
+      // Compute IST date for this slot
+      const dateStr = getSlotDateInIST(slot.startTime);
 
       if (!dateMap.has(dateStr)) {
         dateMap.set(dateStr, { hasSlots: true, slotCount: 0 });

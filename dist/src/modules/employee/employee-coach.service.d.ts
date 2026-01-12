@@ -10,6 +10,8 @@ export declare class EmployeeCoachService {
             slotId: string;
             startTime: string;
             endTime: string;
+            slotDate: string;
+            status: string;
         }>;
     }[]>;
     getSlotAvailabilityForDateRange(startDateStr: string, endDateStr: string, coachId?: string): Promise<{

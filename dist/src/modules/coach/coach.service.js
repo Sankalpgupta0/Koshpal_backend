@@ -222,6 +222,8 @@ let CoachService = class CoachService {
                         continue;
                     const startTime = this.buildDateTime(targetDate, timeRange.start, 'Asia/Kolkata');
                     const endTime = this.buildDateTime(targetDate, timeRange.end, 'Asia/Kolkata');
+                    const slotDate = new Date(targetDate);
+                    slotDate.setHours(0, 0, 0, 0);
                     const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
                     if (duration !== dto.slotDurationMinutes) {
                         throw new common_1.BadRequestException(`Slot duration must be exactly ${dto.slotDurationMinutes} minutes`);
@@ -229,7 +231,7 @@ let CoachService = class CoachService {
                     const existingSlot = await this.prisma.coachSlot.findFirst({
                         where: {
                             coachId,
-                            date: targetDate,
+                            date: slotDate,
                             OR: [
                                 {
                                     AND: [
@@ -257,7 +259,7 @@ let CoachService = class CoachService {
                     }
                     slots.push({
                         coachId,
-                        date: targetDate,
+                        date: slotDate,
                         startTime,
                         endTime,
                         status: 'AVAILABLE',
@@ -299,10 +301,16 @@ let CoachService = class CoachService {
         };
         slots.forEach((slot) => {
             const weekday = this.getWeekdayName(slot.date.getDay());
-            const startTimeIST = new Date(slot.startTime.getTime() - (5.5 * 60 * 60 * 1000));
-            const endTimeIST = new Date(slot.endTime.getTime() - (5.5 * 60 * 60 * 1000));
-            const startTime = startTimeIST.toISOString().substring(11, 16);
-            const endTime = endTimeIST.toISOString().substring(11, 16);
+            const startTime = slot.startTime.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            const endTime = slot.endTime.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
             weeklySchedule[weekday].push({
                 id: slot.id,
                 start: startTime,
@@ -364,13 +372,12 @@ let CoachService = class CoachService {
         return targetDate;
     }
     buildDateTime(date, time, _timezone) {
-        const dateStr = date.toISOString().split('T')[0];
-        const dateTimeStr = `${dateStr}T${time}:00`;
-        const istTimezone = 'Asia/Kolkata';
-        const dateTime = new Date(dateTimeStr + '+00:00');
-        const istOffset = 5.5 * 60 * 60 * 1000;
-        const istDateTime = new Date(dateTime.getTime() + istOffset);
-        return istDateTime;
+        const [hours, minutes] = time.split(':').map(Number);
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        const dateTime = new Date(year, month, day, hours, minutes, 0, 0);
+        return dateTime;
     }
     getWeekdayName(dayIndex) {
         const weekdays = [

@@ -137,12 +137,10 @@ async function sendConsultationBookingEmails(data) {
     const formattedStartTime = startDateTime.toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: 'Asia/Kolkata',
     });
     const formattedEndTime = endDateTime.toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: 'Asia/Kolkata',
     });
     await sendEmail({
         to: employeeEmail,
@@ -293,7 +291,6 @@ async function sendConsultationCancellationEmails(data) {
     const formattedStartTime = startDateTime.toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: 'Asia/Kolkata',
     });
     const reasonText = reason ? `<p><strong>Reason:</strong> ${reason}</p>` : '';
     await sendEmail({

@@ -43,11 +43,13 @@ export declare class ConsultationController {
         meetingLink: string;
         status: import("@prisma/client").$Enums.BookingStatus;
         bookedAt: Date;
+        notes: string | null;
         slot: {
             id: string;
             date: Date;
             startTime: Date;
             endTime: Date;
+            slotDate: string;
             status: import("@prisma/client").$Enums.SlotStatus;
         };
         coach: {
@@ -128,6 +130,7 @@ export declare class ConsultationController {
             date: Date;
             startTime: Date;
             endTime: Date;
+            slotDate: string;
             status: import("@prisma/client").$Enums.SlotStatus;
         };
         coach: {

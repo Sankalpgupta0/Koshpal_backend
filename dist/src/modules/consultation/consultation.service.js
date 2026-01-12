@@ -20,6 +20,7 @@ const bullmq_1 = require("@nestjs/bullmq");
 const bullmq_2 = require("bullmq");
 const meeting_service_1 = require("./meeting.service");
 const client_1 = require("@prisma/client");
+const timezone_util_1 = require("../../common/utils/timezone.util");
 let ConsultationService = ConsultationService_1 = class ConsultationService {
     prisma;
     meetingService;
@@ -146,9 +147,9 @@ let ConsultationService = ConsultationService_1 = class ConsultationService {
                 where: { id: dto.slotId },
                 data: { status: client_1.SlotStatus.BOOKED },
             });
-            const year = slot.date.getUTCFullYear();
-            const month = String(slot.date.getUTCMonth() + 1).padStart(2, '0');
-            const day = String(slot.date.getUTCDate() + 1).padStart(2, '0');
+            const year = slot.date.getFullYear();
+            const month = String(slot.date.getMonth() + 1).padStart(2, '0');
+            const day = String(slot.date.getDate()).padStart(2, '0');
             const dateString = `${year}-${month}-${day}`;
             await this.emailQueue.add('send-booking-confirmation', {
                 coachEmail: slot.coach.user.email,
@@ -256,11 +257,13 @@ let ConsultationService = ConsultationService_1 = class ConsultationService {
             meetingLink: booking.meetingLink,
             status: booking.status,
             bookedAt: booking.createdAt,
+            notes: booking.notes,
             slot: {
                 id: booking.slot.id,
                 date: booking.slot.date,
                 startTime: booking.slot.startTime,
                 endTime: booking.slot.endTime,
+                slotDate: (0, timezone_util_1.getSlotDateInIST)(booking.slot.startTime),
                 status: booking.slot.status,
             },
             coach: {
@@ -465,6 +468,7 @@ let ConsultationService = ConsultationService_1 = class ConsultationService {
                 date: booking.slot.date,
                 startTime: booking.slot.startTime,
                 endTime: booking.slot.endTime,
+                slotDate: (0, timezone_util_1.getSlotDateInIST)(booking.slot.startTime),
                 status: booking.slot.status,
             },
             coach: {
