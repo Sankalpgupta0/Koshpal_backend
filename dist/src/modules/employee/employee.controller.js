@@ -22,6 +22,8 @@ const current_user_decorator_1 = require("../../common/decorators/current-user.d
 const scoped_prisma_interceptor_1 = require("../../common/interceptors/scoped-prisma.interceptor");
 const accounts_service_1 = require("../../finance/accounts/accounts.service");
 const transactions_service_1 = require("../../finance/transactions/transactions.service");
+const platform_express_1 = require("@nestjs/platform-express");
+const profile_image_storage_1 = require("../../common/multer/profile-image.storage");
 const insights_service_1 = require("../../finance/insights/insights.service");
 const employee_service_1 = require("./employee.service");
 const create_account_dto_1 = require("../../finance/accounts/dto/create-account.dto");
@@ -92,6 +94,12 @@ let EmployeeController = class EmployeeController {
     }
     async getSpendingTrends(user, months) {
         return this.insightsService.getSpendingTrends(user.userId, months ? parseInt(months) : 6);
+    }
+    updateProfile(req, body, file) {
+        return this.employeeService.updateOwnProfile(req.user.userId, body, file?.path, file?.filename);
+    }
+    async getMyProfile(user) {
+        return this.employeeService.getMyProfile(user.userId);
     }
 };
 exports.EmployeeController = EmployeeController;
@@ -192,6 +200,25 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], EmployeeController.prototype, "getSpendingTrends", null);
+__decorate([
+    (0, common_1.Put)('profile'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('image', {
+        storage: profile_image_storage_1.profileImageStorage,
+    })),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object, Object]),
+    __metadata("design:returntype", void 0)
+], EmployeeController.prototype, "updateProfile", null);
+__decorate([
+    (0, common_1.Get)('profile'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], EmployeeController.prototype, "getMyProfile", null);
 exports.EmployeeController = EmployeeController = __decorate([
     (0, common_1.Controller)('api/v1/employee'),
     (0, roles_decorator_1.Roles)(role_enum_1.Role.EMPLOYEE),

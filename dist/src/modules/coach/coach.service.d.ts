@@ -66,6 +66,9 @@ export declare class CoachService {
     getCoachProfile(coachId: string): Promise<{
         userId: string;
         fullName: string;
+        phone: string | null;
+        profilePhoto: string | null;
+        profilePhotoId: string | null;
         expertise: string[];
         bio: string | null;
         rating: import("@prisma/client/runtime/library").Decimal;
@@ -73,12 +76,14 @@ export declare class CoachService {
         clientsHelped: number;
         location: string | null;
         languages: string[];
-        profilePhoto: string | null;
         timezone: string;
     }>;
     updateCoachTimezone(coachId: string, timezone: string): Promise<{
         userId: string;
         fullName: string;
+        phone: string | null;
+        profilePhoto: string | null;
+        profilePhotoId: string | null;
         expertise: string[];
         bio: string | null;
         rating: import("@prisma/client/runtime/library").Decimal;
@@ -86,7 +91,27 @@ export declare class CoachService {
         clientsHelped: number;
         location: string | null;
         languages: string[];
-        profilePhoto: string | null;
         timezone: string;
+    }>;
+    updateCoachProfile(userId: string, updateData: {
+        fullName?: string;
+        phone?: string;
+    }, image?: Express.Multer.File): Promise<{
+        message: string;
+        profile: {
+            userId: string;
+            fullName: string;
+            phone: string | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
+            expertise: string[];
+            bio: string | null;
+            rating: import("@prisma/client/runtime/library").Decimal;
+            successRate: number;
+            clientsHelped: number;
+            location: string | null;
+            languages: string[];
+            timezone: string;
+        };
     }>;
 }

@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CoachService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../../prisma/prisma.service");
+const cloudinary_helper_1 = require("../../common/config/cloudinary.helper");
 let CoachService = class CoachService {
     prisma;
     constructor(prisma) {
@@ -402,6 +403,32 @@ let CoachService = class CoachService {
             data: { timezone },
         });
         return updatedProfile;
+    }
+    async updateCoachProfile(userId, updateData, image) {
+        const profile = await this.prisma.coachProfile.findUnique({
+            where: { userId },
+        });
+        if (!profile) {
+            throw new common_1.BadRequestException('Coach profile not found');
+        }
+        if (image && profile.profilePhotoId) {
+            await (0, cloudinary_helper_1.deleteFromCloudinary)(profile.profilePhotoId);
+        }
+        const updatedProfile = await this.prisma.coachProfile.update({
+            where: { userId },
+            data: {
+                ...(updateData.fullName && { fullName: updateData.fullName }),
+                ...(updateData.phone !== undefined && { phone: updateData.phone }),
+                ...(image && {
+                    profilePhoto: image.path,
+                    profilePhotoId: image.filename,
+                }),
+            },
+        });
+        return {
+            message: 'Profile updated successfully',
+            profile: updatedProfile,
+        };
     }
 };
 exports.CoachService = CoachService;

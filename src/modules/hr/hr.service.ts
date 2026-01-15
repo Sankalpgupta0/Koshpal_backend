@@ -3,6 +3,8 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { UploadStatus } from '@prisma/client';
+import { deleteFromCloudinary } from '../../common/config/cloudinary.helper'
+
 
 interface CurrentUser {
   userId: string;
@@ -731,40 +733,49 @@ export class HrService {
       phone: user.hrProfile.phone,
       designation: user.hrProfile.designation,
       companyId: user.companyId,
+      profilePhoto: user.hrProfile.profilePhoto,
     };
   }
 
-  async updateHrProfile(
-    userId: string,
-    updateData: { fullName?: string; phone?: string; designation?: string },
-  ) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { hrProfile: true },
-    });
 
-    if (!user || !user.hrProfile) {
-      throw new BadRequestException('HR profile not found');
-    }
 
-    const updatedProfile = await this.prisma.hRProfile.update({
-      where: { userId: userId },
-      data: {
-        ...(updateData.fullName && { fullName: updateData.fullName }),
-        ...(updateData.phone !== undefined && { phone: updateData.phone }),
-        ...(updateData.designation && { designation: updateData.designation }),
-      },
-    });
+async updateHrProfile(
+  userId: string,
+  updateData: { fullName?: string; phone?: string; designation?: string },
+  image?: Express.Multer.File,
+) {
+  const profile = await this.prisma.hRProfile.findUnique({
+    where: { userId },
+  });
 
-    return {
-      message: 'Profile updated successfully',
-      profile: {
-        id: user.id,
-        email: user.email,
-        fullName: updatedProfile.fullName,
-        phone: updatedProfile.phone,
-        designation: updatedProfile.designation,
-      },
-    };
+  if (!profile) {
+    throw new BadRequestException('HR profile not found');
   }
+
+  // DELETE OLD IMAGE IF NEW IMAGE IS UPLOADED
+  if (image && profile.profilePhotoId) {
+    await deleteFromCloudinary(profile.profilePhotoId);
+  }
+
+  const updatedProfile = await this.prisma.hRProfile.update({
+    where: { userId },
+    data: {
+      ...(updateData.fullName && { fullName: updateData.fullName }),
+      ...(updateData.phone !== undefined && { phone: updateData.phone }),
+      ...(updateData.designation && { designation: updateData.designation }),
+
+      ...(image && {
+        profilePhoto: image.path,        // URL
+        profilePhotoId: image.filename,  // public_id 
+      }),
+    },
+  });
+
+  return {
+    message: 'Profile updated successfully',
+    profile: updatedProfile,
+  };
+}
+
+
 }

@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Put,
   Post,
   Patch,
   Delete,
@@ -9,6 +10,8 @@ import {
   Query,
   UseGuards,
   UseInterceptors,
+  UploadedFile,
+  Req,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -18,6 +21,9 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ScopedPrismaInterceptor } from '../../common/interceptors/scoped-prisma.interceptor';
 import { AccountsService } from '../../finance/accounts/accounts.service';
 import { TransactionsService } from '../../finance/transactions/transactions.service';
+
+import { FileInterceptor } from '@nestjs/platform-express';
+import { profileImageStorage } from '../../common/multer/profile-image.storage';
 
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 
@@ -31,6 +37,7 @@ interface CurrentUserDto {
   email: string;
   role: string;
 }
+
 
 @Controller('api/v1/employee')
 @Roles(Role.EMPLOYEE)
@@ -186,4 +193,30 @@ export class EmployeeController {
       months ? parseInt(months) : 6,
     );
   }
+
+@Put('profile')
+@UseInterceptors(
+  FileInterceptor('image', {
+    storage: profileImageStorage, // Cloudinary storage
+  }),
+)
+updateProfile(
+  @Req() req,
+  @Body() body: { name?: string; phone?: string },
+  @UploadedFile() file?: Express.Multer.File,
+) {
+  return this.employeeService.updateOwnProfile(
+    req.user.userId,     // from JWT
+    body,
+    file?.path,         // Cloudinary secure_url
+    file?.filename,     // Cloudinary public_id
+  );
+}
+
+
+@Get('profile')
+async getMyProfile(@CurrentUser() user: CurrentUserDto) {
+  return this.employeeService.getMyProfile(user.userId);
+}
+
 }

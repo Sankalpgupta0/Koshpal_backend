@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateCoachSlotDto, SaveCoachSlotsDto } from './dto/create-coach-slot.dto';
+import { deleteFromCloudinary } from '../../common/config/cloudinary.helper'
+
 
 @Injectable()
 export class CoachService {
@@ -520,5 +522,44 @@ export class CoachService {
     });
 
     return updatedProfile;
+  }
+
+
+
+  async updateCoachProfile(
+    userId: string,
+    updateData: { fullName?: string; phone?: string;},
+    image?: Express.Multer.File,
+  ) {
+    const profile = await this.prisma.coachProfile.findUnique({
+      where: { userId },
+    });
+  
+    if (!profile) {
+      throw new BadRequestException('Coach profile not found');
+    }
+  
+    // DELETE OLD IMAGE IF NEW IMAGE IS UPLOADED
+    if (image && profile.profilePhotoId) {
+      await deleteFromCloudinary(profile.profilePhotoId);
+    }
+  
+    const updatedProfile = await this.prisma.coachProfile.update({
+      where: { userId },
+      data: {
+        ...(updateData.fullName && { fullName: updateData.fullName }),
+        ...(updateData.phone !== undefined && { phone: updateData.phone }),
+  
+        ...(image && {
+          profilePhoto: image.path,        // URL
+          profilePhotoId: image.filename,  // public_id 
+        }),
+      },
+    });
+  
+    return {
+      message: 'Profile updated successfully',
+      profile: updatedProfile,
+    };
   }
 }

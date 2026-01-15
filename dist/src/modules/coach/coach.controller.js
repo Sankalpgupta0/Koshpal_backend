@@ -24,6 +24,8 @@ const coach_service_1 = require("./coach.service");
 const consultation_service_1 = require("../consultation/consultation.service");
 const create_coach_slot_dto_1 = require("./dto/create-coach-slot.dto");
 const cancel_consultation_dto_1 = require("../consultation/dto/cancel-consultation.dto");
+const platform_express_1 = require("@nestjs/platform-express");
+const profile_image_storage_1 = require("../../common/multer/profile-image.storage");
 let CoachController = class CoachController {
     coachService;
     consultationService;
@@ -64,6 +66,9 @@ let CoachController = class CoachController {
     }
     async updateTimezone(user, timezone) {
         return this.coachService.updateCoachTimezone(user.userId, timezone);
+    }
+    async updateProfile(user, body, image) {
+        return this.coachService.updateCoachProfile(user.userId, body, image);
     }
 };
 exports.CoachController = CoachController;
@@ -156,6 +161,19 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], CoachController.prototype, "updateTimezone", null);
+__decorate([
+    (0, common_1.Patch)('profile'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('image', {
+        storage: profile_image_storage_1.profileImageStorage,
+        limits: { fileSize: 5 * 1024 * 1024 },
+    })),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object, Object]),
+    __metadata("design:returntype", Promise)
+], CoachController.prototype, "updateProfile", null);
 exports.CoachController = CoachController = __decorate([
     (0, common_1.Controller)('api/v1/coach'),
     (0, roles_decorator_1.Roles)(role_enum_1.Role.COACH),

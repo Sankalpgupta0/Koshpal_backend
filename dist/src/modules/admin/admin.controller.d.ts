@@ -63,6 +63,8 @@ export declare class AdminController {
             userId: string;
             fullName: string;
             phone: string | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
             designation: string | null;
         } | null;
         id: string;
@@ -81,15 +83,17 @@ export declare class AdminController {
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         createdAt: Date;
+        company: {
+            name: string;
+        } | null;
         hrProfile: {
             companyId: string;
             userId: string;
             fullName: string;
             phone: string | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
             designation: string | null;
-        } | null;
-        company: {
-            name: string;
         } | null;
     }[]>;
     getHr(id: string): Promise<{
@@ -99,15 +103,17 @@ export declare class AdminController {
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         createdAt: Date;
+        company: {
+            name: string;
+        } | null;
         hrProfile: {
             companyId: string;
             userId: string;
             fullName: string;
             phone: string | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
             designation: string | null;
-        } | null;
-        company: {
-            name: string;
         } | null;
     }>;
     updateHrStatus(id: string, dto: UpdateHrStatusDto): Promise<{
@@ -130,6 +136,7 @@ export declare class AdminController {
         createdAt: Date;
         coachProfile: {
             fullName: string;
+            profilePhoto: string | null;
             expertise: string[];
             bio: string | null;
             rating: import("@prisma/client/runtime/library").Decimal;
@@ -137,7 +144,6 @@ export declare class AdminController {
             clientsHelped: number;
             location: string | null;
             languages: string[];
-            profilePhoto: string | null;
         } | null;
     }[]>;
     getCoach(id: string): Promise<{
@@ -155,6 +161,9 @@ export declare class AdminController {
         coachProfile: {
             userId: string;
             fullName: string;
+            phone: string | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
             expertise: string[];
             bio: string | null;
             rating: import("@prisma/client/runtime/library").Decimal;
@@ -162,7 +171,6 @@ export declare class AdminController {
             clientsHelped: number;
             location: string | null;
             languages: string[];
-            profilePhoto: string | null;
             timezone: string;
         } | null;
     }>;
@@ -176,6 +184,9 @@ export declare class AdminController {
         coachProfile: {
             userId: string;
             fullName: string;
+            phone: string | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
             expertise: string[];
             bio: string | null;
             rating: import("@prisma/client/runtime/library").Decimal;
@@ -183,7 +194,6 @@ export declare class AdminController {
             clientsHelped: number;
             location: string | null;
             languages: string[];
-            profilePhoto: string | null;
             timezone: string;
         } | null;
     }>;
@@ -196,6 +206,9 @@ export declare class AdminController {
         coachProfile: {
             userId: string;
             fullName: string;
+            phone: string | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
             expertise: string[];
             bio: string | null;
             rating: import("@prisma/client/runtime/library").Decimal;
@@ -203,7 +216,6 @@ export declare class AdminController {
             clientsHelped: number;
             location: string | null;
             languages: string[];
-            profilePhoto: string | null;
             timezone: string;
         } | null;
     }>;

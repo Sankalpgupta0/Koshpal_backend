@@ -21,6 +21,7 @@ const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const role_enum_1 = require("../../common/enums/role.enum");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 const hr_service_1 = require("./hr.service");
+const profile_image_storage_1 = require("../../common/multer/profile-image.storage");
 let HrController = class HrController {
     hrService;
     constructor(hrService) {
@@ -65,8 +66,8 @@ let HrController = class HrController {
     async getProfile(user) {
         return this.hrService.getHrProfile(user.userId);
     }
-    async updateProfile(user, updateData) {
-        return this.hrService.updateHrProfile(user.userId, updateData);
+    updateProfile(user, body, file) {
+        return this.hrService.updateHrProfile(user.userId, body, file);
     }
 };
 exports.HrController = HrController;
@@ -176,11 +177,15 @@ __decorate([
 ], HrController.prototype, "getProfile", null);
 __decorate([
     (0, common_1.Patch)('profile'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('image', {
+        storage: profile_image_storage_1.profileImageStorage,
+    })),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:paramtypes", [Object, Object, Object]),
+    __metadata("design:returntype", void 0)
 ], HrController.prototype, "updateProfile", null);
 exports.HrController = HrController = __decorate([
     (0, common_1.Controller)('api/v1/hr'),
