@@ -11,6 +11,7 @@ import { MeetingService } from './meeting.service';
 import { BookConsultationDto } from './dto/book-consultation.dto';
 import { ValidatedUser } from '../../common/types/user.types';
 import { SlotStatus, BookingStatus, Prisma } from '@prisma/client';
+import { getSlotDateInIST } from '../../common/utils/timezone.util';
 
 /**
  * Consultation Service
@@ -25,6 +26,8 @@ import { SlotStatus, BookingStatus, Prisma } from '@prisma/client';
  * - Statistics calculation
  *
  * Uses Prisma for database operations and BullMQ for async email processing
+ *
+ * CRITICAL: All slot responses now include slotDate (YYYY-MM-DD in Asia/Kolkata)
  */
 @Injectable()
 export class ConsultationService {
@@ -236,10 +239,10 @@ export class ConsultationService {
         });
 
         // 5. Queue email notifications with notes
-        // Format date as YYYY-MM-DD in UTC to avoid timezone shifts
-        const year = slot.date.getUTCFullYear();
-        const month = String(slot.date.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(slot.date.getUTCDate() + 1).padStart(2, '0');
+        // Format date directly from slot date (stored in IST)
+        const year = slot.date.getFullYear();
+        const month = String(slot.date.getMonth() + 1).padStart(2, '0');
+        const day = String(slot.date.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
 
         await this.emailQueue.add('send-booking-confirmation', {
@@ -382,11 +385,13 @@ export class ConsultationService {
       meetingLink: booking.meetingLink,
       status: booking.status,
       bookedAt: booking.createdAt,
+      notes: booking.notes,
       slot: {
         id: booking.slot.id,
         date: booking.slot.date,
         startTime: booking.slot.startTime,
         endTime: booking.slot.endTime,
+        slotDate: getSlotDateInIST(booking.slot.startTime), // Add IST date
         status: booking.slot.status,
       },
       coach: {
@@ -644,6 +649,7 @@ export class ConsultationService {
         date: booking.slot.date,
         startTime: booking.slot.startTime,
         endTime: booking.slot.endTime,
+        slotDate: getSlotDateInIST(booking.slot.startTime), // Add IST date
         status: booking.slot.status,
       },
       coach: {

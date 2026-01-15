@@ -223,6 +223,8 @@ let CoachService = class CoachService {
                         continue;
                     const startTime = this.buildDateTime(targetDate, timeRange.start, 'Asia/Kolkata');
                     const endTime = this.buildDateTime(targetDate, timeRange.end, 'Asia/Kolkata');
+                    const slotDate = new Date(targetDate);
+                    slotDate.setHours(0, 0, 0, 0);
                     const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
                     if (duration !== dto.slotDurationMinutes) {
                         throw new common_1.BadRequestException(`Slot duration must be exactly ${dto.slotDurationMinutes} minutes`);
@@ -230,7 +232,8 @@ let CoachService = class CoachService {
                     const existingSlot = await this.prisma.coachSlot.findFirst({
                         where: {
                             coachId,
-                            date: targetDate,
+                            date: slotDate,
+                            status: 'BOOKED',
                             OR: [
                                 {
                                     AND: [
@@ -254,11 +257,11 @@ let CoachService = class CoachService {
                         },
                     });
                     if (existingSlot) {
-                        throw new common_1.BadRequestException(`Overlapping slot detected for ${weekday} at ${timeRange.start}-${timeRange.end}`);
+                        throw new common_1.BadRequestException(`Overlapping slot detected for ${weekday} at ${timeRange.start}-${timeRange.end}. This time conflicts with an existing booking.`);
                     }
                     slots.push({
                         coachId,
-                        date: targetDate,
+                        date: slotDate,
                         startTime,
                         endTime,
                         status: 'AVAILABLE',
@@ -300,10 +303,12 @@ let CoachService = class CoachService {
         };
         slots.forEach((slot) => {
             const weekday = this.getWeekdayName(slot.date.getDay());
-            const startTimeIST = new Date(slot.startTime.getTime() - (5.5 * 60 * 60 * 1000));
-            const endTimeIST = new Date(slot.endTime.getTime() - (5.5 * 60 * 60 * 1000));
-            const startTime = startTimeIST.toISOString().substring(11, 16);
-            const endTime = endTimeIST.toISOString().substring(11, 16);
+            const startIST = new Date(slot.startTime.getTime() + (5.5 * 60 * 60 * 1000));
+            const endIST = new Date(slot.endTime.getTime() + (5.5 * 60 * 60 * 1000));
+            const startTime = startIST.getUTCHours().toString().padStart(2, '0') + ':' +
+                startIST.getUTCMinutes().toString().padStart(2, '0');
+            const endTime = endIST.getUTCHours().toString().padStart(2, '0') + ':' +
+                endIST.getUTCMinutes().toString().padStart(2, '0');
             weeklySchedule[weekday].push({
                 id: slot.id,
                 start: startTime,
@@ -365,13 +370,12 @@ let CoachService = class CoachService {
         return targetDate;
     }
     buildDateTime(date, time, _timezone) {
-        const dateStr = date.toISOString().split('T')[0];
-        const dateTimeStr = `${dateStr}T${time}:00`;
-        const istTimezone = 'Asia/Kolkata';
-        const dateTime = new Date(dateTimeStr + '+00:00');
-        const istOffset = 5.5 * 60 * 60 * 1000;
-        const istDateTime = new Date(dateTime.getTime() + istOffset);
-        return istDateTime;
+        const [hours, minutes] = time.split(':').map(Number);
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        const dateTime = new Date(year, month, day, hours, minutes, 0, 0);
+        return dateTime;
     }
     getWeekdayName(dayIndex) {
         const weekdays = [

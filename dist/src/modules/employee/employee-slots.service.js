@@ -9,25 +9,25 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EmployeeCoachService = void 0;
+exports.EmployeeSlotsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../../prisma/prisma.service");
 const client_1 = require("@prisma/client");
 const timezone_util_1 = require("../../common/utils/timezone.util");
-let EmployeeCoachService = class EmployeeCoachService {
+let EmployeeSlotsService = class EmployeeSlotsService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async getSlotsGroupedByCoach(dateStr) {
+    async getSlotsByDate(dateStr) {
         const [year, month, day] = dateStr.split('-').map(Number);
-        const istMidnightInUTC = new Date(Date.UTC(year, month - 1, day - 1, 18, 30, 0, 0));
-        const istEndOfDayInUTC = new Date(Date.UTC(year, month - 1, day, 18, 29, 59, 999));
+        const startUTC = new Date(Date.UTC(year, month - 1, day - 1, 18, 30, 0, 0));
+        const endUTC = new Date(Date.UTC(year, month - 1, day, 18, 29, 59, 999));
         const slots = await this.prisma.coachSlot.findMany({
             where: {
                 startTime: {
-                    gte: istMidnightInUTC,
-                    lte: istEndOfDayInUTC,
+                    gte: startUTC,
+                    lte: endUTC,
                 },
                 status: client_1.SlotStatus.AVAILABLE,
             },
@@ -46,7 +46,6 @@ let EmployeeCoachService = class EmployeeCoachService {
         });
         const coachMap = new Map();
         for (const slot of slots) {
-            const slotDateIST = (0, timezone_util_1.getSlotDateInIST)(slot.startTime);
             const coachId = slot.coach.userId;
             if (!coachMap.has(coachId)) {
                 coachMap.set(coachId, {
@@ -60,13 +59,60 @@ let EmployeeCoachService = class EmployeeCoachService {
                 slotId: slot.id,
                 startTime: slot.startTime.toISOString(),
                 endTime: slot.endTime.toISOString(),
-                slotDate: slotDateIST,
+                slotDate: (0, timezone_util_1.getSlotDateInIST)(slot.startTime),
                 status: slot.status,
             });
         }
         return Array.from(coachMap.values());
     }
-    async getSlotAvailabilityForDateRange(startDateStr, endDateStr, coachId) {
+    async getSlotsByCoachAndDate(coachId, dateStr) {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const startUTC = new Date(Date.UTC(year, month - 1, day - 1, 18, 30, 0, 0));
+        const endUTC = new Date(Date.UTC(year, month - 1, day, 18, 29, 59, 999));
+        const slots = await this.prisma.coachSlot.findMany({
+            where: {
+                coachId,
+                startTime: {
+                    gte: startUTC,
+                    lte: endUTC,
+                },
+                status: client_1.SlotStatus.AVAILABLE,
+            },
+            include: {
+                coach: {
+                    select: {
+                        userId: true,
+                        fullName: true,
+                        expertise: true,
+                    },
+                },
+            },
+            orderBy: {
+                startTime: 'asc',
+            },
+        });
+        if (slots.length === 0) {
+            return {
+                coachId,
+                coachName: null,
+                expertise: [],
+                slots: [],
+            };
+        }
+        return {
+            coachId: slots[0].coach.userId,
+            coachName: slots[0].coach.fullName,
+            expertise: slots[0].coach.expertise,
+            slots: slots.map(slot => ({
+                slotId: slot.id,
+                startTime: slot.startTime.toISOString(),
+                endTime: slot.endTime.toISOString(),
+                slotDate: (0, timezone_util_1.getSlotDateInIST)(slot.startTime),
+                status: slot.status,
+            })),
+        };
+    }
+    async getAvailableDates(startDateStr, endDateStr, coachId) {
         const [startYear, startMonth, startDay] = startDateStr.split('-').map(Number);
         const [endYear, endMonth, endDay] = endDateStr.split('-').map(Number);
         const startUTC = new Date(Date.UTC(startYear, startMonth - 1, startDay - 1, 18, 30, 0, 0));
@@ -89,18 +135,22 @@ let EmployeeCoachService = class EmployeeCoachService {
         });
         const dateMap = new Map();
         for (const slot of slots) {
-            const dateStr = (0, timezone_util_1.getSlotDateInIST)(slot.startTime);
-            if (!dateMap.has(dateStr)) {
-                dateMap.set(dateStr, { hasSlots: true, slotCount: 0 });
-            }
-            dateMap.get(dateStr).slotCount++;
+            const istDate = (0, timezone_util_1.getSlotDateInIST)(slot.startTime);
+            dateMap.set(istDate, (dateMap.get(istDate) || 0) + 1);
         }
-        return Object.fromEntries(dateMap);
+        const result = {};
+        dateMap.forEach((count, date) => {
+            result[date] = {
+                hasSlots: true,
+                slotCount: count,
+            };
+        });
+        return result;
     }
 };
-exports.EmployeeCoachService = EmployeeCoachService;
-exports.EmployeeCoachService = EmployeeCoachService = __decorate([
+exports.EmployeeSlotsService = EmployeeSlotsService;
+exports.EmployeeSlotsService = EmployeeSlotsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
-], EmployeeCoachService);
-//# sourceMappingURL=employee-coach.service.js.map
+], EmployeeSlotsService);
+//# sourceMappingURL=employee-slots.service.js.map

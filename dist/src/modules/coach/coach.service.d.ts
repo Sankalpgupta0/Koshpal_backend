@@ -8,13 +8,13 @@ export declare class CoachService {
         count: number;
     }>;
     getSlots(coachId: string, dateStr?: string): Promise<{
-        id: string;
-        createdAt: Date;
-        status: import("@prisma/client").$Enums.SlotStatus;
         date: Date;
         startTime: Date;
         endTime: Date;
+        id: string;
         coachId: string;
+        status: import("@prisma/client").$Enums.SlotStatus;
+        createdAt: Date;
     }[]>;
     getConsultations(coachId: string, filter?: string): Promise<{
         id: string;
@@ -67,8 +67,6 @@ export declare class CoachService {
         userId: string;
         fullName: string;
         phone: string | null;
-        profilePhoto: string | null;
-        profilePhotoId: string | null;
         expertise: string[];
         bio: string | null;
         rating: import("@prisma/client/runtime/library").Decimal;
@@ -76,14 +74,14 @@ export declare class CoachService {
         clientsHelped: number;
         location: string | null;
         languages: string[];
+        profilePhoto: string | null;
+        profilePhotoId: string | null;
         timezone: string;
     }>;
     updateCoachTimezone(coachId: string, timezone: string): Promise<{
         userId: string;
         fullName: string;
         phone: string | null;
-        profilePhoto: string | null;
-        profilePhotoId: string | null;
         expertise: string[];
         bio: string | null;
         rating: import("@prisma/client/runtime/library").Decimal;
@@ -91,6 +89,8 @@ export declare class CoachService {
         clientsHelped: number;
         location: string | null;
         languages: string[];
+        profilePhoto: string | null;
+        profilePhotoId: string | null;
         timezone: string;
     }>;
     updateCoachProfile(userId: string, updateData: {
@@ -102,8 +102,6 @@ export declare class CoachService {
             userId: string;
             fullName: string;
             phone: string | null;
-            profilePhoto: string | null;
-            profilePhotoId: string | null;
             expertise: string[];
             bio: string | null;
             rating: import("@prisma/client/runtime/library").Decimal;
@@ -111,6 +109,8 @@ export declare class CoachService {
             clientsHelped: number;
             location: string | null;
             languages: string[];
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
             timezone: string;
         };
     }>;

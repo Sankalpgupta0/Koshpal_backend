@@ -23,13 +23,13 @@ export declare class ConsultationService {
         profilePhoto: string | null | undefined;
     }[]>;
     getCoachSlots(coachId: string, dateStr: string): Promise<{
-        id: string;
-        createdAt: Date;
-        status: import("@prisma/client").$Enums.SlotStatus;
         date: Date;
         startTime: Date;
         endTime: Date;
+        id: string;
         coachId: string;
+        status: import("@prisma/client").$Enums.SlotStatus;
+        createdAt: Date;
     }[]>;
     bookConsultation(user: ValidatedUser, dto: BookConsultationDto): Promise<{
         message: string;
@@ -47,11 +47,13 @@ export declare class ConsultationService {
         meetingLink: string;
         status: import("@prisma/client").$Enums.BookingStatus;
         bookedAt: Date;
+        notes: string | null;
         slot: {
             id: string;
             date: Date;
             startTime: Date;
             endTime: Date;
+            slotDate: string;
             status: import("@prisma/client").$Enums.SlotStatus;
         };
         coach: {
@@ -132,6 +134,7 @@ export declare class ConsultationService {
             date: Date;
             startTime: Date;
             endTime: Date;
+            slotDate: string;
             status: import("@prisma/client").$Enums.SlotStatus;
         };
         coach: {

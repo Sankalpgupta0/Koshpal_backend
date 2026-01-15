@@ -277,13 +277,17 @@ export class CoachService {
           const startTime = this.buildDateTime(
             targetDate,
             timeRange.start,
-            'Asia/Kolkata', // Always use IST
+            'Asia/Kolkata',
           );
           const endTime = this.buildDateTime(
             targetDate,
             timeRange.end,
-            'Asia/Kolkata', // Always use IST
+            'Asia/Kolkata',
           );
+          
+          // Store date at midnight IST
+          const slotDate = new Date(targetDate);
+          slotDate.setHours(0, 0, 0, 0);
 
           // Validate duration
           const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
@@ -293,11 +297,12 @@ export class CoachService {
             );
           }
 
-          // Check for overlaps
+          // Check for overlaps with BOOKED slots only (AVAILABLE slots were already deleted)
           const existingSlot = await this.prisma.coachSlot.findFirst({
             where: {
               coachId,
-              date: targetDate,
+              date: slotDate,
+              status: 'BOOKED', // Only check against BOOKED slots to prevent conflicts
               OR: [
                 {
                   AND: [
@@ -323,13 +328,13 @@ export class CoachService {
 
           if (existingSlot) {
             throw new BadRequestException(
-              `Overlapping slot detected for ${weekday} at ${timeRange.start}-${timeRange.end}`,
+              `Overlapping slot detected for ${weekday} at ${timeRange.start}-${timeRange.end}. This time conflicts with an existing booking.`,
             );
           }
 
           slots.push({
             coachId,
-            date: targetDate,
+            date: slotDate,
             startTime,
             endTime,
             status: 'AVAILABLE' as const,
@@ -381,13 +386,14 @@ export class CoachService {
     slots.forEach((slot) => {
       const weekday = this.getWeekdayName(slot.date.getDay());
 
-      // Convert stored IST times to HH:MM format for display
-      // Since times are stored in IST, we need to format them as IST
-      const startTimeIST = new Date(slot.startTime.getTime() - (5.5 * 60 * 60 * 1000)); // Convert IST back to UTC for toISOString
-      const endTimeIST = new Date(slot.endTime.getTime() - (5.5 * 60 * 60 * 1000)); // Convert IST back to UTC for toISOString
-
-      const startTime = startTimeIST.toISOString().substring(11, 16); // HH:MM in IST
-      const endTime = endTimeIST.toISOString().substring(11, 16); // HH:MM in IST
+      // Format times properly - convert UTC timestamps to IST
+      const startIST = new Date(slot.startTime.getTime() + (5.5 * 60 * 60 * 1000));
+      const endIST = new Date(slot.endTime.getTime() + (5.5 * 60 * 60 * 1000));
+      
+      const startTime = startIST.getUTCHours().toString().padStart(2, '0') + ':' + 
+                        startIST.getUTCMinutes().toString().padStart(2, '0');
+      const endTime = endIST.getUTCHours().toString().padStart(2, '0') + ':' + 
+                      endIST.getUTCMinutes().toString().padStart(2, '0');
 
       weeklySchedule[weekday].push({
         id: slot.id,
@@ -470,19 +476,18 @@ export class CoachService {
   }
 
   private buildDateTime(date: Date, time: string, _timezone: string): Date {
-    // Create date string in YYYY-MM-DDTHH:mm format
-    const dateStr = date.toISOString().split('T')[0];
-    const dateTimeStr = `${dateStr}T${time}:00`;
-
-    // Always convert to IST (Indian Standard Time) regardless of coach timezone
-    const istTimezone = 'Asia/Kolkata';
-    const dateTime = new Date(dateTimeStr + '+00:00'); // Assume input is UTC
-
-    // Convert to IST
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    const istDateTime = new Date(dateTime.getTime() + istOffset);
-
-    return istDateTime;
+    // Input time is in IST format (HH:mm)
+    // Create datetime directly without any timezone conversion
+    const [hours, minutes] = time.split(':').map(Number);
+    
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    
+    // Create datetime in local time (IST)
+    const dateTime = new Date(year, month, day, hours, minutes, 0, 0);
+    
+    return dateTime;
   }
 
   private getWeekdayName(dayIndex: number): string {

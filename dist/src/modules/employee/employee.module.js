@@ -10,8 +10,10 @@ exports.EmployeeModule = void 0;
 const common_1 = require("@nestjs/common");
 const employee_controller_1 = require("./employee.controller");
 const employee_coach_controller_1 = require("./employee-coach.controller");
+const employee_slots_controller_1 = require("./employee-slots.controller");
 const employee_service_1 = require("./employee.service");
 const employee_coach_service_1 = require("./employee-coach.service");
+const employee_slots_service_1 = require("./employee-slots.service");
 const finance_module_1 = require("../../finance/finance.module");
 const goals_module_1 = require("./goals/goals.module");
 const prisma_module_1 = require("../../../prisma/prisma.module");
@@ -21,8 +23,8 @@ exports.EmployeeModule = EmployeeModule;
 exports.EmployeeModule = EmployeeModule = __decorate([
     (0, common_1.Module)({
         imports: [finance_module_1.FinanceModule, goals_module_1.GoalsModule, prisma_module_1.PrismaModule],
-        controllers: [employee_controller_1.EmployeeController, employee_coach_controller_1.EmployeeCoachController],
-        providers: [employee_service_1.EmployeeService, employee_coach_service_1.EmployeeCoachService],
+        controllers: [employee_controller_1.EmployeeController, employee_coach_controller_1.EmployeeCoachController, employee_slots_controller_1.EmployeeSlotsController],
+        providers: [employee_service_1.EmployeeService, employee_coach_service_1.EmployeeCoachService, employee_slots_service_1.EmployeeSlotsService],
         exports: [employee_service_1.EmployeeService],
     })
 ], EmployeeModule);
