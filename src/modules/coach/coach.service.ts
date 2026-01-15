@@ -295,11 +295,12 @@ export class CoachService {
             );
           }
 
-          // Check for overlaps
+          // Check for overlaps with BOOKED slots only (AVAILABLE slots were already deleted)
           const existingSlot = await this.prisma.coachSlot.findFirst({
             where: {
               coachId,
               date: slotDate,
+              status: 'BOOKED', // Only check against BOOKED slots to prevent conflicts
               OR: [
                 {
                   AND: [
@@ -325,7 +326,7 @@ export class CoachService {
 
           if (existingSlot) {
             throw new BadRequestException(
-              `Overlapping slot detected for ${weekday} at ${timeRange.start}-${timeRange.end}`,
+              `Overlapping slot detected for ${weekday} at ${timeRange.start}-${timeRange.end}. This time conflicts with an existing booking.`,
             );
           }
 
@@ -383,17 +384,14 @@ export class CoachService {
     slots.forEach((slot) => {
       const weekday = this.getWeekdayName(slot.date.getDay());
 
-      // Format times directly - already stored in IST
-      const startTime = slot.startTime.toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
-      const endTime = slot.endTime.toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
+      // Format times properly - convert UTC timestamps to IST
+      const startIST = new Date(slot.startTime.getTime() + (5.5 * 60 * 60 * 1000));
+      const endIST = new Date(slot.endTime.getTime() + (5.5 * 60 * 60 * 1000));
+      
+      const startTime = startIST.getUTCHours().toString().padStart(2, '0') + ':' + 
+                        startIST.getUTCMinutes().toString().padStart(2, '0');
+      const endTime = endIST.getUTCHours().toString().padStart(2, '0') + ':' + 
+                      endIST.getUTCMinutes().toString().padStart(2, '0');
 
       weeklySchedule[weekday].push({
         id: slot.id,

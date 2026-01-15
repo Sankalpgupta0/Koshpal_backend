@@ -232,6 +232,7 @@ let CoachService = class CoachService {
                         where: {
                             coachId,
                             date: slotDate,
+                            status: 'BOOKED',
                             OR: [
                                 {
                                     AND: [
@@ -255,7 +256,7 @@ let CoachService = class CoachService {
                         },
                     });
                     if (existingSlot) {
-                        throw new common_1.BadRequestException(`Overlapping slot detected for ${weekday} at ${timeRange.start}-${timeRange.end}`);
+                        throw new common_1.BadRequestException(`Overlapping slot detected for ${weekday} at ${timeRange.start}-${timeRange.end}. This time conflicts with an existing booking.`);
                     }
                     slots.push({
                         coachId,
@@ -301,16 +302,12 @@ let CoachService = class CoachService {
         };
         slots.forEach((slot) => {
             const weekday = this.getWeekdayName(slot.date.getDay());
-            const startTime = slot.startTime.toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-            const endTime = slot.endTime.toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
+            const startIST = new Date(slot.startTime.getTime() + (5.5 * 60 * 60 * 1000));
+            const endIST = new Date(slot.endTime.getTime() + (5.5 * 60 * 60 * 1000));
+            const startTime = startIST.getUTCHours().toString().padStart(2, '0') + ':' +
+                startIST.getUTCMinutes().toString().padStart(2, '0');
+            const endTime = endIST.getUTCHours().toString().padStart(2, '0') + ':' +
+                endIST.getUTCMinutes().toString().padStart(2, '0');
             weeklySchedule[weekday].push({
                 id: slot.id,
                 start: startTime,
