@@ -142,30 +142,44 @@ let EmployeeService = class EmployeeService {
         };
     }
     async updateOwnProfile(userId, body, imageUrl, imagePublicId) {
-        const profile = await this.prisma.employeeProfile.findUnique({
-            where: { userId },
-        });
-        if (!profile) {
-            throw new Error('Employee profile not found');
+        try {
+            console.log('Service: updateOwnProfile called', { userId, body, imageUrl, imagePublicId });
+            const profile = await this.prisma.employeeProfile.findUnique({
+                where: { userId },
+            });
+            if (!profile) {
+                throw new Error('Employee profile not found');
+            }
+            if (imagePublicId && profile.profilePhotoId) {
+                try {
+                    console.log('Deleting old image:', profile.profilePhotoId);
+                    await (0, cloudinary_helper_1.deleteFromCloudinary)(profile.profilePhotoId);
+                }
+                catch (error) {
+                    console.error('Failed to delete old image:', error);
+                }
+            }
+            const updatedProfile = await this.prisma.employeeProfile.update({
+                where: { userId },
+                data: {
+                    ...(body.name !== undefined && { fullName: body.name }),
+                    ...(body.phone !== undefined && { phone: body.phone }),
+                    ...(imageUrl && imagePublicId && {
+                        profilePhoto: imageUrl,
+                        profilePhotoId: imagePublicId,
+                    }),
+                },
+            });
+            console.log('Profile updated successfully:', updatedProfile.userId);
+            return {
+                message: 'Profile updated successfully',
+                profile: updatedProfile,
+            };
         }
-        if (imagePublicId && profile.profilePhotoId) {
-            await (0, cloudinary_helper_1.deleteFromCloudinary)(profile.profilePhotoId);
+        catch (error) {
+            console.error('Error in updateOwnProfile service:', error);
+            throw error;
         }
-        const updatedProfile = await this.prisma.employeeProfile.update({
-            where: { userId },
-            data: {
-                ...(body.name !== undefined && { fullName: body.name }),
-                ...(body.phone !== undefined && { phone: body.phone }),
-                ...(imageUrl && imagePublicId && {
-                    profilePhoto: imageUrl,
-                    profilePhotoId: imagePublicId,
-                }),
-            },
-        });
-        return {
-            message: 'Profile updated successfully',
-            profile: updatedProfile,
-        };
     }
     async getMyProfile(userId) {
         const profile = await this.prisma.employeeProfile.findUnique({

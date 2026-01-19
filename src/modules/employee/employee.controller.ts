@@ -198,19 +198,54 @@ export class EmployeeController {
 @UseInterceptors(
   FileInterceptor('image', {
     storage: profileImageStorage, // Cloudinary storage
+    fileFilter: (req, file, cb) => {
+      // Allow image uploads
+      if (file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed!'), false);
+      }
+    },
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
   }),
 )
-updateProfile(
+async updateProfile(
   @Req() req,
   @Body() body: { name?: string; phone?: string },
   @UploadedFile() file?: Express.Multer.File,
 ) {
-  return this.employeeService.updateOwnProfile(
-    req.user.userId,     // from JWT
-    body,
-    file?.path,         // Cloudinary secure_url
-    file?.filename,     // Cloudinary public_id
-  );
+  try {
+    console.log('Employee Profile Update:', {
+      userId: req.user.userId,
+      body,
+      hasFile: !!file,
+      filePath: file?.path,
+      filename: file?.filename
+    });
+    
+    // Update profile even if file upload fails
+    return await this.employeeService.updateOwnProfile(
+      req.user.userId,     // from JWT
+      body,
+      file?.path,         // Cloudinary secure_url
+      file?.filename,     // Cloudinary public_id
+    );
+  } catch (error) {
+    console.error('Error in employee profile update:', error);
+    // If it's a file upload error, update profile without image
+    if (error.message?.includes('Cloudinary') || error.message?.includes('storage')) {
+      console.log('Cloudinary error, updating profile without image');
+      return await this.employeeService.updateOwnProfile(
+        req.user.userId,
+        body,
+        undefined,
+        undefined,
+      );
+    }
+    throw error;
+  }
 }
 
 

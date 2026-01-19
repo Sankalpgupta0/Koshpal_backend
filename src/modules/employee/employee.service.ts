@@ -185,38 +185,52 @@ export class EmployeeService {
   imageUrl?: string,
   imagePublicId?: string,
 ) {
-  // 1️⃣ Get existing profile
-  const profile = await this.prisma.employeeProfile.findUnique({
-    where: { userId },
-  });
+  try {
+    console.log('Service: updateOwnProfile called', { userId, body, imageUrl, imagePublicId });
+    
+    // 1️⃣ Get existing profile
+    const profile = await this.prisma.employeeProfile.findUnique({
+      where: { userId },
+    });
 
-  if (!profile) {
-    throw new Error('Employee profile not found');
+    if (!profile) {
+      throw new Error('Employee profile not found');
+    }
+
+    // 2️⃣ Delete old image if new image uploaded
+    if (imagePublicId && profile.profilePhotoId) {
+      try {
+        console.log('Deleting old image:', profile.profilePhotoId);
+        await deleteFromCloudinary(profile.profilePhotoId);
+      } catch (error) {
+        console.error('Failed to delete old image:', error);
+        // Continue with update even if deletion fails
+      }
+    }
+
+    // 3️⃣ Update safely
+    const updatedProfile = await this.prisma.employeeProfile.update({
+      where: { userId },
+      data: {
+        ...(body.name !== undefined && { fullName: body.name }),
+        ...(body.phone !== undefined && { phone: body.phone }),
+
+        ...(imageUrl && imagePublicId && {
+          profilePhoto: imageUrl,
+          profilePhotoId: imagePublicId,
+        }),
+      },
+    });
+
+    console.log('Profile updated successfully:', updatedProfile.userId);
+    return {
+      message: 'Profile updated successfully',
+      profile: updatedProfile,
+    };
+  } catch (error) {
+    console.error('Error in updateOwnProfile service:', error);
+    throw error;
   }
-
-  // 2️⃣ Delete old image if new image uploaded
-  if (imagePublicId && profile.profilePhotoId) {
-    await deleteFromCloudinary(profile.profilePhotoId);
-  }
-
-  // 3️⃣ Update safely
-  const updatedProfile = await this.prisma.employeeProfile.update({
-    where: { userId },
-    data: {
-      ...(body.name !== undefined && { fullName: body.name }),
-      ...(body.phone !== undefined && { phone: body.phone }),
-
-      ...(imageUrl && imagePublicId && {
-        profilePhoto: imageUrl,
-        profilePhotoId: imagePublicId,
-      }),
-    },
-  });
-
-  return {
-    message: 'Profile updated successfully',
-    profile: updatedProfile,
-  };
 }
 
 

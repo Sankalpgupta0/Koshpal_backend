@@ -1,5 +1,5 @@
 # compiled output
-/dist
+# /dist
 /node_modules
 /build
 
@@ -52,7 +52,7 @@ pids
 *.seed
 *.pid.lock
 
-dist
+# dist
 *.tsbuildinfo
 
 

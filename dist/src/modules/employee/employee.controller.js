@@ -95,8 +95,25 @@ let EmployeeController = class EmployeeController {
     async getSpendingTrends(user, months) {
         return this.insightsService.getSpendingTrends(user.userId, months ? parseInt(months) : 6);
     }
-    updateProfile(req, body, file) {
-        return this.employeeService.updateOwnProfile(req.user.userId, body, file?.path, file?.filename);
+    async updateProfile(req, body, file) {
+        try {
+            console.log('Employee Profile Update:', {
+                userId: req.user.userId,
+                body,
+                hasFile: !!file,
+                filePath: file?.path,
+                filename: file?.filename
+            });
+            return await this.employeeService.updateOwnProfile(req.user.userId, body, file?.path, file?.filename);
+        }
+        catch (error) {
+            console.error('Error in employee profile update:', error);
+            if (error.message?.includes('Cloudinary') || error.message?.includes('storage')) {
+                console.log('Cloudinary error, updating profile without image');
+                return await this.employeeService.updateOwnProfile(req.user.userId, body, undefined, undefined);
+            }
+            throw error;
+        }
     }
     async getMyProfile(user) {
         return this.employeeService.getMyProfile(user.userId);
@@ -204,13 +221,24 @@ __decorate([
     (0, common_1.Put)('profile'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('image', {
         storage: profile_image_storage_1.profileImageStorage,
+        fileFilter: (req, file, cb) => {
+            if (file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+                cb(null, true);
+            }
+            else {
+                cb(new Error('Only image files are allowed!'), false);
+            }
+        },
+        limits: {
+            fileSize: 5 * 1024 * 1024,
+        },
     })),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], EmployeeController.prototype, "updateProfile", null);
 __decorate([
     (0, common_1.Get)('profile'),
