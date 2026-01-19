@@ -15,6 +15,7 @@ const prisma_service_1 = require("../../../prisma/prisma.service");
 const bullmq_1 = require("bullmq");
 const config_1 = require("@nestjs/config");
 const client_1 = require("@prisma/client");
+const cloudinary_helper_1 = require("../../common/config/cloudinary.helper");
 let HrService = class HrService {
     prisma;
     configService;
@@ -570,33 +571,34 @@ let HrService = class HrService {
             phone: user.hrProfile.phone,
             designation: user.hrProfile.designation,
             companyId: user.companyId,
+            profilePhoto: user.hrProfile.profilePhoto,
         };
     }
-    async updateHrProfile(userId, updateData) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: { hrProfile: true },
+    async updateHrProfile(userId, updateData, image) {
+        const profile = await this.prisma.hRProfile.findUnique({
+            where: { userId },
         });
-        if (!user || !user.hrProfile) {
+        if (!profile) {
             throw new common_1.BadRequestException('HR profile not found');
         }
+        if (image && profile.profilePhotoId) {
+            await (0, cloudinary_helper_1.deleteFromCloudinary)(profile.profilePhotoId);
+        }
         const updatedProfile = await this.prisma.hRProfile.update({
-            where: { userId: userId },
+            where: { userId },
             data: {
                 ...(updateData.fullName && { fullName: updateData.fullName }),
                 ...(updateData.phone !== undefined && { phone: updateData.phone }),
                 ...(updateData.designation && { designation: updateData.designation }),
+                ...(image && {
+                    profilePhoto: image.path,
+                    profilePhotoId: image.filename,
+                }),
             },
         });
         return {
             message: 'Profile updated successfully',
-            profile: {
-                id: user.id,
-                email: user.email,
-                fullName: updatedProfile.fullName,
-                phone: updatedProfile.phone,
-                designation: updatedProfile.designation,
-            },
+            profile: updatedProfile,
         };
     }
 };

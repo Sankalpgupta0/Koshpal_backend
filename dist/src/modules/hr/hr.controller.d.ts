@@ -103,18 +103,17 @@ export declare class HrController {
         phone: string | null;
         designation: string | null;
         companyId: string | null;
+        profilePhoto: string | null;
     }>;
-    updateProfile(user: CurrentUserDto, updateData: {
-        fullName?: string;
-        phone?: string;
-        designation?: string;
-    }): Promise<{
+    updateProfile(user: CurrentUserDto, body: any, file?: Express.Multer.File): Promise<{
         message: string;
         profile: {
-            id: string;
-            email: string;
+            companyId: string;
+            userId: string;
             fullName: string;
             phone: string | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
             designation: string | null;
         };
     }>;

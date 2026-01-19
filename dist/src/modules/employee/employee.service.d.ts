@@ -25,6 +25,7 @@ export declare class EmployeeService {
             phone: string | null;
             department: string | null;
             dateOfJoining: Date | null;
+            profilePhoto: string | null;
         };
         statistics: {
             accounts: {
@@ -45,5 +46,29 @@ export declare class EmployeeService {
                 completed: number;
             };
         };
+    }>;
+    updateOwnProfile(userId: string, body: {
+        name?: string;
+        phone?: string;
+    }, imageUrl?: string, imagePublicId?: string): Promise<{
+        message: string;
+        profile: {
+            companyId: string;
+            userId: string;
+            employeeCode: string | null;
+            fullName: string;
+            phone: string | null;
+            department: string | null;
+            dateOfJoining: Date | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
+        };
+    }>;
+    getMyProfile(userId: string): Promise<{
+        name: string;
+        email: string;
+        phone: string | null;
+        profilePhoto: string | null;
+        department: string | null;
     }>;
 }

@@ -8,6 +8,8 @@ import {
   Param,
   UseGuards,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -20,6 +22,12 @@ import { ConsultationService } from '../consultation/consultation.service';
 import { CreateCoachSlotDto, SaveCoachSlotsDto } from './dto/create-coach-slot.dto';
 import { CancelConsultationDto } from '../consultation/dto/cancel-consultation.dto';
 import type { ValidatedUser } from '../../common/types/user.types';
+
+import { FileInterceptor } from '@nestjs/platform-express';
+import { profileImageStorage } from '../../common/multer/profile-image.storage';
+
+
+
 
 /**
  * Coach Controller
@@ -306,4 +314,32 @@ export class CoachController {
   ) {
     return this.coachService.updateCoachTimezone(user.userId, timezone);
   }
+
+  
+  /**
+   * ✅ UPDATE COACH PROFILE (NAME + PHONE + IMAGE)
+   */
+  @Patch('profile')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: profileImageStorage,
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    }),
+  )
+  async updateProfile(
+    @CurrentUser() user: ValidatedUser,
+    @Body() body: { fullName?: string; phone?: string },
+    @UploadedFile() image?: Express.Multer.File,
+  ) {
+    return this.coachService.updateCoachProfile(
+      user.userId,
+      body,
+      image,
+    );
+  }
+
+
+ 
+  
+  
 }

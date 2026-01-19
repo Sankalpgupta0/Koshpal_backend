@@ -106,18 +106,21 @@ export declare class HrService {
         phone: string | null;
         designation: string | null;
         companyId: string | null;
+        profilePhoto: string | null;
     }>;
     updateHrProfile(userId: string, updateData: {
         fullName?: string;
         phone?: string;
         designation?: string;
-    }): Promise<{
+    }, image?: Express.Multer.File): Promise<{
         message: string;
         profile: {
-            id: string;
-            email: string;
+            companyId: string;
+            userId: string;
             fullName: string;
             phone: string | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
             designation: string | null;
         };
     }>;

@@ -12,13 +12,13 @@ export declare class CoachController {
         count: number;
     }>;
     getSlots(user: ValidatedUser, date?: string): Promise<{
-        id: string;
-        createdAt: Date;
-        status: import("@prisma/client").$Enums.SlotStatus;
         date: Date;
         startTime: Date;
         endTime: Date;
+        id: string;
         coachId: string;
+        status: import("@prisma/client").$Enums.SlotStatus;
+        createdAt: Date;
     }[]>;
     saveWeeklyAvailability(user: ValidatedUser, dto: SaveCoachSlotsDto): Promise<{
         message: string;
@@ -77,6 +77,7 @@ export declare class CoachController {
     getProfile(user: ValidatedUser): Promise<{
         userId: string;
         fullName: string;
+        phone: string | null;
         expertise: string[];
         bio: string | null;
         rating: import("@prisma/client/runtime/library").Decimal;
@@ -85,11 +86,13 @@ export declare class CoachController {
         location: string | null;
         languages: string[];
         profilePhoto: string | null;
+        profilePhotoId: string | null;
         timezone: string;
     }>;
     updateTimezone(user: ValidatedUser, timezone: string): Promise<{
         userId: string;
         fullName: string;
+        phone: string | null;
         expertise: string[];
         bio: string | null;
         rating: import("@prisma/client/runtime/library").Decimal;
@@ -98,6 +101,28 @@ export declare class CoachController {
         location: string | null;
         languages: string[];
         profilePhoto: string | null;
+        profilePhotoId: string | null;
         timezone: string;
+    }>;
+    updateProfile(user: ValidatedUser, body: {
+        fullName?: string;
+        phone?: string;
+    }, image?: Express.Multer.File): Promise<{
+        message: string;
+        profile: {
+            userId: string;
+            fullName: string;
+            phone: string | null;
+            expertise: string[];
+            bio: string | null;
+            rating: import("@prisma/client/runtime/library").Decimal;
+            successRate: number;
+            clientsHelped: number;
+            location: string | null;
+            languages: string[];
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
+            timezone: string;
+        };
     }>;
 }

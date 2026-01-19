@@ -17,6 +17,8 @@ import { Role } from '../../common/enums/role.enum';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { HrService } from './hr.service';
 
+import { profileImageStorage } from '../../common/multer/profile-image.storage';
+
 interface CurrentUserDto {
   userId: string;
   companyId: string;
@@ -143,12 +145,39 @@ export class HrController {
     return this.hrService.getHrProfile(user.userId);
   }
 
-  @Patch('profile')
-  async updateProfile(
-    @CurrentUser() user: CurrentUserDto,
-    @Body()
-    updateData: { fullName?: string; phone?: string; designation?: string },
-  ) {
-    return this.hrService.updateHrProfile(user.userId, updateData);
-  }
+// @Patch('profile')
+// @UseInterceptors(
+//   FileInterceptor('image', {
+//     storage: profileImageStorage, // Cloudinary
+//   }),
+// )
+// async updateProfile(
+//   @CurrentUser() user: CurrentUserDto,
+//   @Body() body: { fullName?: string; phone?: string; designation?: string },
+//   @UploadedFile() file?: Express.Multer.File,
+// ) {
+//   return this.hrService.updateHrProfile(
+//     user.userId,
+//     body,
+//     file?.path, // Cloudinary URL
+//   );
+// }
+
+@Patch('profile')
+@UseInterceptors(
+  FileInterceptor('image', {
+    storage: profileImageStorage,
+  }),
+)
+updateProfile(
+  @CurrentUser() user: CurrentUserDto,
+  @Body() body,
+  @UploadedFile() file?: Express.Multer.File,
+) {
+  return this.hrService.updateHrProfile(
+    user.userId,
+    body,
+    file,
+  );
+}
 }

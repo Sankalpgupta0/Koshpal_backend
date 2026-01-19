@@ -116,6 +116,9 @@ model HRProfile {
   phone       String?
   designation String?
 
+  profilePhoto String?
+  profilePhotoId  String? 
+
   user    User    @relation(fields: [userId], references: [id])
   company Company @relation(fields: [companyId], references: [id])
 }
@@ -129,6 +132,9 @@ model EmployeeProfile {
   department    String?
   dateOfJoining DateTime?
 
+  profilePhoto  String?
+  profilePhotoId  String?   
+
   user     User      @relation(fields: [userId], references: [id])
   company  Company   @relation(fields: [companyId], references: [id])
   accounts Account[]
@@ -137,6 +143,7 @@ model EmployeeProfile {
 model CoachProfile {
   userId        String   @id
   fullName      String
+  phone         String?
   expertise     String[]
   bio           String?
   rating        Decimal  @default(0) @db.Decimal(3, 2)
@@ -145,6 +152,7 @@ model CoachProfile {
   location      String?
   languages     String[]
   profilePhoto  String?
+  profilePhotoId String?
   timezone      String   @default("Asia/Kolkata") // IST - Indian Standard Time
 
   user  User        @relation(fields: [userId], references: [id])

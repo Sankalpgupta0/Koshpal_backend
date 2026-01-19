@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { deleteFromCloudinary } from '../../common/config/cloudinary.helper'
+
 
 /**
  * Employee Service
@@ -53,6 +55,7 @@ export class EmployeeService {
             phone: true,
             department: true,
             dateOfJoining: true,
+            profilePhoto: true,
           },
         },
       },
@@ -128,6 +131,8 @@ export class EmployeeService {
       },
     });
 
+    
+
     // Return comprehensive profile
     return {
       user: {
@@ -167,5 +172,86 @@ export class EmployeeService {
         },
       },
     };
+
+    
   }
+  // ===============================
+  // UPDATE OWN PROFILE (NAME + PHONE + IMAGE)
+  // ===============================
+
+  async updateOwnProfile(
+  userId: string,
+  body: { name?: string; phone?: string },
+  imageUrl?: string,
+  imagePublicId?: string,
+) {
+  // 1️⃣ Get existing profile
+  const profile = await this.prisma.employeeProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!profile) {
+    throw new Error('Employee profile not found');
+  }
+
+  // 2️⃣ Delete old image if new image uploaded
+  if (imagePublicId && profile.profilePhotoId) {
+    await deleteFromCloudinary(profile.profilePhotoId);
+  }
+
+  // 3️⃣ Update safely
+  const updatedProfile = await this.prisma.employeeProfile.update({
+    where: { userId },
+    data: {
+      ...(body.name !== undefined && { fullName: body.name }),
+      ...(body.phone !== undefined && { phone: body.phone }),
+
+      ...(imageUrl && imagePublicId && {
+        profilePhoto: imageUrl,
+        profilePhotoId: imagePublicId,
+      }),
+    },
+  });
+
+  return {
+    message: 'Profile updated successfully',
+    profile: updatedProfile,
+  };
 }
+
+
+
+
+  async getMyProfile(userId: string) {
+  const profile = await this.prisma.employeeProfile.findUnique({
+    where: { userId },
+    select: {
+      fullName: true,
+      phone: true,
+      department: true,
+      profilePhoto: true,
+      user: {
+        select: {
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!profile) {
+    throw new NotFoundException('Profile not found');
+  }
+
+  return {
+    name: profile.fullName,
+    email: profile.user.email,
+    phone: profile.phone,
+    profilePhoto: profile.profilePhoto,
+    department: profile.department,
+  };
+}
+
+  
+}
+
+

@@ -38,6 +38,7 @@ export declare class EmployeeController {
             phone: string | null;
             department: string | null;
             dateOfJoining: Date | null;
+            profilePhoto: string | null;
         };
         statistics: {
             accounts: {
@@ -92,6 +93,30 @@ export declare class EmployeeController {
             savings: number;
             savingsRate: number;
         };
+    }>;
+    updateProfile(req: any, body: {
+        name?: string;
+        phone?: string;
+    }, file?: Express.Multer.File): Promise<{
+        message: string;
+        profile: {
+            companyId: string;
+            userId: string;
+            employeeCode: string | null;
+            fullName: string;
+            phone: string | null;
+            department: string | null;
+            dateOfJoining: Date | null;
+            profilePhoto: string | null;
+            profilePhotoId: string | null;
+        };
+    }>;
+    getMyProfile(user: CurrentUserDto): Promise<{
+        name: string;
+        email: string;
+        phone: string | null;
+        profilePhoto: string | null;
+        department: string | null;
     }>;
 }
 export {};
