@@ -217,23 +217,56 @@ async updateProfile(
   @UploadedFile() file?: Express.Multer.File,
 ) {
   try {
-    console.log('Employee Profile Update:', {
+    console.log('=== FILE UPLOAD DEBUG START ===');
+    console.log('Employee Profile Update Request:', {
       userId: req.user.userId,
+      userEmail: req.user.email,
+      companyId: req.user.companyId,
       body,
       hasFile: !!file,
-      filePath: file?.path,
-      filename: file?.filename
+    });
+
+    if (file) {
+      console.log('File Details:', {
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        path: file.path,
+        filename: file.filename,
+        fieldname: file.fieldname,
+      });
+    } else {
+      console.log('No file uploaded in request');
+    }
+
+    console.log('Cloudinary Config Check:', {
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME ? '✓ Set' : '✗ Missing',
+      apiKey: process.env.CLOUDINARY_API_KEY ? '✓ Set' : '✗ Missing',
+      apiSecret: process.env.CLOUDINARY_API_SECRET ? '✓ Set (hidden)' : '✗ Missing',
     });
     
     // Update profile even if file upload fails
-    return await this.employeeService.updateOwnProfile(
+    const result = await this.employeeService.updateOwnProfile(
       req.user.userId,     // from JWT
       body,
       file?.path,         // Cloudinary secure_url
       file?.filename,     // Cloudinary public_id
     );
+
+    console.log('Profile update successful:', {
+      userId: req.user.userId,
+      updatedFields: Object.keys(body),
+      imageUploaded: !!file,
+    });
+    console.log('=== FILE UPLOAD DEBUG END ===');
+
+    return result;
   } catch (error) {
+    console.error('=== FILE UPLOAD ERROR ===');
     console.error('Error in employee profile update:', error);
+    console.error('Error stack:', error.stack);
+    console.error('=== FILE UPLOAD ERROR END ===');
+    
     // If it's a file upload error, update profile without image
     if (error.message?.includes('Cloudinary') || error.message?.includes('storage')) {
       console.log('Cloudinary error, updating profile without image');

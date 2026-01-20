@@ -11,9 +11,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LoginDto = void 0;
 const class_validator_1 = require("class-validator");
+const role_enum_1 = require("../../common/enums/role.enum");
 class LoginDto {
     email;
     password;
+    role;
 }
 exports.LoginDto = LoginDto;
 __decorate([
@@ -24,4 +26,9 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], LoginDto.prototype, "password", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(role_enum_1.Role),
+    __metadata("design:type", String)
+], LoginDto.prototype, "role", void 0);
 //# sourceMappingURL=login.dto.js.map

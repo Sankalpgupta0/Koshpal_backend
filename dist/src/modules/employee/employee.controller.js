@@ -97,17 +97,46 @@ let EmployeeController = class EmployeeController {
     }
     async updateProfile(req, body, file) {
         try {
-            console.log('Employee Profile Update:', {
+            console.log('=== FILE UPLOAD DEBUG START ===');
+            console.log('Employee Profile Update Request:', {
                 userId: req.user.userId,
+                userEmail: req.user.email,
+                companyId: req.user.companyId,
                 body,
                 hasFile: !!file,
-                filePath: file?.path,
-                filename: file?.filename
             });
-            return await this.employeeService.updateOwnProfile(req.user.userId, body, file?.path, file?.filename);
+            if (file) {
+                console.log('File Details:', {
+                    originalName: file.originalname,
+                    mimeType: file.mimetype,
+                    size: file.size,
+                    path: file.path,
+                    filename: file.filename,
+                    fieldname: file.fieldname,
+                });
+            }
+            else {
+                console.log('No file uploaded in request');
+            }
+            console.log('Cloudinary Config Check:', {
+                cloudName: process.env.CLOUDINARY_CLOUD_NAME ? '✓ Set' : '✗ Missing',
+                apiKey: process.env.CLOUDINARY_API_KEY ? '✓ Set' : '✗ Missing',
+                apiSecret: process.env.CLOUDINARY_API_SECRET ? '✓ Set (hidden)' : '✗ Missing',
+            });
+            const result = await this.employeeService.updateOwnProfile(req.user.userId, body, file?.path, file?.filename);
+            console.log('Profile update successful:', {
+                userId: req.user.userId,
+                updatedFields: Object.keys(body),
+                imageUploaded: !!file,
+            });
+            console.log('=== FILE UPLOAD DEBUG END ===');
+            return result;
         }
         catch (error) {
+            console.error('=== FILE UPLOAD ERROR ===');
             console.error('Error in employee profile update:', error);
+            console.error('Error stack:', error.stack);
+            console.error('=== FILE UPLOAD ERROR END ===');
             if (error.message?.includes('Cloudinary') || error.message?.includes('storage')) {
                 console.log('Cloudinary error, updating profile without image');
                 return await this.employeeService.updateOwnProfile(req.user.userId, body, undefined, undefined);

@@ -50,7 +50,7 @@ let AuthController = class AuthController {
             userAgent: req.headers['user-agent'],
             deviceId: req.headers['x-device-id'],
         };
-        const result = await this.authService.login(dto.email, dto.password, context);
+        const result = await this.authService.login(dto.email, dto.password, context, dto.role);
         const isProduction = process.env.NODE_ENV === 'production';
         const cookieDomain = this.getCookieDomain(req);
         res.cookie('accessToken', result.accessToken, {
@@ -69,8 +69,16 @@ let AuthController = class AuthController {
             path: '/',
             domain: cookieDomain,
         });
+        const redirectMap = {
+            EMPLOYEE: process.env.EMPLOYEE_PORTAL_URL || 'https://employee.koshpal.com',
+            HR: process.env.HR_PORTAL_URL || 'https://hr.koshpal.com',
+            COACH: process.env.COACH_PORTAL_URL || 'https://coach.koshpal.com',
+            ADMIN: process.env.ADMIN_PORTAL_URL || 'https://admin.koshpal.com',
+        };
         return {
             user: result.user,
+            role: result.user.role,
+            redirectUrl: redirectMap[result.user.role] || 'https://koshpal.com',
         };
     }
     getMe(user) {

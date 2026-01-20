@@ -26,8 +26,10 @@ export class AuthService {
    * - Session management
    * - Security audit trail
    * - Device tracking
+   * 
+   * SSO FEATURE: Validates user role for unified login across subdomains
    */
-  async login(email: string, password: string, context?: LoginContext) {
+  async login(email: string, password: string, context?: LoginContext, requestedRole?: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: {
@@ -45,6 +47,11 @@ export class AuthService {
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Role validation for unified login
+    if (requestedRole && user.role !== requestedRole) {
+      throw new UnauthorizedException(`You do not have ${requestedRole} role access. Your role is ${user.role}.`);
     }
 
     // Update last login

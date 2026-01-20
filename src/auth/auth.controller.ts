@@ -72,15 +72,15 @@ export class AuthController {
    * SECURITY FIX: Now uses httpOnly cookies instead of localStorage
    *
    * Authenticates user credentials and sets httpOnly cookies for tokens.
-   * Supports all user roles: EMPLOYEE, HR, ADMIN, COACH
+   * Supports unified login with role validation for SSO across subdomains.
    *
    * Rate limited to 50 login attempts per minute to prevent brute force attacks.
    *
-   * @param dto - Login credentials (email and password)
+   * @param dto - Login credentials (email, password, and optional role)
    * @param req - Express request object for IP and user agent
    * @param res - Express response object to set cookies
-   * @returns User information (tokens set in httpOnly cookies)
-   * @throws UnauthorizedException if credentials are invalid
+   * @returns User information with redirectUrl for SSO (tokens set in httpOnly cookies)
+   * @throws UnauthorizedException if credentials are invalid or role mismatch
    * @route POST /api/v1/auth/login
    * @access Public
    * @rateLimit 50 requests per minute
@@ -101,6 +101,7 @@ export class AuthController {
       dto.email,
       dto.password,
       context,
+      dto.role, // Pass optional role for validation
     );
 
     // Set httpOnly cookies for tokens
@@ -125,9 +126,19 @@ export class AuthController {
       domain: cookieDomain,
     });
 
-    // Return user data without tokens (tokens are in cookies)
+    // Determine redirect URL based on user role
+    const redirectMap = {
+      EMPLOYEE: process.env.EMPLOYEE_PORTAL_URL || 'https://employee.koshpal.com',
+      HR: process.env.HR_PORTAL_URL || 'https://hr.koshpal.com',
+      COACH: process.env.COACH_PORTAL_URL || 'https://coach.koshpal.com',
+      ADMIN: process.env.ADMIN_PORTAL_URL || 'https://admin.koshpal.com',
+    };
+
+    // Return user data with redirectUrl for SSO
     return {
       user: result.user,
+      role: result.user.role,
+      redirectUrl: redirectMap[result.user.role] || 'https://koshpal.com',
     };
   }
 

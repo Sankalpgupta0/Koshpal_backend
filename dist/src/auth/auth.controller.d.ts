@@ -17,6 +17,8 @@ export declare class AuthController {
             name: string;
             isActive: true;
         };
+        role: import("@prisma/client").$Enums.Role;
+        redirectUrl: string;
     }>;
     getMe(user: ValidatedUser): ValidatedUser;
     refresh(req: Request, res: Response): Promise<{

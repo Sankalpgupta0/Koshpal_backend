@@ -56,7 +56,7 @@ let AuthService = class AuthService {
         this.prisma = prisma;
         this.jwtService = jwtService;
     }
-    async login(email, password, context) {
+    async login(email, password, context, requestedRole) {
         const user = await this.prisma.user.findUnique({
             where: { email },
             include: {
@@ -72,6 +72,9 @@ let AuthService = class AuthService {
         const isValid = await bcrypt.compare(password, user.passwordHash);
         if (!isValid) {
             throw new common_1.UnauthorizedException('Invalid credentials');
+        }
+        if (requestedRole && user.role !== requestedRole) {
+            throw new common_1.UnauthorizedException(`You do not have ${requestedRole} role access. Your role is ${user.role}.`);
         }
         await this.prisma.user.update({
             where: { id: user.id },

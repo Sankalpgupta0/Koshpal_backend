@@ -143,41 +143,81 @@ let EmployeeService = class EmployeeService {
     }
     async updateOwnProfile(userId, body, imageUrl, imagePublicId) {
         try {
-            console.log('Service: updateOwnProfile called', { userId, body, imageUrl, imagePublicId });
+            console.log('=== SERVICE: updateOwnProfile START ===');
+            console.log('Input Parameters:', {
+                userId,
+                body,
+                hasImageUrl: !!imageUrl,
+                imageUrl: imageUrl || 'None',
+                hasImagePublicId: !!imagePublicId,
+                imagePublicId: imagePublicId || 'None'
+            });
             const profile = await this.prisma.employeeProfile.findUnique({
                 where: { userId },
             });
             if (!profile) {
+                console.error('Employee profile not found for userId:', userId);
                 throw new Error('Employee profile not found');
             }
+            console.log('Existing Profile:', {
+                userId: profile.userId,
+                fullName: profile.fullName,
+                phone: profile.phone,
+                hasCurrentPhoto: !!profile.profilePhoto,
+                currentPhotoUrl: profile.profilePhoto || 'None',
+                currentPhotoId: profile.profilePhotoId || 'None'
+            });
             if (imagePublicId && profile.profilePhotoId) {
                 try {
-                    console.log('Deleting old image:', profile.profilePhotoId);
+                    console.log('Attempting to delete old Cloudinary image:', profile.profilePhotoId);
                     await (0, cloudinary_helper_1.deleteFromCloudinary)(profile.profilePhotoId);
+                    console.log('Old image deleted successfully');
                 }
                 catch (error) {
-                    console.error('Failed to delete old image:', error);
+                    console.error('Failed to delete old image from Cloudinary:', error);
                 }
             }
+            else {
+                console.log('No old image to delete or no new image provided');
+            }
+            const updateData = {};
+            if (body.name !== undefined) {
+                updateData.fullName = body.name;
+                console.log('Updating fullName to:', body.name);
+            }
+            if (body.phone !== undefined) {
+                updateData.phone = body.phone;
+                console.log('Updating phone to:', body.phone);
+            }
+            if (imageUrl && imagePublicId) {
+                updateData.profilePhoto = imageUrl;
+                updateData.profilePhotoId = imagePublicId;
+                console.log('Updating profile photo:', { imageUrl, imagePublicId });
+            }
+            console.log('Final update data:', updateData);
             const updatedProfile = await this.prisma.employeeProfile.update({
                 where: { userId },
-                data: {
-                    ...(body.name !== undefined && { fullName: body.name }),
-                    ...(body.phone !== undefined && { phone: body.phone }),
-                    ...(imageUrl && imagePublicId && {
-                        profilePhoto: imageUrl,
-                        profilePhotoId: imagePublicId,
-                    }),
-                },
+                data: updateData,
             });
-            console.log('Profile updated successfully:', updatedProfile.userId);
+            console.log('Profile updated successfully in database:', {
+                userId: updatedProfile.userId,
+                fullName: updatedProfile.fullName,
+                phone: updatedProfile.phone,
+                profilePhoto: updatedProfile.profilePhoto || 'None',
+                profilePhotoId: updatedProfile.profilePhotoId || 'None'
+            });
+            console.log('=== SERVICE: updateOwnProfile END ===');
             return {
                 message: 'Profile updated successfully',
                 profile: updatedProfile,
             };
         }
         catch (error) {
-            console.error('Error in updateOwnProfile service:', error);
+            console.error('=== SERVICE ERROR in updateOwnProfile ===');
+            console.error('Error details:', error);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+            console.error('=== SERVICE ERROR END ===');
             throw error;
         }
     }

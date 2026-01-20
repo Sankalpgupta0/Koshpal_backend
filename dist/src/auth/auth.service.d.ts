@@ -9,7 +9,7 @@ export declare class AuthService {
     private prisma;
     private jwtService;
     constructor(prisma: PrismaService, jwtService: JwtService);
-    login(email: string, password: string, context?: LoginContext): Promise<{
+    login(email: string, password: string, context?: LoginContext, requestedRole?: string): Promise<{
         accessToken: string;
         refreshToken: string;
         user: {
