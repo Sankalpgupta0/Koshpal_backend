@@ -403,25 +403,29 @@ async function main() {
             }
             console.log(`✅ Created ${transactions.length} transactions across 2 accounts\n`);
             console.log('📅 Creating coach availability slots...');
-            const slots = [];
+            const slotsData = [];
             const today = new Date();
             for (let day = 1; day <= 5; day++) {
                 const slotDate = getFutureDate(day);
                 for (let hour = 9; hour < 17; hour++) {
                     const startTime = getDateWithTime(slotDate, hour);
                     const endTime = getDateWithTime(slotDate, hour + 1);
-                    const slot = await tx.coachSlot.create({
-                        data: {
-                            coachId: coach.id,
-                            date: slotDate,
-                            startTime: startTime,
-                            endTime: endTime,
-                            status: client_1.SlotStatus.AVAILABLE,
-                        },
+                    slotsData.push({
+                        coachId: coach.id,
+                        date: slotDate,
+                        startTime: startTime,
+                        endTime: endTime,
+                        status: client_1.SlotStatus.AVAILABLE,
                     });
-                    slots.push(slot);
                 }
             }
+            await tx.coachSlot.createMany({
+                data: slotsData,
+                skipDuplicates: true,
+            });
+            const slots = await tx.coachSlot.findMany({
+                where: { coachId: coach.id },
+            });
             console.log(`✅ Created ${slots.length} availability slots for coach\n`);
             console.log('📋 Creating consultation booking...');
             const bookingSlot = slots.find(slot => slot.status === client_1.SlotStatus.AVAILABLE);
@@ -468,6 +472,8 @@ async function main() {
             console.log(`   HR: hr@abc.com / password123`);
             console.log(`   Coach: coach@koshpal.com / password123`);
             console.log(`   Employee: employee@abc.com / password123`);
+        }, {
+            timeout: 60000,
         });
     }
     catch (error) {

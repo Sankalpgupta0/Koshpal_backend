@@ -29,7 +29,7 @@ async function bootstrap() {
    */
   app.enableCors({
     origin: [
-      'https://koshpal.com',
+      'https://www.koshpal.com',
       'https://employee.koshpal.com',
       'https://hr.koshpal.com',
       'https://coach.koshpal.com',
@@ -37,6 +37,8 @@ async function bootstrap() {
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:5175',
+      'http://localhost:5176',
+      'http://localhost:5177',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

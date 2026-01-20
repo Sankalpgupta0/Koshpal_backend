@@ -36,7 +36,7 @@ async function main() {
   console.log('🌱 Seeding database with Koshpal production-like test data...\n');
 
   try {
-    // Wrap everything in a transaction for atomicity
+    // Wrap everything in a transaction for atomicity with extended timeout
     await prisma.$transaction(async (tx) => {
       // ========================================
       // 1️⃣ COMPANY
@@ -440,28 +440,36 @@ async function main() {
       // ========================================
       console.log('📅 Creating coach availability slots...');
 
-      const slots: any[] = [];
+      const slotsData: any[] = [];
       const today = new Date();
 
-      // Create slots for next 5 days (9 AM to 5 PM, 1-hour slots)
+      // Prepare slots for next 5 days (9 AM to 5 PM, 1-hour slots)
       for (let day = 1; day <= 5; day++) {
         const slotDate = getFutureDate(day);
         for (let hour = 9; hour < 17; hour++) {
           const startTime = getDateWithTime(slotDate, hour);
           const endTime = getDateWithTime(slotDate, hour + 1);
 
-          const slot = await tx.coachSlot.create({
-            data: {
-              coachId: coach.id,
-              date: slotDate,
-              startTime: startTime,
-              endTime: endTime,
-              status: SlotStatus.AVAILABLE,
-            },
+          slotsData.push({
+            coachId: coach.id,
+            date: slotDate,
+            startTime: startTime,
+            endTime: endTime,
+            status: SlotStatus.AVAILABLE,
           });
-          slots.push(slot);
         }
       }
+
+      // Use createMany for batch insert (much faster)
+      await tx.coachSlot.createMany({
+        data: slotsData,
+        skipDuplicates: true,
+      });
+
+      // Fetch created slots
+      const slots = await tx.coachSlot.findMany({
+        where: { coachId: coach.id },
+      });
 
       console.log(`✅ Created ${slots.length} availability slots for coach\n`);
 
@@ -517,6 +525,8 @@ async function main() {
       console.log(`   HR: hr@abc.com / password123`);
       console.log(`   Coach: coach@koshpal.com / password123`);
       console.log(`   Employee: employee@abc.com / password123`);
+    }, {
+      timeout: 60000, // 60 seconds timeout for large transaction
     });
 
   } catch (error) {

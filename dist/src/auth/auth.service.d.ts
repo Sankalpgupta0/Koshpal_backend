@@ -14,10 +14,12 @@ export declare class AuthService {
         refreshToken: string;
         user: {
             id: string;
+            _id: string;
             email: string;
             role: import("@prisma/client").$Enums.Role;
             companyId: string | null;
             name: string;
+            phone: string;
             isActive: true;
         };
     }>;

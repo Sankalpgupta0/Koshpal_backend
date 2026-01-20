@@ -21,10 +21,13 @@ const auth_dto_1 = require("./dto/auth.dto");
 const forgot_password_dto_1 = require("./dto/forgot-password.dto");
 const jwt_auth_guard_1 = require("../common/guards/jwt-auth.guard");
 const current_user_decorator_1 = require("../common/decorators/current-user.decorator");
+const prisma_service_1 = require("../../prisma/prisma.service");
 let AuthController = class AuthController {
     authService;
-    constructor(authService) {
+    prisma;
+    constructor(authService, prisma) {
         this.authService = authService;
+        this.prisma = prisma;
     }
     getCookieDomain(req) {
         const origin = req.headers.origin || req.headers.referer;
@@ -32,6 +35,9 @@ let AuthController = class AuthController {
             return undefined;
         try {
             const url = new URL(origin);
+            if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+                return undefined;
+            }
             if (url.hostname.endsWith('.localhost')) {
                 return url.hostname;
             }
@@ -53,10 +59,11 @@ let AuthController = class AuthController {
         const result = await this.authService.login(dto.email, dto.password, context, dto.role);
         const isProduction = process.env.NODE_ENV === 'production';
         const cookieDomain = this.getCookieDomain(req);
+        const isLocalhost = req.headers.origin?.includes('localhost') || req.headers.referer?.includes('localhost');
         res.cookie('accessToken', result.accessToken, {
             httpOnly: true,
             secure: isProduction,
-            sameSite: 'none',
+            sameSite: isLocalhost ? 'lax' : 'none',
             maxAge: 15 * 60 * 1000,
             path: '/',
             domain: cookieDomain,
@@ -64,7 +71,7 @@ let AuthController = class AuthController {
         res.cookie('refreshToken', result.refreshToken, {
             httpOnly: true,
             secure: isProduction,
-            sameSite: 'none',
+            sameSite: isLocalhost ? 'lax' : 'none',
             maxAge: 7 * 24 * 60 * 60 * 1000,
             path: '/',
             domain: cookieDomain,
@@ -81,8 +88,52 @@ let AuthController = class AuthController {
             redirectUrl: redirectMap[result.user.role] || 'https://koshpal.com',
         };
     }
-    getMe(user) {
-        return user;
+    async getMe(user) {
+        const userData = await this.prisma.user.findUnique({
+            where: { id: user.userId },
+            include: {
+                employeeProfile: true,
+                hrProfile: true,
+                adminProfile: true,
+                coachProfile: true,
+            },
+        });
+        if (!userData) {
+            throw new common_1.UnauthorizedException('User not found');
+        }
+        let fullName = userData.email;
+        let phone = '';
+        let profileId = '';
+        if (userData.employeeProfile) {
+            fullName = userData.employeeProfile.fullName;
+            phone = userData.employeeProfile.phone || '';
+            profileId = userData.employeeProfile.userId;
+        }
+        else if (userData.hrProfile) {
+            fullName = userData.hrProfile.fullName;
+            phone = userData.hrProfile.phone || '';
+            profileId = userData.hrProfile.userId;
+        }
+        else if (userData.adminProfile) {
+            fullName = userData.adminProfile.fullName;
+            phone = '';
+            profileId = userData.adminProfile.userId;
+        }
+        else if (userData.coachProfile) {
+            fullName = userData.coachProfile.fullName;
+            phone = userData.coachProfile.phone || '';
+            profileId = userData.coachProfile.userId;
+        }
+        return {
+            userId: userData.id,
+            _id: profileId,
+            role: userData.role,
+            companyId: userData.companyId,
+            email: userData.email,
+            name: fullName,
+            phone: phone,
+            isActive: userData.isActive,
+        };
     }
     async refresh(req, res) {
         const refreshToken = req.cookies?.refreshToken;
@@ -92,10 +143,11 @@ let AuthController = class AuthController {
         const result = await this.authService.refresh(refreshToken);
         const isProduction = process.env.NODE_ENV === 'production';
         const cookieDomain = this.getCookieDomain(req);
+        const isLocalhost = req.headers.origin?.includes('localhost') || req.headers.referer?.includes('localhost');
         res.cookie('accessToken', result.accessToken, {
             httpOnly: true,
             secure: isProduction,
-            sameSite: 'none',
+            sameSite: isLocalhost ? 'lax' : 'none',
             maxAge: 15 * 60 * 1000,
             path: '/',
             domain: cookieDomain,
@@ -145,7 +197,7 @@ __decorate([
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Object)
+    __metadata("design:returntype", Promise)
 ], AuthController.prototype, "getMe", null);
 __decorate([
     (0, common_1.Post)('refresh'),
@@ -208,6 +260,7 @@ __decorate([
 ], AuthController.prototype, "resetPassword", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('api/v1/auth'),
-    __metadata("design:paramtypes", [auth_service_1.AuthService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService,
+        prisma_service_1.PrismaService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

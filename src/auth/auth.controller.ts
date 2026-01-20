@@ -20,6 +20,7 @@ import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { ValidatedUser } from '../common/types/user.types';
+import { PrismaService } from '../../prisma/prisma.service';
 
 /**
  * Authentication Controller
@@ -36,7 +37,10 @@ import type { ValidatedUser } from '../common/types/user.types';
  */
 @Controller('api/v1/auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private prisma: PrismaService,
+  ) {}
 
   /**
    * Helper method to determine cookie domain based on request origin
@@ -49,6 +53,11 @@ export class AuthController {
 
     try {
       const url = new URL(origin);
+
+      // For localhost, don't set domain (let browser handle it)
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        return undefined;
+      }
 
       // For localhost subdomains, set domain to the specific subdomain
       if (url.hostname.endsWith('.localhost')) {
@@ -107,11 +116,14 @@ export class AuthController {
     // Set httpOnly cookies for tokens
     const isProduction = process.env.NODE_ENV === 'production';
     const cookieDomain = this.getCookieDomain(req);
+    
+    // For localhost development, use 'lax' sameSite. For production, use 'none' with secure
+    const isLocalhost = req.headers.origin?.includes('localhost') || req.headers.referer?.includes('localhost');
 
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
       secure: isProduction, // Only send over HTTPS in production
-      sameSite: 'none',
+      sameSite: isLocalhost ? 'lax' : 'none', // 'lax' for localhost, 'none' for production
       maxAge: 15 * 60 * 1000, // 15 minutes
       path: '/',
       domain: cookieDomain,
@@ -120,7 +132,7 @@ export class AuthController {
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'none',
+      sameSite: isLocalhost ? 'lax' : 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
       domain: cookieDomain,
@@ -146,17 +158,64 @@ export class AuthController {
    * Get Current User
    *
    * Retrieves the currently authenticated user's information from the JWT token.
-   * Returns user ID, email, role, and other profile data.
+   * Returns user ID, email, role, and other profile data including name and phone.
    *
    * @param user - Authenticated user extracted from JWT token
-   * @returns Current user information
+   * @returns Current user information with full profile
    * @route GET /api/v1/auth/me
    * @access Protected - Requires valid JWT token
    */
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  getMe(@CurrentUser() user: ValidatedUser): ValidatedUser {
-    return user;
+  async getMe(@CurrentUser() user: ValidatedUser) {
+    // Fetch full user data from database
+    const userData = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+      include: {
+        employeeProfile: true,
+        hrProfile: true,
+        adminProfile: true,
+        coachProfile: true,
+      },
+    });
+
+    if (!userData) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Get profile data based on role
+    let fullName = userData.email;
+    let phone = '';
+    let profileId = '';
+
+    if (userData.employeeProfile) {
+      fullName = userData.employeeProfile.fullName;
+      phone = userData.employeeProfile.phone || '';
+      profileId = userData.employeeProfile.userId;
+    } else if (userData.hrProfile) {
+      fullName = userData.hrProfile.fullName;
+      phone = userData.hrProfile.phone || '';
+      profileId = userData.hrProfile.userId;
+    } else if (userData.adminProfile) {
+      fullName = userData.adminProfile.fullName;
+      phone = '';
+      profileId = userData.adminProfile.userId;
+    } else if (userData.coachProfile) {
+      fullName = userData.coachProfile.fullName;
+      phone = userData.coachProfile.phone || '';
+      profileId = userData.coachProfile.userId;
+    }
+
+    return {
+      userId: userData.id,
+      _id: profileId, // Add _id for frontend compatibility (references profile ID)
+      role: userData.role,
+      companyId: userData.companyId,
+      email: userData.email,
+      name: fullName,
+      phone: phone,
+      isActive: userData.isActive,
+    };
   }
 
   /**
@@ -188,11 +247,12 @@ export class AuthController {
     // Set new access token in cookie
     const isProduction = process.env.NODE_ENV === 'production';
     const cookieDomain = this.getCookieDomain(req);
+    const isLocalhost = req.headers.origin?.includes('localhost') || req.headers.referer?.includes('localhost');
     
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'none',
+      sameSite: isLocalhost ? 'lax' : 'none',
       maxAge: 15 * 60 * 1000, // 15 minutes
       path: '/',
       domain: cookieDomain,

@@ -101,27 +101,39 @@ let AuthService = class AuthService {
             },
         });
         let fullName = email;
+        let phone = '';
+        let profileId = '';
         if (user.employeeProfile) {
             fullName = user.employeeProfile.fullName;
+            phone = user.employeeProfile.phone || '';
+            profileId = user.employeeProfile.userId;
         }
         else if (user.hrProfile) {
             fullName = user.hrProfile.fullName;
+            phone = user.hrProfile.phone || '';
+            profileId = user.hrProfile.userId;
         }
         else if (user.adminProfile) {
             fullName = user.adminProfile.fullName;
+            phone = '';
+            profileId = user.adminProfile.userId;
         }
         else if (user.coachProfile) {
             fullName = user.coachProfile.fullName;
+            phone = user.coachProfile.phone || '';
+            profileId = user.coachProfile.userId;
         }
         return {
             accessToken,
             refreshToken,
             user: {
                 id: user.id,
+                _id: profileId,
                 email: user.email,
                 role: user.role,
                 companyId: user.companyId,
                 name: fullName,
+                phone: phone,
                 isActive: user.isActive,
             },
         };

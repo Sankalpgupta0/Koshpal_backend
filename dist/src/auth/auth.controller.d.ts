@@ -4,23 +4,36 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/auth.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto';
 import type { ValidatedUser } from '../common/types/user.types';
+import { PrismaService } from '../../prisma/prisma.service';
 export declare class AuthController {
     private authService;
-    constructor(authService: AuthService);
+    private prisma;
+    constructor(authService: AuthService, prisma: PrismaService);
     private getCookieDomain;
     login(dto: LoginDto, req: Request, res: Response): Promise<{
         user: {
             id: string;
+            _id: string;
             email: string;
             role: import("@prisma/client").$Enums.Role;
             companyId: string | null;
             name: string;
+            phone: string;
             isActive: true;
         };
         role: import("@prisma/client").$Enums.Role;
         redirectUrl: string;
     }>;
-    getMe(user: ValidatedUser): ValidatedUser;
+    getMe(user: ValidatedUser): Promise<{
+        userId: string;
+        _id: string;
+        role: import("@prisma/client").$Enums.Role;
+        companyId: string | null;
+        email: string;
+        name: string;
+        phone: string;
+        isActive: boolean;
+    }>;
     refresh(req: Request, res: Response): Promise<{
         message: string;
     }>;
